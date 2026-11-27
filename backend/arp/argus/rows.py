@@ -32,7 +32,7 @@ DOC_TYPE_WORDS = {
     "investor_presentation": "presentation", "transition_plan": "transition-plan",
 }
 _WORD_ORDER = [*DOC_TYPE_WORDS.values(), "other"]
-_RUN_LABELS = {"financials": "Financials", "tnfd": "TNFD", "transition_plan": "Transition Plan"}
+_RUN_LABELS = {"transition_plan": "Transition Plan"}
 
 
 class PriorRun(BaseModel):

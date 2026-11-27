@@ -10,8 +10,8 @@ from arp.orchestration.plan_api import STEPS
 from arp.orchestration.plan_planner import SYSTEM, step_stubs
 
 SANDBOX = ["portfolio_exposure", "smart_search", "transition_plan"]
-PLAN = ["document_discovery", "extraction", "financials_extraction", "identity_resolution",
-        "report_render", "tnfd_extraction", "universe_build", "xbrl_facts"]
+PLAN = ["document_discovery", "extraction", "identity_resolution",
+        "report_render", "universe_build", "xbrl_facts"]
 
 
 def test_route_orders_sandbox_then_plan():  # AC-11, AC-12
@@ -21,8 +21,8 @@ def test_route_orders_sandbox_then_plan():  # AC-11, AC-12
     assert [c["id"] for c in body] == SANDBOX + PLAN
     assert all(c["lane"] == "sandbox" and c["effect"] == "read" for c in body[:3])
     assert all(c["lane"] == "plan" and c["effect"] == "run" for c in body[3:])
-    tnfd = next(c for c in body if c["id"] == "tnfd_extraction")
-    assert tnfd["input_schema"]["required"] == ["universe_run_id", "as_of"]
+    ext = next(c for c in body if c["id"] == "extraction")
+    assert ext["input_schema"]["required"] == ["universe_run_id", "schema_id"]
     tp = next(c for c in body if c["id"] == "transition_plan")
     assert "required" not in tp["input_schema"]  # an omitted company means null
 
@@ -50,13 +50,13 @@ def test_check_accepts_identity_resolution(tmp_path):  # AC-14
     assert result.stdout.strip() == "ok"
 
 
-def test_check_refuses_unknown_tnfd_argument(tmp_path):  # AC-15
-    result = _check(tmp_path, 'tnfd_extraction(universe_run_id="r", as_of="2025-12-31", foo=1)\n')
+def test_check_refuses_unknown_step_argument(tmp_path):  # AC-15
+    result = _check(tmp_path, 'identity_resolution(universe_run_id="r", foo=1)\n')
     assert result.exit_code == 1
-    assert "line 1: tnfd_extraction: unexpected argument foo" in result.stdout
+    assert "line 1: identity_resolution: unexpected argument foo" in result.stdout
 
 
 def test_planner_prompt_lists_the_plan_lane_only():  # AC-16 (the prompt draft_plan sends)
     system = SYSTEM.replace("{stubs}", step_stubs())
-    assert "def identity_resolution(" in system and "def tnfd_extraction(" in system
+    assert "def identity_resolution(" in system and "def extraction(" in system
     assert "def smart_search(" not in system

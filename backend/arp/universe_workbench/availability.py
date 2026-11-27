@@ -10,7 +10,7 @@ from arp.storage.document_store import DocumentContentStore, files_on_disk
 from arp.storage.run_store import RunStore
 from arp.xbrl_pipeline.store import XbrlStore
 
-EXTRACTION_RUN_TYPES = ("extraction", "financials", "tnfd", "transition_plan")
+EXTRACTION_RUN_TYPES = ("extraction", "transition_plan")
 
 
 class IdentityAvail(BaseModel):

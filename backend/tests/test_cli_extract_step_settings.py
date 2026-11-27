@@ -79,22 +79,24 @@ def test_cli_run_batch_marks_the_run_and_batches_the_clients(tmp_path, monkeypat
 
 
 def test_cli_batch_run_that_crashes_is_still_marked(tmp_path, monkeypatch):
-    from arp.extraction.financials_pipeline import create_financials_extraction_run
+    from arp.extraction.pipeline import create_extraction_run
 
     settings = Settings(anthropic_api_key="unused", runs_dir=tmp_path / "runs", cache_dir=tmp_path / "cache")
     store = RunStore(pg_dsn(), settings.runs_dir)
 
-    async def crashing_run(companies, *, settings, run_store, **kwargs):
-        create_financials_extraction_run(companies, settings, run_store)
+    async def crashing_run(schema, companies, *, settings, run_store, **kwargs):
+        create_extraction_run(schema, companies, settings, run_store, trial=True)
         raise RuntimeError("boom")
 
     monkeypatch.setattr(cli, "get_settings", lambda: settings)
     monkeypatch.setattr(cli, "_run_store", lambda: store)
     monkeypatch.setattr(cli, "_xbrl_source", lambda: None)
-    monkeypatch.setattr(cli, "run_financials_extraction", crashing_run)
+    monkeypatch.setattr(cli, "run_extraction", crashing_run)
+    schema = tmp_path / "schema.json"
+    schema.write_text('{"schema_id": "s1", "name": "S", "fields": []}')
     universe = tmp_path / "universe.csv"
     universe.write_text("company_id,name\nAAA,Alpha Inc\n")
     for flag in ("--batch", None):
-        res = CliRunner().invoke(extract_app, ["financials-run", "--universe", str(universe), *([flag] if flag else [])])
+        res = CliRunner().invoke(extract_app, ["run", "--schema", str(schema), "--universe", str(universe), *([flag] if flag else [])])
         assert res.exit_code != 0
     assert sorted(str(m.params.get("batch")) for m in store.list_runs()) == ["None", "True"]

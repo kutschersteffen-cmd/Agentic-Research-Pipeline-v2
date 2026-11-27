@@ -151,19 +151,6 @@ def build_steps(settings: Settings, run_store: RunStore) -> dict[str, Step]:
                                      verifier_llm=build_verifier_llm_client(settings), registry=get_registry(),
                                      settings=settings, run_store=run_store)
 
-    def financials_create(*, universe_run_id: str, companies: list[str] | None = None) -> str:
-        from arp.extraction.financials_pipeline import create_financials_extraction_run
-
-        return create_financials_extraction_run(_companies(run_store, universe_run_id, companies), settings, run_store)
-
-    async def financials_execute(run_id: str, *, universe_run_id: str, companies: list[str] | None = None) -> None:
-        from arp.extraction.financials_pipeline import execute_financials_extraction_run
-
-        await execute_financials_extraction_run(run_id, _companies(run_store, universe_run_id, companies),
-                                                llm=build_llm_client(settings),
-                                                verifier_llm=build_verifier_llm_client(settings),
-                                                registry=get_registry(), settings=settings, run_store=run_store)
-
     def xbrl_create(*, universe_run_id: str, companies: list[str] | None = None, market: str = "auto") -> str:
         from arp.xbrl_pipeline.fetch import create_xbrl_run
 
@@ -186,20 +173,6 @@ def build_steps(settings: Settings, run_store: RunStore) -> dict[str, Step]:
 
         await execute_identity_run(run_id, _companies(run_store, universe_run_id, companies),
                                    llm=build_llm_client(settings), settings=settings, run_store=run_store)
-
-    def tnfd_create(*, universe_run_id: str, as_of: str, companies: list[str] | None = None) -> str:
-        from arp.extraction.tnfd_pipeline import create_tnfd_extraction_run
-
-        return create_tnfd_extraction_run(_companies(run_store, universe_run_id, companies), as_of, settings, run_store)
-
-    async def tnfd_execute(run_id: str, *, universe_run_id: str, as_of: str,
-                           companies: list[str] | None = None) -> None:
-        from arp.extraction.tnfd_pipeline import execute_tnfd_extraction_run
-
-        await execute_tnfd_extraction_run(run_id, _companies(run_store, universe_run_id, companies), as_of,
-                                          llm=build_llm_client(settings),
-                                          verifier_llm=build_verifier_llm_client(settings), registry=get_registry(),
-                                          settings=settings, run_store=run_store)
 
     def report_start(_launch_key: str | None, *, source_ids: list[str], template_id: str | None = None) -> str:
         # shortcut: a report manifest has no params to carry the launch key, so a crash inside create_and_plan leaves
@@ -230,11 +203,9 @@ def build_steps(settings: Settings, run_store: RunStore) -> dict[str, Step]:
         "universe_build": Step(universe_start, universe_finish),
         "document_discovery": _background(run_store, discovery_create, discovery_execute),
         "extraction": _background(run_store, extraction_create, extraction_execute),
-        "financials_extraction": _background(run_store, financials_create, financials_execute),
         "xbrl_facts": _background(run_store, xbrl_create, xbrl_execute),
         "report_render": Step(report_start, report_finish),
         "identity_resolution": _background(run_store, identity_create, identity_execute),
-        "tnfd_extraction": _background(run_store, tnfd_create, tnfd_execute),
     }
 
 

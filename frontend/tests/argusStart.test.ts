@@ -9,29 +9,29 @@ const run = (r: Partial<RunManifest>): RunManifest =>
 const item = (run_id: string, kind = "value"): ReviewItem => ({ run_id, kind, item_key: `${run_id}:${Math.random()}` }) as unknown as ReviewItem;
 
 const R1 = run({ run_id: "r1", status: "running", created_at: "2026-10-01", params: { schema_name: "Green capex", schema_version: "s1:v2", started_by: "alice" } });
-const R2 = run({ run_id: "r2", run_type: "financials", status: "completed", review_count: 2, created_at: "2026-10-02", params: { started_by: "bob" } });
+const R2 = run({ run_id: "r2", run_type: "extraction", status: "completed", review_count: 2, created_at: "2026-10-02", params: { schema_name: "Scope 1", schema_version: "s2:v1", started_by: "bob" } });
 
 test("rows are Argus runs only, newest first, labelled and stepped", () => {
   const rows = argusRows([R1, R2, run({ run_id: "t", run_type: "theme", status: "completed", created_at: "2026-10-03" })], [item("r2")]);
   assert.deepEqual(rows.map((r) => [r.runId, r.label, r.step, r.status, r.startedBy, r.companies]), [
-    ["r2", "Financials", 5, "Needs you", "bob", 3],
+    ["r2", "Scope 1 v1", 5, "Needs you", "bob", 3],
     ["r1", "Green capex v2", 4, "Running", "alice", 3],
   ]);
-  assert.deepEqual(rows.map((r) => r.openHref), ["#/review/financials/r2", "#/history/r1"]);
+  assert.deepEqual(rows.map((r) => r.openHref), ["#/review/extraction/r2", "#/history/r1"]);
 });
 
 test("cancelled is Stopped, failed is Failed, finished without review is Finished; old transition_plan runs list", () => {
   const rows = argusRows([
     run({ run_id: "a", status: "cancelled", created_at: "1" }),
     run({ run_id: "b", status: "failed", created_at: "2" }),
-    run({ run_id: "c", run_type: "tnfd", status: "partially_completed", created_at: "3" }),
+    run({ run_id: "c", run_type: "extraction", status: "partially_completed", created_at: "3" }),
     run({ run_id: "d", run_type: "transition_plan", status: "completed", created_at: "4" }),
     run({ run_id: "e", status: "pending", created_at: "5" }),
   ], []);
   assert.deepEqual(rows.map((r) => [r.runId, r.label, r.step, r.status]), [
     ["e", "Extraction", 4, "Running"],
     ["d", "Transition Plan", 5, "Finished"],
-    ["c", "TNFD", 5, "Finished"],
+    ["c", "Extraction", 5, "Finished"],
     ["b", "Extraction", 4, "Failed"],
     ["a", "Extraction", 4, "Stopped"],
   ]);
@@ -96,7 +96,7 @@ test("rows show the starter's name and filter on the starter's id; old runs fall
 test("a run started from a flow opens that flow's step; the flow is no longer a draft row", () => {
   const f = { flow_id: "f1", run_id: "r1", step: 4, companies: [], created_at: "2026-10-01", started_by: "alice", started_by_name: "Alice" };
   const rows = argusRows([R1, R2], [], [f as never]);
-  assert.deepEqual(rows.map((r) => [r.runId, r.openHref]), [["r2", "#/review/financials/r2"], ["r1", "#/argus/f1/4"]]);
+  assert.deepEqual(rows.map((r) => [r.runId, r.openHref]), [["r2", "#/review/extraction/r2"], ["r1", "#/argus/f1/4"]]);
   const done = argusRows([run({ run_id: "r1", status: "completed" })], [], [f as never]);
   assert.equal(done[0].openHref, "#/argus/f1/5");
 });

@@ -24,7 +24,6 @@ from arp.storage.postgres_engagement_store import PostgresEngagementStore
 from arp.storage.reporting_store import ReportingStore
 from arp.storage.run_store import RunStore
 from arp.storage.taxonomy_store import TaxonomyStore
-from arp.storage.topic_store import TopicStateStore
 
 
 async def _and_drain(coro):
@@ -119,11 +118,6 @@ def _resolve_taxonomy_ref_or_exit(ref_str: str):
         typer.echo(f"Taxonomy not found: {ref_str}", err=True)
         raise typer.Exit(1)
     return taxonomy
-
-
-
-def _topic_store() -> TopicStateStore:
-    return TopicStateStore(get_settings().emerging_themes_state_dir / "topics")
 
 
 

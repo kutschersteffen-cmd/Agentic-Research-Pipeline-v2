@@ -46,6 +46,30 @@ def test_ac5_no_password_unchanged(monkeypatch):
     assert res.output.splitlines()[0] == "Postgres schema at postgresql+psycopg://arp@db.example/arp:"
 
 
+def test_check_postgres_unmatched_company_rows_hint(monkeypatch):
+    report = {**_report(True), "unmatched_company_rows": {"published_facts": 2}}
+    monkeypatch.setattr(db_cli, "get_settings", lambda: SimpleNamespace(postgres_dsn=DSN))
+    monkeypatch.setattr("arp.storage.postgres_schema.schema_report", lambda _dsn: report)
+    res = runner.invoke(db_cli.db_app, ["check-postgres"])
+    assert res.exit_code == 0
+    assert "published_facts=2 (matched by `arp db init-postgres` once the company exists)" in res.output
+    assert "s3cr3t-pw" not in res.output
+
+
+def test_require_cutover_schema_gate(monkeypatch):
+    from arp.db.session import require_cutover
+
+    settings = SimpleNamespace(postgres_dsn=DSN, skip_cutover_check=False)
+    monkeypatch.setattr("arp.storage.postgres_schema.schema_gaps", lambda _dsn: ([], [], []))
+    require_cutover(settings)  # current schema passes
+
+    monkeypatch.setattr("arp.storage.postgres_schema.schema_gaps", lambda _dsn: (["runs"], [], ["step1"]))
+    with pytest.raises(RuntimeError, match="arp db upgrade.*arp db init-postgres"):
+        require_cutover(settings)
+
+    require_cutover(SimpleNamespace(postgres_dsn=DSN, skip_cutover_check=True))
+
+
 # ---- net_safety -----------------------------------------------------------------------------
 def _literal_resolver(monkeypatch):
     monkeypatch.setattr(socket, "getaddrinfo", lambda host, *a, **k: [(2, 1, 6, "", (host, 0))])

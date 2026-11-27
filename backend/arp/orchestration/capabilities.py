@@ -32,11 +32,6 @@ class Extraction(_Step):
     companies: list[str] | None = None
 
 
-class FinancialsExtraction(_Step):
-    universe_run_id: str
-    companies: list[str] | None = None
-
-
 class XbrlFacts(_Step):
     universe_run_id: str
     companies: list[str] | None = None
@@ -52,12 +47,6 @@ class ReportRender(_Step):
 
 class IdentityResolution(_Step):
     universe_run_id: str
-    companies: list[str] | None = None
-
-
-class TnfdExtraction(_Step):
-    universe_run_id: str
-    as_of: str  # the reporting period every company is extracted for
     companies: list[str] | None = None
 
 
@@ -100,9 +89,7 @@ CATALOG: list[Capability] = [
     _run("universe_build", "Build a theme universe from a saved company universe.", UniverseBuild),
     _run("document_discovery", "Find and download each company's documents.", DocumentDiscovery),
     _run("extraction", "Extract a schema's fields from each company's documents.", Extraction),
-    _run("financials_extraction", "Extract each company's financials.", FinancialsExtraction),
     _run("xbrl_facts", "Fetch each company's XBRL facts.", XbrlFacts),
     _run("report_render", "Render a report from runs.", ReportRender),
     _run("identity_resolution", "Resolve each company's website, CIK and LEI.", IdentityResolution),
-    _run("tnfd_extraction", "Extract each company's TNFD disclosures for one reporting period.", TnfdExtraction),
 ]

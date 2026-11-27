@@ -128,14 +128,3 @@ def test_postgres_store_applies_the_master(pg, tmp_path):
     assert store.get_company("nw").nace_code == "07.29"
     assert [c.nace_code for c in store.list_companies()] == ["07.29"]
     assert build_portfolio_store(s, merge_master=False).get_company("nw").nace_code == "35.11"
-
-
-def test_db_import_stores_the_universe_code_not_the_masters(pg, tmp_path):
-    from arp.db import importer
-    from arp.storage.portfolio_store_factory import build_portfolio_store
-
-    s = _pg_settings(pg, tmp_path)
-    PortfolioStore(s.portfolios_dir).save_company(CompanyRef(company_id="nw", name="NW", nace_code="35.11"))
-    IssuerSectorStore(s.identifier_map_path.with_name("issuer_sectors.json")).replace({"nw": {"nace_code": "07.29"}})
-    importer._import_portfolios(s, importer.ImportReport(), dry_run=False)
-    assert build_portfolio_store(s, merge_master=False).get_company("nw").nace_code == "35.11"

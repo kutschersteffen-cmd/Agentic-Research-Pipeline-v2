@@ -198,7 +198,6 @@ _EXTRA = [
     ("arp.storage.document_blob_store", "CaptureStoreError", 503),
     ("arp.argus.start", "StartError", 400),
     ("arp.rfp.fill", "FillRefused", 400),
-    ("arp.db.importer", "ImportFailed", 503),
     ("arp.db.fields", "FieldIdCollision", 400),
     ("arp.db.fields", "UnreleasedFieldError", 400),
     ("arp.db.fields", "FieldVersionError", 400),

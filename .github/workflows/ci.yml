@@ -49,13 +49,8 @@ jobs:
     defaults:
       run:
         working-directory: backend
-    # Postgres+pgvector and OpenSearch service containers so the opt-in,
-    # real-instance integration suites (test_postgres_portfolio_store.py,
-    # gated on ARP_TEST_POSTGRES_DSN; test_search_router.py's
-    # test_search_against_a_real_opensearch_instance, gated on
-    # ARP_TEST_OPENSEARCH_URL) actually run in CI instead of skipping --
-    # every other test in the suite is DB/cluster-free by default and
-    # unaffected by these containers being present.
+    # Postgres+pgvector and Neo4j service containers so the real-instance
+    # integration suites run in CI instead of skipping.
     services:
       postgres:
         image: pgvector/pgvector:pg16
@@ -70,14 +65,6 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-      opensearch:
-        image: opensearchproject/opensearch:2.15.0
-        env:
-          discovery.type: single-node
-          DISABLE_SECURITY_PLUGIN: "true"
-          OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
-        ports:
-          - 9200:9200
       neo4j:
         image: neo4j:5.26-community
         env:
@@ -91,7 +78,6 @@ jobs:
           --health-retries 12
     env:
       ARP_TEST_POSTGRES_DSN: postgresql+psycopg://arp:arp@localhost:5432/arp_test
-      ARP_TEST_OPENSEARCH_URL: http://localhost:9200
       ARP_TEST_NEO4J_URI: bolt://localhost:7688
       ARP_TEST_NEO4J_PASSWORD: arp_neo4j_test
     steps:
@@ -107,22 +93,13 @@ jobs:
           cache-dependency-path: backend/pyproject.toml
 
       - name: Install backend package (dev extras)
-        run: pip install -e ".[dev,postgres,opensearch,emerging_themes,object_storage]"
+        run: pip install -e ".[dev,postgres,emerging_themes]"
 
       - name: Private NLTK data (nltk >= 3.10.4 refuses shared dirs)
         run: . "$GITHUB_WORKSPACE/.github/scripts/private_nltk_data.sh"
 
       - name: Install Chromium (HTML deck fit checks)
         run: python -m playwright install --with-deps chromium
-
-      - name: Wait for OpenSearch
-        run: |
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:9200/_cluster/health && exit 0
-            sleep 2
-          done
-          echo "OpenSearch did not become ready in time" >&2
-          exit 1
 
       - name: Ruff lint
         run: ruff check .
@@ -243,7 +220,7 @@ jobs:
 
       - name: Install backend, frontend and Chromium
         run: |
-          (cd backend && pip install -e ".[dev,postgres,opensearch,emerging_themes,object_storage]")
+          (cd backend && pip install -e ".[dev,postgres,emerging_themes]")
           . .github/scripts/private_nltk_data.sh
           (cd frontend && npm ci)
           python -m playwright install --with-deps chromium
@@ -420,7 +397,7 @@ jobs:
           cache-dependency-path: backend/pyproject.toml
 
       - name: Install backend package
-        run: pip install -e ".[postgres,opensearch,object_storage,emerging_themes]"
+        run: pip install -e ".[postgres,emerging_themes]"
 
       - name: pip-audit
         continue-on-error: ${{ github.event_name != 'pull_request' }}

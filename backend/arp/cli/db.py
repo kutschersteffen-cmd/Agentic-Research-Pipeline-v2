@@ -6,8 +6,7 @@ from arp.config import get_settings
 from arp.db.session import require_dsn
 
 db_app = typer.Typer(
-    help="Store setup: Postgres/pgvector (required, ARP_POSTGRES_DSN), plus optional object storage "
-    "(ARP_OBJECT_STORE_ENDPOINT_URL + the `object_storage` extra); file-era import and verify."
+    help="Store setup: Postgres/pgvector (required, ARP_POSTGRES_DSN) and Alembic schema migrations."
 )
 
 
@@ -69,7 +68,7 @@ def db_check_postgres() -> None:
     for note in report["drift"]:
         typer.echo(f"  drift: {note}")
     for table, count in report["unmatched_company_rows"].items():
-        typer.echo(f"  rows without a company: {table}={count} (matched by `arp db import` once the company exists)")
+        typer.echo(f"  rows without a company: {table}={count} (matched by `arp db init-postgres` once the company exists)")
     if report["current"]:
         typer.echo("Current -- every table, column and schema step this codebase expects is present.")
         return
@@ -92,51 +91,6 @@ def companies_merge(keep: str, drop: str) -> None:
     with transaction() as session:
         merge(session, UUID(keep), UUID(drop))
     typer.echo(f"Merged {drop} into {keep}.")
-
-
-@db_app.command("import")
-def db_import(dry_run: bool = typer.Option(False, "--dry-run", help="Import inside a transaction that is rolled back.")) -> None:
-    """Imports the file-era history (universe files, identifier map, schema registry, content.db documents,
-    every run oldest first, ESG loads, the file portfolio store's portfolios, companies, securities, resolutions
-    and holdings snapshots) into Postgres. Idempotent and resumable: re-running skips what is
-    already imported and completes an interrupted run. Files are only read."""
-    import json
-
-    from arp.db.importer import import_all
-
-    settings = get_settings()
-    report = import_all(require_dsn(settings), settings, dry_run=dry_run)
-    typer.echo(("Dry run (nothing written): " if dry_run else "Imported: ")
-               + ", ".join(f"{k}={v}" for k, v in report.counts.items()))
-    typer.echo(f"Identity conflicts: {len(report.identity_conflicts)}")
-    for c in report.identity_conflicts:
-        typer.echo(f"  {json.dumps(c, default=str)}")
-    typer.echo(f"Fact conflicts (a later run replaced a different value): {len(report.fact_conflicts)}")
-    for c in report.fact_conflicts:
-        typer.echo(f"  {json.dumps(c, default=str)}")
-    typer.echo(f"Decisions skipped (not a review decision value): {len(report.skipped_decisions)}")
-    for c in report.skipped_decisions:
-        typer.echo(f"  {json.dumps(c, default=str)}")
-
-
-@db_app.command("verify")
-def db_verify() -> None:
-    """Compares the run files with the database: row counts per run and each current fact. Exits
-    non-zero on any difference; it must report none before the API starts on the database."""
-    import json
-
-    from arp.db.importer import verify
-
-    settings = get_settings()
-    report = verify(require_dsn(settings), settings)
-    for d in report.skipped_decisions:
-        typer.echo(f"skipped decision (not a difference): {json.dumps(d, default=str)}")
-    for d in report.differences:
-        typer.echo(json.dumps(d, default=str))
-    if report.differences:
-        typer.echo(f"{len(report.differences)} difference(s) between files and database.", err=True)
-        raise typer.Exit(1)
-    typer.echo("No differences between files and database.")
 
 
 @db_app.command("upgrade")

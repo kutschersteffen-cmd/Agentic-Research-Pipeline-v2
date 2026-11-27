@@ -6,7 +6,7 @@ import json
 import pytest
 from fastapi import HTTPException
 
-from arp.api.routers import extraction, financials, tnfd
+from arp.api.routers import extraction
 from arp.config import Settings
 from arp.extraction.steps import StepSettings
 from arp.schemas.common import CompanyRef
@@ -14,11 +14,13 @@ from arp.schemas.datapoints import DataPointSchema
 from arp.storage.run_store import RunStore
 from tests.postgres_helpers import replace_results
 
+SCHEMA = DataPointSchema.model_validate({"schema_id": "s", "name": "s", "fields": []})
+
 
 def _fake(name, calls):
     async def start(req, **kwargs):
         calls.append((name, req, kwargs))
-        return {"run_id": f"{name}-1", "company_count": 1}
+        return {"run_id": f"{name}-{len(calls)}", "company_count": 1}
 
     return start
 
@@ -27,8 +29,6 @@ def _fake(name, calls):
 def calls(monkeypatch):
     calls: list = []
     monkeypatch.setattr(extraction, "start_extraction_run", _fake("custom", calls))
-    monkeypatch.setattr(financials, "start_financials_extraction_run", _fake("financials", calls))
-    monkeypatch.setattr(tnfd, "start_tnfd_extraction_run", _fake("tnfd", calls))
     return calls
 
 
@@ -52,25 +52,20 @@ class _Store:
 
 
 def test_each_profile_reaches_its_pipeline(calls, pg):
-    schema = DataPointSchema.model_validate({"schema_id": "s", "name": "s", "fields": []})
-    assert _start(profile="custom", datapoint_schema=schema)["run_type"] == "extraction"
-    assert _start(profile="financials")["run_type"] == "financials"
-    assert _start(profile="tnfd", as_of="FY2025")["run_type"] == "tnfd"
+    assert _start(profile="custom", datapoint_schema=SCHEMA)["run_type"] == "extraction"
     started = _start(profile="transition_plan")
-    assert started == {"run_id": "custom-1", "company_count": 1, "run_type": "extraction"}
+    assert started == {"run_id": "custom-2", "company_count": 1, "run_type": "extraction"}
 
-    assert [c[0] for c in calls] == ["custom", "financials", "tnfd", "custom"]
-    assert calls[0][1].datapoint_schema == schema
-    assert calls[1][2]["xbrl_source"] == "xbrl"
-    assert calls[2][1].as_of == "FY2025"
-    assert calls[3][1].datapoint_schema.schema_id == "transition_plan_indicators" and calls[3][1].trial is False
+    assert [c[0] for c in calls] == ["custom", "custom"]
+    assert calls[0][1].datapoint_schema == SCHEMA
+    assert calls[0][2]["xbrl_source"] == "xbrl"
+    assert calls[1][1].datapoint_schema.schema_id == "transition_plan_indicators" and calls[1][1].trial is False
     assert all([x.company_id for x in c[1].companies] == ["c1"] for c in calls)
 
 
-@pytest.mark.parametrize("profile", ["custom", "tnfd"])
-def test_missing_profile_input_is_a_400(calls, profile):
+def test_missing_profile_input_is_a_400(calls):
     with pytest.raises(HTTPException) as err:
-        _start(profile=profile)
+        _start(profile="custom")
     assert err.value.status_code == 400
     assert calls == []
 
@@ -81,8 +76,8 @@ def test_step_settings_reach_the_pipeline_and_are_recorded(calls, tmp_path, pg):
     started = _start(
         run_store=store,
         settings=base,
-        profile="tnfd",
-        as_of="FY2025",
+        profile="custom",
+        datapoint_schema=SCHEMA,
         step_settings=StepSettings(llm_model="model-b", hybrid_retrieval_enabled=False),
     )
     used = calls[0][2]["settings"]
@@ -96,9 +91,9 @@ def test_the_saved_universe_a_run_read_is_recorded(calls, tmp_path, pg):
     store = RunStore(pg, tmp_path)
     universe = tmp_path / "u.json"
     universe.write_text(json.dumps([{"company_id": "c1", "name": "Acme"}]))
-    started = _start(run_store=store, profile="tnfd", as_of="FY2025", universe_path=str(universe))
+    started = _start(run_store=store, profile="custom", datapoint_schema=SCHEMA, universe_path=str(universe))
     assert json.loads((store.run_dir(started["run_id"]) / "inputs.json").read_text()) == {"universe_path": str(universe)}
-    without = _start(run_store=store, profile="financials")  # companies passed directly: no saved universe to record
+    without = _start(run_store=store, profile="custom", datapoint_schema=SCHEMA)  # companies passed directly: no saved universe to record
     assert not (store.run_dir(without["run_id"]) / "inputs.json").exists()
 
 
@@ -111,16 +106,16 @@ def _finished_run(store, calls, **body):
     """A run started through /start, then marked finished."""
     from arp.orchestration.job_manager import JobManager
 
-    run_id = JobManager(store).create_run("tnfd", {}, 2).run_id
+    run_id = JobManager(store).create_run("extraction", {}, 2).run_id
     fake = calls  # the fixture's fakes return a fixed run id; give it a real one
 
     async def start(req, **kwargs):
-        fake.append(("tnfd", req, kwargs))
+        fake.append(("custom", req, kwargs))
         return {"run_id": run_id, "company_count": len(req.companies)}
 
-    tnfd.start_tnfd_extraction_run = start
+    extraction.start_extraction_run = start
     req = extraction.StartRequest(
-        profile="tnfd", as_of="FY2025",
+        profile="custom", datapoint_schema=SCHEMA,
         companies=[CompanyRef(company_id="c1", name="Acme"), CompanyRef(company_id="c2", name="Beta")],
         step_settings=StepSettings(llm_model="model-b"), **body,
     )
@@ -146,12 +141,11 @@ def test_restart_from_a_step_reruns_one_company_with_fresh_steps(calls, tmp_path
 
     _restart(store, run_id, from_step="verify", company_ids=["c2"])
     (_, req, kwargs), = calls
-    assert [c.company_id for c in req.companies] == ["c2"] and req.as_of == "FY2025"
+    assert [c.company_id for c in req.companies] == ["c2"]
     assert kwargs["settings"].llm_model == "model-b"  # the run's own step settings carry over
     assert kwargs["settings"].llm_verifier_cache_refresh is True and kwargs["settings"].llm_cache_refresh is False
     restarted = json.loads((store.run_dir(run_id) / "restarted_from.json").read_text())
     assert restarted == {"run_id": run_id, "step": "verify", "company_count": 1}
-
 
 
 def test_restart_refuses_a_running_run_or_an_unknown_step(calls, tmp_path, monkeypatch, pg):
@@ -161,9 +155,9 @@ def test_restart_refuses_a_running_run_or_an_unknown_step(calls, tmp_path, monke
     store = RunStore(pg, tmp_path)
     run_id = _finished_run(store, calls)
     with pytest.raises(HTTPException) as err:
-        _restart(store, run_id, from_step="answer")  # a transition plan step, not a TNFD one
+        _restart(store, run_id, from_step="answer")  # unknown step
     assert err.value.status_code == 400
-    running = JobManager(store).create_run("tnfd", {}, 1).run_id
+    running = JobManager(store).create_run("extraction", {}, 1).run_id
     with pytest.raises(HTTPException) as err:
         _restart(store, running, from_step="verify")
     assert err.value.status_code == 409

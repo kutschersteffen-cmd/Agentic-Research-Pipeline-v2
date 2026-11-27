@@ -12,7 +12,7 @@ from arp.api.main import app
 from arp.cli.extraction import extract_app
 from arp.config import Settings
 from arp.db.fields import SchemaRegistry
-from arp.extraction.financials_pipeline import create_financials_extraction_run
+from arp.discovery.identity_pipeline import create_identity_run
 from arp.ingestion.registry import DocumentSourceRegistry
 from arp.llm.base import LLMUsage
 from arp.llm.batching_client import BatchingLLMClient
@@ -134,7 +134,7 @@ async def test_resume_refuses_unknown_run(tmp_path, pg):
 async def test_resume_refuses_run_without_inputs(tmp_path, pg):
     settings = _settings(tmp_path)
     store = RunStore(pg, settings.runs_dir)
-    run_id = create_financials_extraction_run(COMPANIES[:1], settings, store)
+    run_id = create_identity_run(COMPANIES[:1], store)
     forget_companies(store, run_id)  # a run from before stored inputs
     with pytest.raises(NotResumable, match="run has no stored inputs"):
         await _resume(run_id, settings, store)

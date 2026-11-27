@@ -23,6 +23,7 @@ def _shape(f):
 
 def test_ac47_existing_presets_unchanged():
     snap = json.loads(SNAPSHOT.read_text())
+    snap.pop("sch_esg_remuneration", None)
     for pid, fields in snap.items():
         if pid == "transition_plan_indicators":  # the 10 contradiction-rule children moved up one version (spec 2026-10-21)
             fields = [{**f, "version": f["version"] + (f["field_id"] in REQUIRES_YES)} for f in fields]

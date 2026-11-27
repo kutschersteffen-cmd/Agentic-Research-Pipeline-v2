@@ -3,8 +3,6 @@ readers that do not go through `datapoint_mapping.resolve_field_value`, nor be i
 
 from __future__ import annotations
 
-from arp.config import Settings
-from arp.db.importer import _esg_loads
 from arp.portfolio.climate.esg_intake import FIELD_IDS
 from arp.portfolio.climate.schemas import FIELD_SCOPE1
 from arp.portfolio.loads import LoadRecord, record_load
@@ -57,15 +55,3 @@ def test_the_stewardship_universe_takes_the_real_value_and_its_note_says_simulat
     fields = {i["issuer_id"]: i["fields"] for i in sample["issuers"]}
     assert fields[REAL][f"portfolio.{FIELD_SCOPE1}"] == 1000.0 and fields[SIM_ONLY][f"portfolio.{FIELD_SCOPE1}"] == 7.0
     assert "Simulated" in sample["note"]
-
-
-def test_db_import_keeps_the_real_providers_rows_and_makes_no_provider_load_of_simulated_data(tmp_path):
-    _store(tmp_path)
-    loads = _esg_loads(Settings(portfolios_dir=tmp_path))
-    assert [(load["provider"], load["month"]) for load in loads] == [("default", "2026-11")]
-    assert loads[0]["rows"] == [{"company_id": REAL, **{fid: 1000.0 for fid in FIELD_IDS}}]
-
-
-def test_db_import_of_a_store_with_only_simulated_data_has_no_esg_loads(tmp_path):
-    _store(tmp_path, real=False)
-    assert _esg_loads(Settings(portfolios_dir=tmp_path)) == []

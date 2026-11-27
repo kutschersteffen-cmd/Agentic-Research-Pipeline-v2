@@ -27,10 +27,10 @@ class RepeatRow(BaseModel):
 
 
 def chosen_version(choice: SchemaChoice | None) -> str | None:
-    """As runs record it: `<schema_id>:v<n>` for a schema, the run type for a fixed profile."""
+    """As runs record it: `<schema_id>:v<n>`."""
     if choice is None:
         return None
-    return choice.profile if choice.kind == "profile" else f"{choice.schema_id}:v{choice.version}"
+    return f"{choice.schema_id}:v{choice.version}"
 
 
 def run_version(m: RunManifest) -> str:

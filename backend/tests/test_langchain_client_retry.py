@@ -383,21 +383,6 @@ async def test_realtime_request_params_unchanged(tmp_path):
     assert call["messages"] == [{"role": "user", "content": "prompt"}]
 
 
-def test_tnfd_metric_with_bad_value_is_still_dropped():  # quick-wins review: only a draft's `values` are retried
-    import pydantic
-
-    from arp.extraction.tnfd_extractor_agent import TNFDExtractionDraft
-    from arp.llm.langchain_client import _drop_invalid_list_items
-
-    raw = {"core_global_metrics": [{"value": "Not disclosed"}], "confidence": 0.5}
-    try:
-        TNFDExtractionDraft.model_validate(raw)
-    except pydantic.ValidationError as exc:
-        err = exc
-    instance, dropped = _drop_invalid_list_items(TNFDExtractionDraft, raw, err)
-    assert instance is not None and dropped == 1 and instance.core_global_metrics == []
-
-
 async def test_retry_caches_only_the_newest_turn(tmp_path):
     """Retries resend the full prompt; a breakpoint on the newest turn lets the
     next retry read it from cache. Only one moving marker per request."""

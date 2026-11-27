@@ -63,7 +63,6 @@ const REVIEW_TYPE: Record<string, string> = {
   universe_build: "theme",
   document_discovery: "discovery",
   extraction: "extraction",
-  financials_extraction: "financials",
 };
 
 /** Where a step waiting for review is reviewed; null for a kind with no review screen. */

@@ -15,10 +15,8 @@ from arp.api.routers import (
     discovery,
     emerging_themes,
     extraction,
-    financials,
     identity,
     taxonomies,
-    tnfd,
 )
 from arp.config import Settings
 from arp.discovery.scheduler import DiscoveryScheduler
@@ -32,13 +30,11 @@ UNIVERSE = "company_id,name\nc1,Acme\n"
 
 ROUTES = [  # (route, body) as in the spec's table
     ("/api/themes/runs", {"taxonomy_id": "none"}),
-    ("/api/tnfd/runs", {"as_of": "FY2025"}),
     ("/api/discovery/runs", {}),
     ("/api/emerging-themes/runs", {}),
     ("/api/extraction/runs", {"datapoint_schema": {"name": "x"}}),
-    ("/api/extraction/start", {"profile": "tnfd", "as_of": "FY2025"}),
+    ("/api/extraction/start", {"profile": "custom", "datapoint_schema": {"name": "x"}}),
     ("/api/identity/runs", {}),
-    ("/api/financials/runs", {}),
     ("/api/taxonomies", {"name": "x"}),
     ("/api/documents/readiness", {}),
 ]
@@ -65,7 +61,7 @@ def env(pg, tmp_path, monkeypatch):
         recorded.append("x")
         raise HTTPException(409, "recorded")
 
-    for mod in (tnfd, extraction, identity, financials):
+    for mod in (extraction, identity):
         monkeypatch.setattr(mod, "schedule_llm_run", record)
     monkeypatch.setattr(discovery, "create_discovery_run", record)
     monkeypatch.setattr(emerging_themes, "create_emerging_themes_run", record)

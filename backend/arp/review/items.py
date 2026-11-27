@@ -13,7 +13,7 @@ from arp.transition_barrier import RUN_TYPE as BARRIER_RUN_TYPE
 if TYPE_CHECKING:
     from arp.core.auth import Principal
 
-REVIEWABLE_RUN_TYPES = ("theme", "extraction", "financials", "identity", "transition_plan", "tnfd", "holdings", "discovery", BARRIER_RUN_TYPE)  # never voting
+REVIEWABLE_RUN_TYPES = ("theme", "extraction", "identity", "transition_plan", "holdings", "discovery", BARRIER_RUN_TYPE)  # never voting
 
 
 def _queue_kind(run_type: str, row: dict) -> ReviewItemKind:

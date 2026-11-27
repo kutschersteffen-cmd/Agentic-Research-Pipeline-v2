@@ -12,6 +12,7 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+from arp.db.json_document_repo import JsonDocumentRepo
 from arp.schemas.triggers import UnifiedTrigger
 
 STATUSES = ("open", "acknowledged", "resolved")
@@ -22,15 +23,26 @@ def trigger_id(issuer_id: str, rule: str) -> str:
 
 
 class TriggerStore:
-    def __init__(self, root: Path) -> None:
-        self.path = root / "triggers" / "events.jsonl"
+    def __init__(self, root: Path | None = None, *, dsn: str | None = None) -> None:
+        if root is None and not dsn:
+            raise ValueError("TriggerStore requires either root or dsn")
+        self.path = root / "triggers" / "events.jsonl" if root is not None else None
+        self._repo = JsonDocumentRepo(dsn, "stewardship_triggers") if dsn else None
 
     def _append(self, row: dict) -> None:
+        entry = {**row, "at": datetime.now(UTC).isoformat()}
+        if self._repo is not None:
+            self._repo.update("events", lambda cur: {"rows": [*(cur or {}).get("rows", []), entry]})
+            return
+        assert self.path is not None
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.path.open("a") as f:
-            f.write(json.dumps({**row, "at": datetime.now(UTC).isoformat()}, ensure_ascii=False) + "\n")
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
     def _rows(self) -> list[dict]:
+        if self._repo is not None:
+            return list((self._repo.get("events") or {}).get("rows", []))
+        assert self.path is not None
         return [json.loads(line) for line in self.path.read_text().splitlines() if line.strip()] if self.path.exists() else []
 
     def _fold(self) -> dict[str, UnifiedTrigger]:
