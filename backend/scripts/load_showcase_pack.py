@@ -173,24 +173,9 @@ def argus_plan(ctx: Ctx) -> tuple[str, str]:
     return _argus(ctx, "transition_plan_indicators", _present(ctx, "10-K", {"RWE"}), rwe_only=True)
 
 
-def voting(ctx: Ctx) -> tuple[str, str]:
-    ids = _present(ctx, "DEF-14A")
-    if not ids:
-        return "skip", "no document present"
-    try:
-        runs = _api(ctx, "GET", "/api/runs", params={"run_type": "proxy_voting"})["runs"]
-    except Unreachable:
-        return "skip", f"API not reachable at {ctx.base_url}"
-    if runs and not ctx.again:
-        return "skip", "already exists"
-    companies = [c.model_dump(mode="json", exclude_none=True) for c in _companies(ctx) if c.company_id in ids]
-    run_id = _api(ctx, "POST", "/api/voting/runs", json={"companies": companies})["run_id"]
-    return "ok", f"started for {len(companies)} companies (run {run_id})"
-
-
 STEPS: dict[str, Callable[[Ctx], tuple[str, str]]] = {
     "companies": companies, "universe": universe, "portfolios": portfolios, "documents": documents,
-    "argus-capex": argus_capex, "argus-plan": argus_plan, "voting": voting,
+    "argus-capex": argus_capex, "argus-plan": argus_plan,
 }
 
 

@@ -122,7 +122,7 @@ def test_failing_step_continues(pg, pack, capsys, monkeypatch):  # AC-12
     assert code == 1
     assert "FAIL universe: boom" in out
     assert steps == ["ok companies", "FAIL universe", "skip portfolios", "ok documents", "skip argus-capex",
-                     "skip argus-plan", "skip voting"]
+                     "skip argus-plan"]
 
 
 class FakeApi:
@@ -146,7 +146,6 @@ class FakeApi:
             ("GET", "/api/argus/flows"): {"flows": self.flows},
             ("GET", "/api/runs"): {"runs": self.runs},
             ("POST", "/api/argus/flows"): {"flow_id": "f1", "companies": []},
-            ("POST", "/api/voting/runs"): {"run_id": "v1", "company_count": len((body or {}).get("companies", []))},
         }
         if (method, path) in answers:
             return httpx.Response(200, json=answers[(method, path)])
@@ -186,8 +185,7 @@ def test_all_steps_no_documents(pg, pack, capsys, monkeypatch, tmp_path):  # AC-
     names = [r["file_name"] for r in csv.DictReader((pack / "documents.csv").open())]
     i = out.index("ok documents: 0 of 14 present")
     assert out[i + 1:i + 15] == [f"  missing: {n}" for n in names]
-    assert out[i + 15:] == ["skip argus-capex: no document present", "skip argus-plan: no document present",
-                            "skip voting: no document present"]
+    assert out[i + 15:] == ["skip argus-capex: no document present", "skip argus-plan: no document present"]
     assert code == 0 and api.calls == []
 
 
@@ -229,23 +227,6 @@ def test_plan_already_exists(pack, capsys):  # AC-46
     code, out = run(capsys, "--pack", str(pack), "--only", "argus-plan", client=_client(api))
     assert (code, out) == (0, ["skip argus-plan: already exists"])
     assert api.posts("/api/argus/flows") == 0
-
-
-def test_voting_already_exists(pack, capsys):  # AC-47
-    _proxies(pack)
-    api = FakeApi(runs=[{"run_id": "v0", "run_type": "proxy_voting"}])
-    code, out = run(capsys, "--pack", str(pack), "--only", "voting", client=_client(api))
-    assert (code, out) == (0, ["skip voting: already exists"])
-    assert api.posts("/api/voting/runs") == 0
-
-
-def test_voting_starts_us_four(pack, capsys):  # AC-48
-    _proxies(pack)
-    api = FakeApi()
-    code, out = run(capsys, "--pack", str(pack), "--only", "voting", client=_client(api))
-    body = next(b for m, p, b in api.calls if (m, p) == ("POST", "/api/voting/runs"))
-    assert sorted(c["company_id"] for c in body["companies"]) == ["DOW", "DUK", "NEE", "NUE"]
-    assert code == 0 and out[0].startswith("ok voting: started for 4 companies")
 
 
 def test_forbidden_is_fail(pack, capsys):  # Review Focus 3

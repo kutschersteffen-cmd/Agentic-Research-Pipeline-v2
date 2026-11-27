@@ -6,7 +6,7 @@ import { WORKSPACES, rowLinks, workspaceOfRoute } from "../src/lib/processes.ts"
 test("pr1_ac10_workspace_of_route", () => {
   const cases: [string, string | null][] = [
     ["#/argus", "argus"], ["#/argus/abc123", "argus"], ["#/argus/new", "argus"],
-    ["#/argus/new/transition_plan", "transitionIntel"], ["#/voting", "stewardiq"], ["#/library", "dataHub"],
+    ["#/argus/new/transition_plan", "transitionIntel"], ["#/engagement", "stewardiq"], ["#/library", "dataHub"],
     ["#/review", null], ["#/reporting", null], ["#/home", null], ["#/nosuch", null],
     ["#/review/extraction/x", null],
   ];

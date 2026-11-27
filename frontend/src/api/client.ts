@@ -17,7 +17,6 @@ import type {
   Cockpit,
   FlowProgress,
   WorkbenchResponse,
-  CompanyBallot,
   ClientEscalationPreview,
   BenchmarkInfo,
   CaseStudy,
@@ -45,8 +44,6 @@ import type {
   StewardshipStream,
   TriggerEvent,
   UnifiedTrigger,
-  VoteRecord,
-  VoteReviewDecision,
   VotingPreview,
   HolderStatus,
   IntakeResult,
@@ -1010,20 +1007,6 @@ export const api = {
   findCommitments: (activityId: string) =>
     request<FindCommitmentsResult>(`/api/stewardship/activities/${encodeURIComponent(activityId)}/find-commitments`, { method: "POST" }),
 
-  // Voting (proxy)
-  startVotingRun: (body: { companies?: unknown[]; universe_path?: string; meeting_dates?: Record<string, string> }) =>
-    request<{ run_id: string; company_count: number }>("/api/voting/runs", { method: "POST", body: JSON.stringify(body) }),
-  getVotingBallots: (runId: string) => request<{ ballots: CompanyBallot[] }>(`/api/voting/runs/${runId}/ballots`),
-  getVotingReviewQueue: (runId: string) =>
-    request<{ pending: Record<string, unknown>[]; decided: { item: Record<string, unknown>; decision: VoteReviewDecision }[] }>(
-      `/api/voting/runs/${runId}/review-queue`,
-    ),
-  submitVotingReview: (
-    runId: string,
-    body: { item_key: string; decision: "approve" | "edit" | "reject"; reviewer: string; vote?: string | null; co_signed_by?: string | null; comment?: string | null },
-  ) => request(`/api/voting/runs/${runId}/review`, { method: "POST", body: JSON.stringify(body) }),
-  castVotes: (runId: string) => request<{ cast_count: number; votes: VoteRecord[] }>(`/api/voting/runs/${runId}/cast`, { method: "POST" }),
-  getCastVotes: (runId: string) => request<{ votes: VoteRecord[] }>(`/api/voting/runs/${runId}/cast`),
   // Portfolio risk & exposure monitoring
   seedPortfolioDemo: () => request<DemoSeedSummary>("/api/portfolio/demo/seed", { method: "POST" }),
   listPortfolios: () => request<PortfolioSummary[]>("/api/portfolio/portfolios"),

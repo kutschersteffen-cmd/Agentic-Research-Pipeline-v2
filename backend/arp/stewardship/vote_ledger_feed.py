@@ -1,8 +1,8 @@
-"""Votes from the vote ledger (vote_meetings, vote_items, vote_decisions) in the `voting_feed.items()` row shape,
-so monitoring reads them like Proxy Voting votes."""
+"""Votes from the vote ledger (vote_meetings, vote_items, vote_decisions) for stewardship monitoring."""
 
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import timedelta
 
 from sqlalchemy import func, select
@@ -69,6 +69,29 @@ def ledger_rows(dsn: str, window_days: int, house_issuers: list[dict] | None = N
                 }
             )
         return rows
+
+
+def issuer_fields(rows: list[dict]) -> dict[str, dict]:
+    """issuer id -> `vote.*` company fields, over decided and cast items only."""
+    fields: dict[str, dict] = defaultdict(
+        lambda: {
+            "vote.decided": 0,
+            "vote.against_management": 0,
+            "vote.against_management_non_demo": 0,
+            "vote.overrode_policy": 0,
+            "vote.last_meeting_date": None,
+        }
+    )
+    for r in rows:
+        if r["vote"] is None:
+            continue
+        f = fields[r["company_id"]]
+        f["vote.decided"] += 1
+        f["vote.against_management"] += r["against_management"]
+        f["vote.against_management_non_demo"] += r["against_management"] and not r.get("demo")
+        f["vote.overrode_policy"] += r["overrode_policy"]
+        f["vote.last_meeting_date"] = max(filter(None, [f["vote.last_meeting_date"], r["meeting_date"]]), default=None)
+    return dict(fields)
 
 
 def _registry_ids(s, isins: set[str], house_issuers: list[dict] | None) -> dict[str, str]:

@@ -138,12 +138,6 @@ export function RunHistory({ onOpenReview, focusRunId = null }: Props = {}) {
                       <FileLink url={api.exportRunCsvUrl(r.run_id)} name={`${r.run_id}.csv`}>
                         CSV
                       </FileLink>
-                      {runType === "proxy_voting" && (
-                        <>
-                          {" "}
-                          <a href={`#/voting/${encodeURIComponent(r.run_id)}`}>Ballot</a>
-                        </>
-                      )}
                       {r.review_count > 0 && isReviewable(runType) && onOpenReview && (
                         <>
                           {" "}

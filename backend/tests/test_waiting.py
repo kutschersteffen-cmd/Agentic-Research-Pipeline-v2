@@ -4,10 +4,8 @@ import pytest
 
 from arp.api import main  # noqa: F401  (registers the routers)
 from arp.api.routers import waiting as waiting_router
-from arp.orchestration.review_queue import record_review_decision as record_decision
 from arp.review.items import list_open_items
 from arp.review.waiting import waiting_counts
-from arp.schemas.common import RunManifest
 from tests.test_review_decide import (
     ALICE,
     APPROVE,
@@ -29,14 +27,6 @@ def counts(rs):
 @pytest.fixture
 def stub_flow(monkeypatch):
     monkeypatch.setattr(waiting_router, "flow", lambda *a, **k: NO_FLOW)
-
-
-def _ballots(rs, queued=5, decided=()):
-    rs.save_manifest(RunManifest(run_id="pv1", run_type="proxy_voting"))
-    for i in range(queued):
-        rs.append_review_item("pv1", {"item_key": f"m1:r{i}"})
-    for key in decided:
-        record_decision(rs, "pv1", key, "approve", "Alice", None)
 
 
 def test_ac1_shape(env, stub_flow):  # noqa: F811
@@ -76,20 +66,8 @@ def test_ac4_decisions_checkpoint_and_tracking_only(env):  # noqa: F811
     assert waiting_counts(env[0], ALICE, house).decisions == 4
 
 
-def test_ac4b_ballots(env):  # noqa: F811
-    _ballots(env[0], decided=["m1:r0", "m1:r1"])
-    assert counts(env[0]).ballots == 3
-
-
-def test_ballots_zero_without_queue(env):  # noqa: F811
-    env[0].save_manifest(RunManifest(run_id="pv2", run_type="proxy_voting"))
+def test_ac4b_ballots_always_zero(env):  # noqa: F811
     assert counts(env[0]).ballots == 0
-
-
-def test_ballots_changed_decision_counts_once(env):  # noqa: F811
-    _ballots(env[0], decided=["m1:r0"])
-    record_decision(env[0], "pv1", "m1:r0", "reject", "Alice", None)
-    assert counts(env[0]).ballots == 4
 
 
 def test_broken_flow_is_503(env, monkeypatch):  # noqa: F811

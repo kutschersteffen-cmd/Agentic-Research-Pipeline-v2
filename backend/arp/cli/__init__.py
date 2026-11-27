@@ -35,7 +35,6 @@ from arp.cli.transition_alignment import transition_alignment_app
 from arp.cli.transition_barrier import transition_barrier_app
 from arp.cli.transition_plan import transition_plan_app
 from arp.cli.universe import universe_app
-from arp.cli.voting import voting_app
 from arp.cli.worker import worker_app
 from arp.cli.xbrl import xbrl_app
 
@@ -104,7 +103,6 @@ app.add_typer(scale_app, name="scale")
 app.add_typer(universe_app, name="universe")
 app.add_typer(revenue_catalogue_app, name="revenue-catalogue")
 app.add_typer(engagement_app, name="engagement")
-app.add_typer(voting_app, name="voting")
 app.add_typer(stewardship_app, name="stewardship")
 app.add_typer(portfolio_app, name="portfolio")
 app.add_typer(climate_app, name="climate")

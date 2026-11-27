@@ -10,7 +10,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from arp.api.auth import current_user
-from arp.api.deps import get_engagement_store, get_registry, get_run_store
+from arp.api.deps import get_engagement_store, get_registry
 from arp.api.main import app
 from arp.api.routers import engagement as engagement_router
 from arp.config import get_settings
@@ -27,13 +27,10 @@ from arp.schemas.engagement import (
     ResearchDossier,
     WatchTopic,
 )
-from arp.schemas.voting import CompanyBallot, HumanVoteDecision, Proposal, ProposalType, VotePosition, VoteRecord
 from arp.stewardship import tracking
 from arp.stewardship.tracking import triggers, watch_flags, watch_flags_by_company, watch_list
 from arp.storage.engagement_store import EngagementStore
 from arp.storage.postgres_engagement_store import PostgresEngagementStore
-from arp.storage.run_store import RunStore
-from arp.voting.ballot_casting import ManualInstructionBallotPlatform, cast_vote
 from tests.conftest import PRINCIPAL, FakeLLMClient
 from tests.test_engagement_research_agent import _FixedDocSource
 from tests.test_stewardship_watch import _suggest
@@ -147,31 +144,6 @@ def test_file_store_ac91(tmp_path):
     _cmt(files, _issue(files), target_date=YESTERDAY)
     (f,) = watch_flags(files, "C1")
     assert f.message == f'Commitment overdue: "Publish a transition plan" was due {YESTERDAY}.'
-
-
-# --- Ballots (AC-92, AC-93, AC-95) ---------------------------------------------------------------------
-
-
-def test_ballots_carry_flags_when_read_ac92_ac93(store, pg, tmp_path):
-    _cmt(store, _issue(store), target_date=YESTERDAY)
-    runs = RunStore(pg, tmp_path / "runs")
-    for company in ("C1", "C2"):
-        runs.append_result("r1", CompanyBallot(company_id=company, name=company, meeting_id="m").model_dump(mode="json"))
-    app.dependency_overrides.update({get_run_store: lambda: runs, get_engagement_store: lambda: store, current_user: lambda: PRINCIPAL})
-    try:
-        ballots = TestClient(app).get("/api/voting/runs/r1/ballots").json()["ballots"]
-    finally:
-        app.dependency_overrides.clear()
-    by_company = {b["company_id"]: b["watch_flags"] for b in ballots}
-    assert by_company == {"C1": [f.model_dump(mode="json") for f in watch_flags(store, "C1")], "C2": []}
-    assert len(by_company["C1"]) == 1
-
-
-async def test_cast_ignores_watch_flags_ac95(tmp_path):
-    proposal = Proposal(company_id="C1", meeting_id="m", proposal_number="1", type=ProposalType.DIRECTOR_ELECTION, sponsor="Management", resolution_text="Elect.")
-    record = VoteRecord(proposal=proposal, human_decision=HumanVoteDecision(vote=VotePosition.FOR, decided_by="pm"))
-    cast = await cast_vote(ManualInstructionBallotPlatform(tmp_path), record)
-    assert cast.cast_confirmation.status == "confirmed"
 
 
 # --- The dossier watch list (AC-104 to AC-108) ---------------------------------------------------------

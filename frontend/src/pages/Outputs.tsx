@@ -16,8 +16,8 @@ const DRAFTY = new Set(["draft", "failed", "cancelled", "pending", "running"]);
 const SHOWN = 200;
 
 /** Where an output (or a consumer of it) is opened. */
-function href(kind: string, id: string, runType?: string): string | null {
-  if (kind === "run") return runType === "proxy_voting" ? `#/voting/${encodeURIComponent(id)}` : "#/history";
+function href(kind: string, _id: string): string | null {
+  if (kind === "run") return "#/history";
   if (kind === "taxonomy") return "#/taxonomy";
   if (kind === "report") return "#/reporting";
   return null;
@@ -64,7 +64,7 @@ export function Outputs() {
             {!items && !error && <tr><td colSpan={6} className="muted">Loading…</td></tr>}
             {items && shown.length === 0 && <tr><td colSpan={6} className="muted">Nothing stored here yet.</td></tr>}
             {shown.slice(0, SHOWN).map((o) => {
-              const link = href(o.kind, o.id, o.run_type);
+              const link = href(o.kind, o.id);
               return (
                 <tr key={`${o.kind}/${o.id}`}>
                   <td>{link ? <a href={link}>{o.name}</a> : o.name}{o.version != null && <span className="muted"> v{o.version}</span>}</td>

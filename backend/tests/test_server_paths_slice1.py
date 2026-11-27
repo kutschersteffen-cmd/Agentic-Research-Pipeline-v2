@@ -19,7 +19,6 @@ from arp.api.routers import (
     identity,
     taxonomies,
     tnfd,
-    voting,
 )
 from arp.config import Settings
 from arp.discovery.scheduler import DiscoveryScheduler
@@ -33,7 +32,6 @@ UNIVERSE = "company_id,name\nc1,Acme\n"
 
 ROUTES = [  # (route, body) as in the spec's table
     ("/api/themes/runs", {"taxonomy_id": "none"}),
-    ("/api/voting/runs", {}),
     ("/api/tnfd/runs", {"as_of": "FY2025"}),
     ("/api/discovery/runs", {}),
     ("/api/emerging-themes/runs", {}),
@@ -67,7 +65,7 @@ def env(pg, tmp_path, monkeypatch):
         recorded.append("x")
         raise HTTPException(409, "recorded")
 
-    for mod in (voting, tnfd, extraction, identity, financials):
+    for mod in (tnfd, extraction, identity, financials):
         monkeypatch.setattr(mod, "schedule_llm_run", record)
     monkeypatch.setattr(discovery, "create_discovery_run", record)
     monkeypatch.setattr(emerging_themes, "create_emerging_themes_run", record)

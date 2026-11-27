@@ -32,7 +32,6 @@ const AuthorityTaxonomyRun = lazy(() => import("./pages/AuthorityTaxonomyRun").t
 const TaxonomyLibrary = lazy(() => import("./pages/TaxonomyLibrary").then((x) => ({ default: x.TaxonomyLibrary })));
 const BackgroundAgents = lazy(() => import("./pages/BackgroundAgents").then((x) => ({ default: x.BackgroundAgents })));
 const EngagementDashboard = lazy(() => import("./pages/EngagementDashboard").then((x) => ({ default: x.EngagementDashboard })));
-const VotingRuns = lazy(() => import("./pages/VotingRuns").then((x) => ({ default: x.VotingRuns })));
 const StewardCockpit = lazy(() => import("./pages/StewardCockpit").then((x) => ({ default: x.StewardCockpit })));
 const StewardWorkflow = lazy(() => import("./pages/StewardWorkflow").then((x) => ({ default: x.StewardWorkflow })));
 const PortfolioRiskMonitoringTool = lazy(() => import("./pages/PortfolioRiskMonitoringTool").then((x) => ({ default: x.PortfolioRiskMonitoringTool })));
@@ -78,7 +77,6 @@ const TABS = [
   { id: "agent", label: "Agent" },
   { id: "stewardship", label: "Steward Workflow" },
   { id: "engagement", label: "Engagement" },
-  { id: "voting", label: "Proxy Voting" },
   { id: "reporting", label: "Presentations & Reports" },
   { id: "valueChain", label: "Value Chain Explorer" },
   { id: "rfp", label: "RFP Answers" },
@@ -314,7 +312,6 @@ function App() {
         )}
         {active === "stewardship" && <StewardWorkflow initialTab={route.params[0]} />}
         {active === "engagement" && <EngagementDashboard />}
-        {active === "voting" && <VotingRuns selectedRunId={route.params[0] ?? null} onSelectRun={(id) => navigate("voting", id)} />}
         {active === "reporting" && <ReportBuilder />}
         {active === "valueChain" && <ValueChainExplorer key={route.params.join("/")} params={route.params} />}
         {active === "argusWalkthrough" && <ArgusWalkthrough key={route.params.join("/")} params={route.params} />}

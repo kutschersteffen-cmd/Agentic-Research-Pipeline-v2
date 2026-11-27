@@ -14,8 +14,8 @@ const flowWith = (open: Record<string, number>) =>
   ({ stages: Object.entries(open).map(([id, n]) => ({ id, decisions: Array.from({ length: n }, () => ({ kind: "outreach", decision: null })) })) }) as unknown as StewardshipFlow;
 
 const busy = {
-  runs: [run("extraction", "completed", 7), run("theme", "failed"), run("transition_plan", "running"), run("proxy_voting", "completed", 3)],
-  flow: flowWith({ drafting: 2 }),
+  runs: [run("extraction", "completed", 7), run("theme", "failed"), run("transition_plan", "running")],
+  flow: flowWith({ drafting: 2, checkpoint: 1 }),
 };
 const calm = { runs: [run("extraction", "completed")], flow: flowWith({}) };
 const ws = (name: string) => WORKSPACES.find((w) => w.name === name)!;
@@ -163,10 +163,8 @@ test("pol_ac11_failed_processes", () => {
   assert.deepEqual(failedProcesses(lab, null, null, null), []);
 });
 test("pol_failed_with_wait", () => {
-  // StewardIQ waits on open decisions while a proxy-voting run failed: the failed line still names it.
-  const sq = ws("StewardIQ");
-  const out = failedProcesses(sq, [run("proxy_voting", "failed")], flowWith({ drafting: 2 }), null);
-  const voting = sq.processes.filter((p) => p.steps.some((s) => s.runTypes?.includes("proxy_voting"))).map((p) => p.title);
-  assert.deepEqual(out, voting);
-  assert.deepEqual(voting, ["Proxy season"]);
+  // R&D Lab waits on theme review while an emerging_themes run failed: the failed line still names it.
+  const lab = ws("R&D Lab");
+  const out = failedProcesses(lab, [run("emerging_themes", "failed"), run("theme", "completed", 2)], null, null);
+  assert.deepEqual(out, ["Build a thematic portfolio"]);
 });
