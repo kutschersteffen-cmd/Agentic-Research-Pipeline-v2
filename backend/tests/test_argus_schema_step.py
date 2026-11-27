@@ -32,13 +32,11 @@ def fid(client):
 
 def test_schema_choice_and_settings_round_trip(client, fid):
     body = {"schema_choice": {"kind": "schema", "schema_id": "sch_x", "version": 2},
-            "settings": {"mode": "max", "evidence_passages": 3, "batch": True,
-                         "decision_framework_id": "fw1", "decision_framework_version": 4}}
+            "settings": {"mode": "max", "evidence_passages": 3, "batch": True}}
     assert client.patch(f"/api/argus/flows/{fid}", json=body).status_code == 200
     flow = client.get(f"/api/argus/flows/{fid}").json()
     assert flow["schema_choice"] == {"kind": "schema", "schema_id": "sch_x", "version": 2, "profile": None}
-    assert flow["settings"] == {"mode": "max", "evidence_passages": 3, "batch": True,
-                                "decision_framework_id": "fw1", "decision_framework_version": 4}
+    assert flow["settings"] == {"mode": "max", "evidence_passages": 3, "batch": True}
 
 
 def test_profile_choice_has_no_schema_id(client, fid):

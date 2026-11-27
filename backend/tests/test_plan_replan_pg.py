@@ -15,10 +15,10 @@ from arp.orchestration.plan_store import PlanStore
 
 CHAIN = """u = universe_build(taxonomy_id="t", source="u.csv")
 e = extraction(universe_run_id=u.run_id, schema_id="green_capex")
-d = report_render(run_ids=[e.run_id])
+d = report_render(source_ids=[e.run_id])
 """
 REMAINING = PlanScript(script="""e = extraction(universe_run_id=previous[0].run_id, schema_id="green_capex_v2")
-d = report_render(run_ids=[e.run_id])
+d = report_render(source_ids=[e.run_id])
 """)
 BAD = PlanScript(script="import os\n")
 BAD2 = PlanScript(script="w = x * 2\n")
@@ -128,7 +128,7 @@ def test_replan_twice_keeps_all_done_calls(store, fake_llm, monkeypatch):
     _replan(store, plan_id, fake_llm, monkeypatch)
     store.approve(plan_id, "alice")
     run_plan(plan_id, store, Stubs(fail_kind="report_render").all(), lambda c: True)
-    third = PlanScript(script="d = report_render(run_ids=[previous[1].run_id])\n")
+    third = PlanScript(script="d = report_render(source_ids=[previous[1].run_id])\n")
     result, _ = _replan(store, plan_id, fake_llm, monkeypatch, [third])
     assert result.stdout.splitlines()[0] == "version 3"
     plan = store.get(plan_id)

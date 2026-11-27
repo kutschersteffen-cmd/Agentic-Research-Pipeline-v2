@@ -111,13 +111,12 @@ def _choose(client, fid, schema, **settings):
 
 def test_start_released_schema_on_kept_files(client, fid, calls, settings, run_store):
     schema = _schema(settings, released=True)
-    _choose(client, fid, schema, evidence_passages=3, decision_framework_id="fw", decision_framework_version=2)
+    _choose(client, fid, schema, evidence_passages=3)
     r = client.post(f"/api/argus/flows/{fid}/start")
     assert r.status_code == 200, r.text
     name, req, kwargs = calls[0]
     assert name == "custom" and req.trial is False and req.datapoint_schema.schema_id == "sch_s"
     assert [c.company_id for c in req.companies] == ["aapl", "msft"]  # SAP has no kept file
-    assert (req.decision_framework_id, req.decision_framework_version) == ("fw", 2)  # AC-77
     keys = kwargs["registry"].only
     assert set(keys) == {"aapl", "msft"} and all(len(v) == 1 for v in keys.values())
     flow = r.json()

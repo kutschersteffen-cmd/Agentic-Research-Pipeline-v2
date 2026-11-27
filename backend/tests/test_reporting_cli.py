@@ -29,13 +29,13 @@ def test_plan_takes_goal_theme_and_run_refs(tmp_path, monkeypatch, fake_llm):
     store, notes = _setup(tmp_path, monkeypatch, fake_llm({"Storyline": [Storyline(title="D", slides=[])]}))
     result = CliRunner().invoke(cli.reporting_app, [
         "plan", "--title", "T", "--notes", str(notes), "--out", str(tmp_path / "s.json"), "--format", "house_deck",
-        "--goal", "Decide", "--theme", "dark", "--run-ref", "run:run_1", "--run-ref", "decision:d_2",
+        "--goal", "Decide", "--theme", "dark", "--run-ref", "run:run_1", "--run-ref", "run:run_2",
     ])
     assert result.exit_code == 0, result.output
     [m] = store.list_reports()
     request = store.load_request(m.report_id)
     assert (request.goal, request.layout.theme) == ("Decide", "dark")
-    assert request.run_refs == [RunRef(kind="run", ref_id="run_1"), RunRef(kind="decision", ref_id="d_2")]
+    assert request.run_refs == [RunRef(kind="run", ref_id="run_1"), RunRef(kind="run", ref_id="run_2")]
 
 
 def test_plan_passes_deck_settings_to_the_request(tmp_path, monkeypatch, fake_llm):

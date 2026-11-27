@@ -34,7 +34,7 @@ DATES = ("2026-09-30", "2026-10-31")
 MONTH = "2026-09"  # the earlier month, for the monthly run (AC-41)
 ENDPOINTS = (
     "/api/stewardship/worklist?scope=house", "/api/stewardship/worklist/scopes", "/api/stewardship/selection",
-    "/api/stewardship/tiers", "/api/stewardship/decision-inputs", "/api/stewardship/studio/coverage/inputs",
+    "/api/stewardship/tiers", "/api/stewardship/studio/coverage/inputs",
     "/api/stewardship/studio/monitoring/triggers", "/api/stewardship/streams/house/flow",
 )  # fmt: skip
 
@@ -64,7 +64,7 @@ def fill_store_s(store) -> None:
 @pytest.fixture
 def store_s(pg, monkeypatch, tmp_path):
     for name, sub in (("ARP_PORTFOLIOS_DIR", "portfolios"), ("ARP_STEWARDSHIP_STREAMS_DIR", "streams"), ("ARP_ENGAGEMENTS_DIR", "engagements"),
-                      ("ARP_FRAMEWORKS_DIR", "frameworks"), ("ARP_RUNS_DIR", "runs")):  # fmt: skip
+                      ("ARP_RUNS_DIR", "runs")):  # fmt: skip
         monkeypatch.setenv(name, str(tmp_path / sub))
     monkeypatch.setenv("ARP_ENGAGEMENT_STORE", "postgres")
     get_settings.cache_clear()

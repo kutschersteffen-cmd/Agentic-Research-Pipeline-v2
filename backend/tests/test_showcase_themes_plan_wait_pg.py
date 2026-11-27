@@ -15,7 +15,7 @@ from arp.orchestration.plan_store import PlanStore
 
 GATED = """u = universe_build(taxonomy_id="t", source="u.csv")
 e = extraction(universe_run_id=u.run_id, schema_id="s")
-d = report_render(run_ids=[e.run_id])
+d = report_render(source_ids=[e.run_id])
 """
 PLAIN = 'u = universe_build(taxonomy_id="t", source="u.csv")\n'
 

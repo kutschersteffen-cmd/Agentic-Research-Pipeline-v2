@@ -17,12 +17,12 @@ from arp.storage.run_store import RunStore
 def test_shape_matches_the_graph_that_runs(profile):
     shape = pipeline_shape(profile, Settings())
     ids = {n["id"] for n in shape["nodes"]}
-    assert {"item", "gather_evidence", "verify", "aggregate", "company", "rules"} <= ids
+    assert {"item", "gather_evidence", "verify", "aggregate", "company"} <= ids
     # Every node that exposes settings is a real node, so a renamed graph node fails here.
     assert set(PROFILES[profile]["settings"]) <= ids
     assert all(k in SETTING_INFO for n in shape["nodes"] for k in n["settings"])
     entry = "try_tagged" if profile in ("custom", "transition_plan") else "gather_evidence"  # custom tries tagged XBRL values first (E29)
-    assert {(e["source"], e["target"]) for e in shape["edges"]} >= {("item", entry), ("company", "rules")}
+    assert {(e["source"], e["target"]) for e in shape["edges"]} >= {("item", entry)}
     assert set(shape["defaults"]) == set(StepSettings.model_fields)
 
 
