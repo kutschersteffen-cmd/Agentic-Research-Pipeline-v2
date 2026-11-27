@@ -207,19 +207,7 @@ def _override_shares(overrides: list[dict], company_of_isin: dict[str, int], nam
     return shares
 
 
-def simulate(lines: list[dict], overrides: list[dict]) -> list[dict[str, str]]:
-    """One row per distinct ISIN, sorted by ISIN, with the columns of `COLUMNS` as text."""
-    for line in lines:
-        if line["file"] not in ("EURO_STOXX_50", "DAX") and line["label"] and line["label"] not in PEER_GROUP:
-            raise ValueError(f"{line['file']}.xlsx: unknown Industry Classification {line['label']!r} ({line['name']}, {line['isin']})")
-    lines = [{**line, "label": line["label"] or "unknown"} for line in lines]
-    companies = _companies(lines)
-    company_of_isin = {line["isin"]: i for i, company in enumerate(companies) for line in company}
-    names_of_isin: dict[str, set[str]] = defaultdict(set)
-    for line in lines:
-        names_of_isin[line["isin"]].add(line["name"])
-    override = _override_shares(overrides, company_of_isin, names_of_isin)
-
+def _init_company_values(companies: list[list[dict]]) -> list[dict]:
     values: list[dict] = []
     for company in companies:
         first = company[0]
@@ -234,11 +222,14 @@ def simulate(lines: list[dict], overrides: list[dict]) -> list[dict[str, str]]:
                 v["market_cap"] = sum(weights) * index_cap
                 break
         values.append(v)
+    return values
 
-    by_sector: dict[str, list[int]] = defaultdict(list)
-    for i, v in enumerate(values):
-        by_sector[v["sector"]].append(i)
 
+def _populate_company_metrics(
+    values: list[dict],
+    by_sector: dict[str, list[int]],
+    override: dict[tuple[int, str], float],
+) -> None:
     for i, v in enumerate(values):
         key, sector = v["key"], v["sector"]
         intensity, scope1_share, scope3_multiple, green, ev_factor, ev_to_sales = SECTOR_TABLE[sector]
@@ -277,26 +268,33 @@ def simulate(lines: list[dict], overrides: list[dict]) -> list[dict[str, str]]:
         for flag in OVERRIDE_FLAGS:
             v[flag] = (i, flag) in override
 
-    for sector, members in by_sector.items():
-        n = len(members)
-        intensity_pct = _percentiles([values[i]["intensity"] for i in members])
-        green_pct = _percentiles([values[i]["green"] for i in members])
-        for i, p_intensity, p_green in zip(members, intensity_pct, green_pct, strict=True):
-            values[i]["score"] = round(0.5 * (1 - p_intensity) + 0.3 * p_green + 0.2 * values[i]["e"] / 10, 4)
-        median_intensity = statistics.median(values[i]["intensity"] for i in members)
-        ranked = sorted(members, key=lambda i: (-values[i]["score"], values[i]["min_isin"]))
-        for position, i in enumerate(ranked, 1):
-            v = values[i]
-            v["grade"], v["grade_label"] = next((g, label) for g, label, pct in GRADES if position <= pct * n // 100)
-            if v["green"] >= 50:
-                v["lct_category"] = "solutions"
-            elif sector in _HIGH_EMITTERS:
-                v["lct_category"] = "asset_stranding" if v["grade"] in "DEF" else "operational_transition"
-            elif sector in ("Industrials", "Consumer Discretionary") and v["intensity"] > median_intensity:
-                v["lct_category"] = "product_transition"
-            else:
-                v["lct_category"] = "neutral"
 
+def _grade_sector_members(values: list[dict], sector: str, members: list[int]) -> None:
+    n = len(members)
+    intensity_pct = _percentiles([values[i]["intensity"] for i in members])
+    green_pct = _percentiles([values[i]["green"] for i in members])
+    for i, p_intensity, p_green in zip(members, intensity_pct, green_pct, strict=True):
+        values[i]["score"] = round(0.5 * (1 - p_intensity) + 0.3 * p_green + 0.2 * values[i]["e"] / 10, 4)
+    median_intensity = statistics.median(values[i]["intensity"] for i in members)
+    ranked = sorted(members, key=lambda i: (-values[i]["score"], values[i]["min_isin"]))
+    for position, i in enumerate(ranked, 1):
+        v = values[i]
+        v["grade"], v["grade_label"] = next((g, label) for g, label, pct in GRADES if position <= pct * n // 100)
+        if v["green"] >= 50:
+            v["lct_category"] = "solutions"
+        elif sector in _HIGH_EMITTERS:
+            v["lct_category"] = "asset_stranding" if v["grade"] in "DEF" else "operational_transition"
+        elif sector in ("Industrials", "Consumer Discretionary") and v["intensity"] > median_intensity:
+            v["lct_category"] = "product_transition"
+        else:
+            v["lct_category"] = "neutral"
+
+
+def _format_isin_rows(
+    lines: list[dict],
+    company_of_isin: dict[str, int],
+    values: list[dict],
+) -> list[dict[str, str]]:
     files_of_isin: dict[str, list[str]] = defaultdict(list)
     for line in lines:
         if line["file"] not in files_of_isin[line["isin"]]:
@@ -338,6 +336,30 @@ def simulate(lines: list[dict], overrides: list[dict]) -> list[dict[str, str]]:
         }
         rows.append({column: row[column] for column in COLUMNS})
     return rows
+
+
+def simulate(lines: list[dict], overrides: list[dict]) -> list[dict[str, str]]:
+    """One row per distinct ISIN, sorted by ISIN, with the columns of `COLUMNS` as text."""
+    for line in lines:
+        if line["file"] not in ("EURO_STOXX_50", "DAX") and line["label"] and line["label"] not in PEER_GROUP:
+            raise ValueError(f"{line['file']}.xlsx: unknown Industry Classification {line['label']!r} ({line['name']}, {line['isin']})")
+    lines = [{**line, "label": line["label"] or "unknown"} for line in lines]
+    companies = _companies(lines)
+    company_of_isin = {line["isin"]: i for i, company in enumerate(companies) for line in company}
+    names_of_isin: dict[str, set[str]] = defaultdict(set)
+    for line in lines:
+        names_of_isin[line["isin"]].add(line["name"])
+    override = _override_shares(overrides, company_of_isin, names_of_isin)
+
+    values = _init_company_values(companies)
+    by_sector: dict[str, list[int]] = defaultdict(list)
+    for i, v in enumerate(values):
+        by_sector[v["sector"]].append(i)
+
+    _populate_company_metrics(values, by_sector, override)
+    for sector, members in by_sector.items():
+        _grade_sector_members(values, sector, members)
+    return _format_isin_rows(lines, company_of_isin, values)
 
 
 def write_dataset(rows: list[dict[str, str]], out: Path) -> None:

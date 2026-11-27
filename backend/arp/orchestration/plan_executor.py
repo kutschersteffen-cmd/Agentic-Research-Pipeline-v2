@@ -96,6 +96,62 @@ def run_plan(plan_id: str, store: PlanStore, steps: dict[str, Step | Callable[..
         raise PlanNotRunnable("plan is already running") from exc
 
 
+def _execute_step(
+    plan_id: str,
+    plan: dict[str, Any],
+    store: PlanStore,
+    step: Step,
+    seq: int,
+    kind: str,
+    params: dict[str, Any],
+    old: dict[str, Any] | None,
+    same: bool,
+) -> dict[str, Any]:
+    run_id = old["run_id"] if same and old["status"] == "running" else None
+    try:
+        if run_id is None:  # recorded as `starting` first, so a crash inside `start` is found on resume
+            _check_budget(store, plan)
+            attempt = old["attempt"] + (old["status"] == "failed") if same else 1
+            store.record_call(plan_id, seq=seq, kind=kind, params=params, status="starting", attempt=attempt)
+            run_id = step.start(f"plan:{plan_id}:v{plan['version']}:{seq}:a{attempt}", **params)
+            store.update_call(plan_id, seq, status="running", run_id=run_id)
+        return step.finish(run_id, **params)  # attaches to the run a crashed worker left running
+    except BudgetReached:
+        raise
+    except Exception as exc:
+        store.update_call(plan_id, seq, status="failed")
+        raise RuntimeError(f"step {seq} {kind} failed: {exc}") from exc
+
+
+def _handle_review_gate(
+    plan_id: str,
+    store: PlanStore,
+    seq: int,
+    kind: str,
+    ids: dict[str, Any],
+    reviewed: ReviewedFn,
+    poll: float,
+    return_at_gate: bool,
+) -> None:
+    store.update_call(plan_id, seq, status="awaiting_review", **ids)
+    row = {"seq": seq, "kind": kind, **ids}
+    if return_at_gate:
+        if not reviewed(row):
+            store.claim(plan_id, {"running"}, "awaiting_review")  # atomic: a cancel is never overwritten
+            raise _AwaitingReview
+        return
+    if store.get(plan_id)["status"] != "cancelled":
+        store.set_status(plan_id, "awaiting_review")
+    while not reviewed(row):
+        if store.get(plan_id)["status"] == "cancelled":
+            store.update_call(plan_id, seq, status="cancelled")
+            raise _Cancelled
+        time.sleep(poll)
+    if not store.claim(plan_id, {"awaiting_review"}, "running"):  # cancelled while it waited
+        store.update_call(plan_id, seq, status="done", **ids)
+        raise _Cancelled
+
+
 def _run(plan_id: str, store: PlanStore, steps: dict[str, Step | Callable[..., dict[str, Any]]], reviewed: ReviewedFn, poll: float,
          return_at_gate: bool, active_only: bool) -> str:
     # We hold the lease, so a plan marked running or awaiting review has no other live worker: take it over.
@@ -114,46 +170,17 @@ def _run(plan_id: str, store: PlanStore, steps: dict[str, Step | Callable[..., d
         if status() == "cancelled":
             raise _Cancelled
         old = previous.get(seq)
-        same = old and old["kind"] == kind and old["params"] == params
+        same = bool(old and old["kind"] == kind and old["params"] == params)
         if same and old["status"] == "done":
             return old["result"]
         if same and old["status"] == "awaiting_review":  # its run already exists: never start it twice
             result = old["result"]
         else:
             step = steps[kind] if isinstance(steps[kind], Step) else sync_step(steps[kind])
-            run_id = old["run_id"] if same and old["status"] == "running" else None
-            try:
-                if run_id is None:  # recorded as `starting` first, so a crash inside `start` is found on resume
-                    _check_budget(store, plan)
-                    attempt = old["attempt"] + (old["status"] == "failed") if same else 1
-                    store.record_call(plan_id, seq=seq, kind=kind, params=params, status="starting", attempt=attempt)
-                    run_id = step.start(f"plan:{plan_id}:v{plan['version']}:{seq}:a{attempt}", **params)
-                    store.update_call(plan_id, seq, status="running", run_id=run_id)
-                result = step.finish(run_id, **params)  # attaches to the run a crashed worker left running
-            except BudgetReached:
-                raise
-            except Exception as exc:
-                store.update_call(plan_id, seq, status="failed")
-                raise RuntimeError(f"step {seq} {kind} failed: {exc}") from exc
+            result = _execute_step(plan_id, plan, store, step, seq, kind, params, old, same)
         ids = {"run_id": result.get("run_id"), "result_ref": result.get("result_ref"), "result": result}
-        if result.get("gate") and return_at_gate:
-            store.update_call(plan_id, seq, status="awaiting_review", **ids)
-            if not reviewed({"seq": seq, "kind": kind, **ids}):
-                store.claim(plan_id, {"running"}, "awaiting_review")  # atomic: a cancel is never overwritten
-                raise _AwaitingReview
-        elif result.get("gate"):
-            store.update_call(plan_id, seq, status="awaiting_review", **ids)
-            if status() != "cancelled":
-                store.set_status(plan_id, "awaiting_review")
-            row = {"seq": seq, "kind": kind, **ids}
-            while not reviewed(row):
-                if status() == "cancelled":
-                    store.update_call(plan_id, seq, status="cancelled")
-                    raise _Cancelled
-                time.sleep(poll)
-            if not store.claim(plan_id, {"awaiting_review"}, "running"):  # cancelled while it waited
-                store.update_call(plan_id, seq, status="done", **ids)
-                raise _Cancelled
+        if result.get("gate"):
+            _handle_review_gate(plan_id, store, seq, kind, ids, reviewed, poll, return_at_gate)
         store.update_call(plan_id, seq, status="done", **ids)
         return result
 

@@ -55,6 +55,150 @@ def create_emerging_themes_run(run_store: RunStore, companies: list[CompanyRef],
     return manifest.run_id
 
 
+async def _ingest_mentions(sources: list[MentionSource], since: datetime, run_store: RunStore, run_id: str) -> list[RawMention]:
+    mentions: list[RawMention] = []
+    for source in sources:
+        try:
+            mentions.extend(await source.fetch(since))
+        except Exception:  # noqa: BLE001 - one source failing must not abort the run
+            logger.exception("Ingestion failed for source %s", source.name)
+    for mention in mentions:
+        run_store.append_jsonl(run_store.run_dir(run_id) / "mentions.jsonl", mention.model_dump(mode="json"))
+    return mentions
+
+
+def _resolve_entity_companies(
+    all_tags: list[ExtractedTag],
+    mentions_by_id: dict[str, RawMention],
+    companies: list[CompanyRef],
+) -> dict[str, list[str]]:
+    company_ids_by_mention: dict[str, list[str]] = {}
+    for tag in all_tags:
+        mention = mentions_by_id.get(tag.mention_id)
+        names = list(tag.entity_names) + (mention.raw_entity_names if mention else [])
+        if not names:
+            continue
+        resolved = resolve_mention_companies(names, companies)
+        if resolved:
+            existing = set(company_ids_by_mention.get(tag.mention_id, []))
+            company_ids_by_mention[tag.mention_id] = sorted(existing | set(resolved))
+    return company_ids_by_mention
+
+
+async def _corroborate_xbrl(
+    candidate: EmergingThemeCandidate,
+    companies_by_id: dict[str, CompanyRef],
+    xbrl_source: XbrlFactSource,
+) -> EmergingThemeCandidate:
+    evidence: list = []
+    for company_id in candidate.candidate_sectors_companies:
+        company = companies_by_id.get(company_id)
+        if company is None:
+            continue
+        try:
+            result = await check_company_action_evidence(company, xbrl_source)
+        except Exception:  # noqa: BLE001 - XBRL corroboration is supporting evidence, never fatal to a candidate
+            logger.exception("XBRL action-evidence lookup failed for company %s", company_id)
+            continue
+        if result is not None:
+            evidence.append(result)
+    if evidence:
+        return candidate.model_copy(update={"xbrl_corroboration": evidence})
+    return candidate
+
+
+async def _classify_exposures(
+    candidate: EmergingThemeCandidate,
+    cluster,
+    member_tags: list[ExtractedTag],
+    mentions_by_id: dict[str, RawMention],
+    company_ids_by_mention: dict[str, list[str]],
+    companies_by_id: dict[str, CompanyRef],
+    llm: LLMClient,
+    min_independent_sources: int,
+    progress,
+) -> EmergingThemeCandidate:
+    company_tags_by_id = tags_by_company(member_tags, company_ids_by_mention)
+    exposures: list[CompanyExposure] = []
+    for company_id in candidate.candidate_sectors_companies:
+        company = companies_by_id.get(company_id)
+        if company is None:
+            continue
+        company_tags = company_tags_by_id.get(company_id, [])
+        try:
+            role_result = await classify_company_role(company, company_tags, candidate.theme_name, candidate.description, llm)
+        except Exception:  # noqa: BLE001 - role classification is a supporting signal, never fatal to a candidate
+            logger.exception("Company role classification failed for %s", company_id)
+            continue
+        if role_result is None:
+            continue
+        role_assessment, role_usage = role_result
+        progress(usage=role_usage)
+        exposures.append(CompanyExposure(
+            company_id=company_id,
+            role=role_assessment.role,
+            role_rationale=role_assessment.rationale,
+            risk=compute_company_risk(company_tags),
+            momentum=cluster.velocity,
+            evidence_quality=compute_company_evidence_quality(company_tags, mentions_by_id, min_independent_sources),
+        ))
+    if exposures:
+        return candidate.model_copy(update={"company_exposure": exposures})
+    return candidate
+
+
+async def _process_birth_cluster(
+    cluster,
+    *,
+    tags_by_id: dict[str, ExtractedTag],
+    mentions_by_id: dict[str, RawMention],
+    company_ids_by_mention: dict[str, list[str]],
+    companies_by_id: dict[str, CompanyRef],
+    llm: LLMClient,
+    run_id: str,
+    settings: Settings,
+    run_store: RunStore,
+    topic_store: TopicStateStore,
+    xbrl_source: XbrlFactSource | None,
+    progress,
+) -> None:
+    member_tags = [tags_by_id[tid] for tid in cluster.member_tag_ids if tid in tags_by_id]
+    try:
+        candidate, usage = await build_candidate(
+            cluster, member_tags, mentions_by_id, llm, run_id,
+            min_independent_sources=settings.emerging_themes_min_independent_sources,
+            min_action_score=settings.emerging_themes_min_action_score,
+        )
+    except Exception:  # noqa: BLE001 - one cluster's synthesis failing must not abort the run
+        logger.exception("Synthesis failed for cluster %s", cluster.cluster_id)
+        progress(failed_delta=1)
+        return
+
+    progress(usage=usage)
+    if candidate is None:
+        return  # failed the independent-source-minimum or action-score check
+
+    if xbrl_source is not None:
+        candidate = await _corroborate_xbrl(candidate, companies_by_id, xbrl_source)
+
+    if settings.emerging_themes_company_exposure_enabled:
+        candidate = await _classify_exposures(
+            candidate, cluster, member_tags, mentions_by_id, company_ids_by_mention,
+            companies_by_id, llm, settings.emerging_themes_min_independent_sources, progress,
+        )
+
+    try:
+        brief, brief_usage = await build_context_brief(candidate, member_tags, mentions_by_id, company_ids_by_mention, companies_by_id, llm)
+        progress(usage=brief_usage)
+        candidate = candidate.model_copy(update={"context_brief": brief})
+    except Exception:  # noqa: BLE001 - a candidate is never lost because its brief failed
+        logger.exception("Context brief failed for candidate %s", candidate.theme_id)
+
+    run_store.append_result(run_id, candidate.model_dump(mode="json"))
+    topic_store.append_candidate(candidate)
+    progress(review_delta=1)
+
+
 async def execute_emerging_themes_run(
     run_id: str,
     companies: list[CompanyRef],
@@ -89,16 +233,8 @@ async def execute_emerging_themes_run(
     since = datetime.now(UTC) - timedelta(days=settings.emerging_themes_lookback_days)
 
     # --- Ingest ---
-    mentions: list[RawMention] = []
-    for source in sources:
-        try:
-            mentions.extend(await source.fetch(since))
-        except Exception:  # noqa: BLE001 - one source failing must not abort the run
-            logger.exception("Ingestion failed for source %s", source.name)
+    mentions = await _ingest_mentions(sources, since, run_store, run_id)
     mentions_by_id = {m.mention_id: m for m in mentions}
-    for mention in mentions:
-        run_store.append_jsonl(run_store.run_dir(run_id) / "mentions.jsonl", mention.model_dump(mode="json"))
-
     if not mentions:
         job_manager.finish_run(run_id)
         return run_id
@@ -148,16 +284,7 @@ async def execute_emerging_themes_run(
         return run_id
 
     # --- entity resolution (feeds Detect's company_ids and Synthesize's candidate_sectors_companies) ---
-    company_ids_by_mention: dict[str, list[str]] = {}
-    for tag in all_tags:
-        mention = mentions_by_id.get(tag.mention_id)
-        names = list(tag.entity_names) + (mention.raw_entity_names if mention else [])
-        if not names:
-            continue
-        resolved = resolve_mention_companies(names, companies)
-        if resolved:
-            existing = set(company_ids_by_mention.get(tag.mention_id, []))
-            company_ids_by_mention[tag.mention_id] = sorted(existing | set(resolved))
+    company_ids_by_mention = _resolve_entity_companies(all_tags, mentions_by_id, companies)
 
     # --- Detect: cluster + lineage ---
     try:
@@ -176,7 +303,6 @@ async def execute_emerging_themes_run(
     prior_period = topic_store.latest_period_before(period)
     prior_clusters = topic_store.load_period(prior_period) if prior_period else None
     lineage_events = classify_lineage(clusters, prior_clusters, period)
-
     tags_by_id = {t.tag_id: t for t in all_tags}
 
     # Discovery-scoring depth (roadmap P2, extended with materiality/
@@ -197,77 +323,20 @@ async def execute_emerging_themes_run(
 
     # --- Synthesize + Validate + Output ---
     for cluster_id in birth_cluster_ids:
-        cluster = clusters_by_id[cluster_id]
-        member_tags = [tags_by_id[tid] for tid in cluster.member_tag_ids if tid in tags_by_id]
-        try:
-            candidate, usage = await build_candidate(
-                cluster, member_tags, mentions_by_id, llm, run_id,
-                min_independent_sources=settings.emerging_themes_min_independent_sources,
-                min_action_score=settings.emerging_themes_min_action_score,
-            )
-        except Exception:  # noqa: BLE001 - one cluster's synthesis failing must not abort the run
-            logger.exception("Synthesis failed for cluster %s", cluster_id)
-            _progress(failed_delta=1)
-            continue
-
-        _progress(usage=usage)
-        if candidate is None:
-            continue  # failed the independent-source-minimum or action-score check
-
-        if xbrl_source is not None:
-            evidence: list = []
-            for company_id in candidate.candidate_sectors_companies:
-                company = companies_by_id.get(company_id)
-                if company is None:
-                    continue
-                try:
-                    result = await check_company_action_evidence(company, xbrl_source)
-                except Exception:  # noqa: BLE001 - XBRL corroboration is supporting evidence, never fatal to a candidate
-                    logger.exception("XBRL action-evidence lookup failed for company %s", company_id)
-                    continue
-                if result is not None:
-                    evidence.append(result)
-            if evidence:
-                candidate = candidate.model_copy(update={"xbrl_corroboration": evidence})
-
-        if settings.emerging_themes_company_exposure_enabled:
-            company_tags_by_id = tags_by_company(member_tags, company_ids_by_mention)
-            exposures: list[CompanyExposure] = []
-            for company_id in candidate.candidate_sectors_companies:
-                company = companies_by_id.get(company_id)
-                if company is None:
-                    continue
-                company_tags = company_tags_by_id.get(company_id, [])
-                try:
-                    role_result = await classify_company_role(company, company_tags, candidate.theme_name, candidate.description, llm)
-                except Exception:  # noqa: BLE001 - role classification is a supporting signal, never fatal to a candidate
-                    logger.exception("Company role classification failed for %s", company_id)
-                    continue
-                if role_result is None:
-                    continue
-                role_assessment, role_usage = role_result
-                _progress(usage=role_usage)
-                exposures.append(CompanyExposure(
-                    company_id=company_id,
-                    role=role_assessment.role,
-                    role_rationale=role_assessment.rationale,
-                    risk=compute_company_risk(company_tags),
-                    momentum=cluster.velocity,
-                    evidence_quality=compute_company_evidence_quality(company_tags, mentions_by_id, settings.emerging_themes_min_independent_sources),
-                ))
-            if exposures:
-                candidate = candidate.model_copy(update={"company_exposure": exposures})
-
-        try:
-            brief, brief_usage = await build_context_brief(candidate, member_tags, mentions_by_id, company_ids_by_mention, companies_by_id, llm)
-            _progress(usage=brief_usage)
-            candidate = candidate.model_copy(update={"context_brief": brief})
-        except Exception:  # noqa: BLE001 - a candidate is never lost because its brief failed
-            logger.exception("Context brief failed for candidate %s", candidate.theme_id)
-
-        run_store.append_result(run_id, candidate.model_dump(mode="json"))
-        topic_store.append_candidate(candidate)
-        _progress(review_delta=1)
+        await _process_birth_cluster(
+            clusters_by_id[cluster_id],
+            tags_by_id=tags_by_id,
+            mentions_by_id=mentions_by_id,
+            company_ids_by_mention=company_ids_by_mention,
+            companies_by_id=companies_by_id,
+            llm=llm,
+            run_id=run_id,
+            settings=settings,
+            run_store=run_store,
+            topic_store=topic_store,
+            xbrl_source=xbrl_source,
+            progress=_progress,
+        )
 
     job_manager.finish_run(run_id)
     return run_id
