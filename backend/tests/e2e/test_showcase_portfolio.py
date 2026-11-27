@@ -39,23 +39,6 @@ def test_risk_monitoring_opens_on_monitoring_and_alerts(page):
     page.get_by_role("heading", name="Add a monitoring rule").wait_for()
 
 
-def test_company_profiles_without_superset_shows_help_not_an_error(page):
-    page.route("**/api/bi/dashboards", lambda route: route.fulfill(status=503, json={"detail": "Superset is not configured"}))
-    page.goto(f"{URL}/#/portfolio-monitoring/profiles")
-    profile = card(page, "Profile dashboard")
-    profile.get_by_text("Dashboards are not set up on this server. Ask your administrator.").wait_for()
-    assert profile.get_by_role("alert").count() == 0
-    assert "could not be loaded" not in profile.inner_text()
-
-
-def test_company_profiles_still_reports_other_errors(page):  # AC-83
-    page.route("**/api/bi/dashboards", lambda route: route.fulfill(status=500, json={"detail": "boom"}))
-    page.goto(f"{URL}/#/portfolio-monitoring/profiles")
-    alert = card(page, "Profile dashboard").get_by_role("alert")
-    alert.wait_for()
-    assert alert.inner_text() == "The profile dashboard could not be loaded: boom"
-
-
 # --- defect 2: Presentations & Reports ---
 
 def manifest(report_id, status, title, output_format="pptx"):

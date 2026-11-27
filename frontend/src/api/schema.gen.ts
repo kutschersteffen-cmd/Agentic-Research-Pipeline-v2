@@ -664,77 +664,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/bi/ask": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Ask */
-        post: operations["ask_api_bi_ask_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/bi/dashboards": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Dashboards */
-        get: operations["dashboards_api_bi_dashboards_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/bi/design": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Design
-         * @description A rejected plan is a normal 200: the UI shows `rejected`.
-         */
-        post: operations["design_api_bi_design_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/bi/embed-token": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Embed Token */
-        post: operations["embed_token_api_bi_embed_token_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/calibration/runs": {
         parameters: {
             query?: never;
@@ -4355,109 +4284,6 @@ export interface paths {
          *     upload. Holdings that don't resolve to a company are counted, not guessed.
          */
         post: operations["holdings_universe_api_portfolio_universe_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/projects": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Projects */
-        get: operations["list_projects_api_projects_get"];
-        put?: never;
-        /** Create Project */
-        post: operations["create_project_api_projects_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/projects/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Project */
-        get: operations["get_project_api_projects__id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/projects/{id}/dashboards": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Save Dashboard */
-        post: operations["save_dashboard_api_projects__id__dashboards_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/projects/{id}/dashboards/export": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Export Dashboard */
-        post: operations["export_dashboard_api_projects__id__dashboards_export_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/projects/{id}/data": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Upload Data */
-        post: operations["upload_data_api_projects__id__data_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/projects/{id}/open": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Open */
-        post: operations["open__api_projects__id__open_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -10452,13 +10278,6 @@ export interface components {
             /** File */
             file: string;
         };
-        /** Body_upload_data_api_projects__id__data_post */
-        Body_upload_data_api_projects__id__data_post: {
-            /** File */
-            file: string;
-            /** Notional Eur */
-            notional_eur: string;
-        };
         /** Body_upload_dataset_api_decision_datasets_post */
         Body_upload_dataset_api_decision_datasets_post: {
             /** File */
@@ -10900,45 +10719,48 @@ export interface components {
             /** Region */
             region: string;
         };
-        /** ChartPlan */
-        ChartPlan: {
-            /** Charts */
-            charts: components["schemas"]["ChartSpec-Output"][];
-            /**
-             * Goal
-             * @default
-             */
-            goal: string;
-            /** Title */
-            title: string;
-        };
         /** ChartSpec */
-        "ChartSpec-Output": {
-            /** Dataset */
-            dataset: string;
+        ChartSpec: {
             /**
-             * Filters
-             * @default {}
+             * Category Column
+             * @description Column used for category/x-axis labels. Required for every type except scatter/heatmap.
              */
-            filters: {
-                [key: string]: string;
-            };
+            category_column?: string | null;
+            /** @default bar */
+            chart_type: components["schemas"]["ChartType"];
+            /** Dataset Id */
+            dataset_id: string;
             /**
-             * Groupby
-             * @default []
-             */
-            groupby: string[];
-            /** Metrics */
-            metrics: string[];
-            /**
-             * Question
+             * Notes
+             * @description Caption/takeaway text rendered under the chart.
              * @default
              */
-            question: string;
-            /** Title */
+            notes: string;
+            /**
+             * Title
+             * @default
+             */
             title: string;
-            /** Viz Type */
-            viz_type: string;
+            /**
+             * Value Column
+             * @description heatmap only: the numeric cell value column.
+             */
+            value_column?: string | null;
+            /**
+             * Value Columns
+             * @description One or more numeric columns to plot as series.
+             */
+            value_columns?: string[];
+            /**
+             * X Column
+             * @description scatter only: numeric column for the x-axis (category_column is unused).
+             */
+            x_column?: string | null;
+            /**
+             * Y Column
+             * @description heatmap only: the row-axis category column (category_column is the column axis).
+             */
+            y_column?: string | null;
         };
         /**
          * ChartType
@@ -12229,18 +12051,6 @@ export interface components {
             /** Sector */
             sector?: string | null;
         };
-        /** CreateRequest */
-        CreateRequest: {
-            /**
-             * Description
-             * @default
-             */
-            description: string;
-            /** Id */
-            id?: string | null;
-            /** Name */
-            name: string;
-        };
         /** CreateStreamRequest */
         CreateStreamRequest: {
             /** Client Policy */
@@ -12362,17 +12172,6 @@ export interface components {
              */
             weight: number;
         };
-        /** DashboardItem */
-        DashboardItem: {
-            /** Id */
-            id: number;
-            /** Published */
-            published: boolean;
-            /** Slug */
-            slug: string;
-            /** Title */
-            title: string;
-        };
         /**
          * DataPointObservation
          * @description One resolved value of one data-point field for one company, at one
@@ -12449,20 +12248,6 @@ export interface components {
              * @default 1
              */
             version: number;
-        };
-        /** DataSource */
-        DataSource: {
-            /** Files */
-            files?: string[];
-            /**
-             * Kind
-             * @constant
-             */
-            kind: "constituents";
-            /** Params */
-            params?: {
-                [key: string]: unknown;
-            };
         };
         /** DatasetColumn */
         DatasetColumn: {
@@ -12836,28 +12621,6 @@ export interface components {
              * @description At least this many of all_of + any_of are True.
              */
             min_true?: number | null;
-        };
-        /** DesignRequest */
-        DesignRequest: {
-            /** Brief */
-            brief: string;
-        };
-        /** DesignResult */
-        DesignResult: {
-            /** Clarification Needed */
-            clarification_needed?: string | null;
-            /** Dashboard Id */
-            dashboard_id?: number | null;
-            plan?: components["schemas"]["ChartPlan"] | null;
-            /**
-             * Rejected
-             * @default []
-             */
-            rejected: string[];
-            /** Slug */
-            slug?: string | null;
-            /** Url */
-            url?: string | null;
         };
         /** DeskChatCreated */
         DeskChatCreated: {
@@ -13250,20 +13013,6 @@ export interface components {
             /** Criteria Text */
             criteria_text: string;
         };
-        /** EmbedRequest */
-        EmbedRequest: {
-            /** Company Id */
-            company_id?: string | null;
-            /** Dashboard Id */
-            dashboard_id: string;
-        };
-        /** EmbedToken */
-        EmbedToken: {
-            /** Embedded Id */
-            embedded_id: string;
-            /** Token */
-            token: string;
-        };
         /** EmergingThemesRunRequest */
         EmergingThemesRunRequest: {
             /** Companies */
@@ -13586,30 +13335,6 @@ export interface components {
             question: string;
             /** Source Ask Id */
             source_ask_id?: string | null;
-        };
-        /** ExportRequest */
-        ExportRequest: {
-            /** Dashboard Id */
-            dashboard_id: number;
-        };
-        /** ExportedDashboard */
-        ExportedDashboard: {
-            /** File */
-            file: string;
-            /**
-             * Scoped
-             * @default false
-             */
-            scoped: boolean;
-            /** Slug */
-            slug: string;
-            /**
-             * Source
-             * @enum {string}
-             */
-            source: "template" | "superset-export";
-            /** Title */
-            title: string;
         };
         /** Exposure */
         Exposure: {
@@ -15608,28 +15333,6 @@ export interface components {
             /** Theme */
             theme: string;
         };
-        /** OpenResult */
-        OpenResult: {
-            /** Dashboards */
-            dashboards: components["schemas"]["OpenedDashboard"][];
-            /** Data */
-            data: {
-                [key: string]: unknown;
-            }[];
-        };
-        /** OpenedDashboard */
-        OpenedDashboard: {
-            /** Id */
-            id: number | null;
-            /** Published */
-            published: boolean;
-            /** Slug */
-            slug: string;
-            /** Status */
-            status: string;
-            /** Title */
-            title: string;
-        };
         /**
          * OutputFormat
          * @enum {string}
@@ -16296,39 +15999,6 @@ export interface components {
         ProgrammeSuggestions: {
             /** Suggestions */
             suggestions: components["schemas"]["ProgrammeSuggestion"][];
-        };
-        /** Project */
-        Project: {
-            /** Created At */
-            created_at: string;
-            /** Dashboards */
-            dashboards?: components["schemas"]["StoredDashboard"][];
-            /** Data */
-            data?: components["schemas"]["DataSource"][];
-            /**
-             * Description
-             * @default
-             */
-            description: string;
-            /** Id */
-            id: string;
-            /** Name */
-            name: string;
-        };
-        /** ProjectSummary */
-        ProjectSummary: {
-            /** Created At */
-            created_at: string;
-            /** Dashboards */
-            dashboards: number;
-            /** Data Files */
-            data_files: number;
-            /** Description */
-            description: string;
-            /** Id */
-            id: string;
-            /** Name */
-            name: string;
         };
         /** PromoteRequest */
         PromoteRequest: {
@@ -17063,7 +16733,7 @@ export interface components {
              * @default false
              */
             appendix: boolean;
-            chart?: components["schemas"]["arp__schemas__chart_specs__ChartSpec"] | null;
+            chart?: components["schemas"]["ChartSpec"] | null;
             /** Heading */
             heading: string;
             /** @default standard */
@@ -17869,12 +17539,6 @@ export interface components {
              * @default false
              */
             value_chain: boolean;
-        };
-        /** SaveDashboardRequest */
-        SaveDashboardRequest: {
-            plan: components["schemas"]["ChartPlan"];
-            /** Title */
-            title: string;
         };
         /** SavePolicyRequest */
         SavePolicyRequest: {
@@ -18803,20 +18467,6 @@ export interface components {
             vision_fallback_enabled?: boolean | null;
             /** Xbrl Facts Enabled */
             xbrl_facts_enabled?: boolean | null;
-        };
-        /** StoredDashboard */
-        StoredDashboard: {
-            /** File */
-            file: string;
-            /** Slug */
-            slug: string;
-            /**
-             * Source
-             * @enum {string}
-             */
-            source: "template" | "superset-export";
-            /** Title */
-            title: string;
         };
         /** Storyline */
         Storyline: {
@@ -20369,11 +20019,6 @@ export interface components {
             /** Universe Path */
             universe_path?: string | null;
         };
-        /** AskRequest */
-        arp__api__routers__bi__AskRequest: {
-            /** Question */
-            question: string;
-        };
         /** CompareRequest */
         arp__api__routers__decision__CompareRequest: {
             config?: components["schemas"]["MechanismConfig"] | null;
@@ -20634,77 +20279,6 @@ export interface components {
             history?: components["schemas"]["HistoryTurn"][];
             /** Question */
             question: string;
-        };
-        /** ChartSpec */
-        arp__bi__plan__ChartSpec: {
-            /** Dataset */
-            dataset: string;
-            /**
-             * Filters
-             * @default {}
-             */
-            filters: {
-                [key: string]: string;
-            };
-            /**
-             * Groupby
-             * @default []
-             */
-            groupby: string[];
-            /** Metrics */
-            metrics: string[];
-            /**
-             * Question
-             * @default
-             */
-            question: string;
-            /** Title */
-            title: string;
-            /** Viz Type */
-            viz_type: string;
-        };
-        /** ChartSpec */
-        arp__schemas__chart_specs__ChartSpec: {
-            /**
-             * Category Column
-             * @description Column used for category/x-axis labels. Required for every type except scatter/heatmap.
-             */
-            category_column?: string | null;
-            /** @default bar */
-            chart_type: components["schemas"]["ChartType"];
-            /** Dataset Id */
-            dataset_id: string;
-            /**
-             * Notes
-             * @description Caption/takeaway text rendered under the chart.
-             * @default
-             */
-            notes: string;
-            /**
-             * Title
-             * @default
-             */
-            title: string;
-            /**
-             * Value Column
-             * @description heatmap only: the numeric cell value column.
-             */
-            value_column?: string | null;
-            /**
-             * Value Columns
-             * @description One or more numeric columns to plot as series.
-             */
-            value_columns?: string[];
-            /**
-             * X Column
-             * @description scatter only: numeric column for the x-axis (category_column is unused).
-             */
-            x_column?: string | null;
-            /**
-             * Y Column
-             * @description heatmap only: the row-axis category column (category_column is the column axis).
-             */
-            y_column?: string | null;
         };
     };
     responses: never;
@@ -22078,125 +21652,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UploadResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    ask_api_bi_ask_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["arp__api__routers__bi__AskRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DesignResult"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    dashboards_api_bi_dashboards_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DashboardItem"][];
-                };
-            };
-        };
-    };
-    design_api_bi_design_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DesignRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DesignResult"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    embed_token_api_bi_embed_token_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["EmbedRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EmbedToken"];
                 };
             };
             /** @description Validation Error */
@@ -28868,226 +28323,6 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_projects_api_projects_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProjectSummary"][];
-                };
-            };
-        };
-    };
-    create_project_api_projects_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Project"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_project_api_projects__id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Project"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    save_dashboard_api_projects__id__dashboards_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SaveDashboardRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OpenedDashboard"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    export_dashboard_api_projects__id__dashboards_export_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ExportRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExportedDashboard"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    upload_data_api_projects__id__data_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_upload_data_api_projects__id__data_post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Project"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    open__api_projects__id__open_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OpenResult"];
                 };
             };
             /** @description Validation Error */

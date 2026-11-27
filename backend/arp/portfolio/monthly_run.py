@@ -5,11 +5,12 @@ latest ESG load are `ok`. Re-running a month adds no alerts (the evaluators skip
 
 from __future__ import annotations
 
+import calendar
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel
 
-from arp.bi import published
 from arp.config import Settings
 from arp.portfolio.climate.esg_intake import MONTH
 from arp.portfolio.loads import latest_load
@@ -22,6 +23,13 @@ from arp.stewardship.trigger_store import TriggerStore
 from arp.stewardship.universe import from_portfolio
 from arp.storage.engagement_store_factory import build_engagement_store
 from arp.storage.portfolio_store import PortfolioStore
+
+GRADE_LETTERS = "ABCDEF"  # the transition grades of arp/showcase/simulate.py GRADES
+
+
+def month_end(month: str) -> str:
+    first = datetime.strptime(month, "%Y-%m")  # ValueError if malformed
+    return f"{month}-{calendar.monthrange(first.year, first.month)[1]:02d}"
 
 
 class MonthlyRunResult(BaseModel):
@@ -65,8 +73,8 @@ def run_month(
     if reasons:
         return MonthlyRunResult(status="blocked", blocked_reasons=reasons)
     # ESG for month M usually arrives after M ends: date observation lookups to the latest OK ESG load, not the month end
-    obs_as_of = max(published.month_end(month), latest_load(store, "esg", esg_provider, month).at[:10])
-    raised = evaluate_threshold_rules(store, as_of=published.month_end(month))
+    obs_as_of = max(month_end(month), latest_load(store, "esg", esg_provider, month).at[:10])
+    raised = evaluate_threshold_rules(store, as_of=month_end(month))
     raised += evaluate_news_triggers(store, min_severity=settings.portfolio_monitoring_news_min_severity)
     live = [a for a in list_alerts(store) if a.status in LIVE]
     sample = load_sample(settings.frameworks_dir, vote_items(settings.runs_dir), live, from_portfolio(store, as_of=obs_as_of))
@@ -74,10 +82,6 @@ def run_month(
     triggers = monitoring.evaluate(PolicyStore(settings.stewardship_streams_dir).active("monitoring_rules"), sample, records)
     trigger_store = TriggerStore(settings.stewardship_streams_dir)
     stored = trigger_store.record_run(month, triggers)
-    store.publish_rows("portfolio_climate_metrics", month, published.climate_metric_rows(store, month, portfolio_ids, obs_as_of))
-    store.publish_rows("alerts", month, published.alert_rows(store))
-    store.publish_rows("triggers", month, published.trigger_rows(trigger_store.list_triggers()))
-    store.publish_rows("company_profile", month, published.profile_rows(store, month, obs_as_of))
     # what the Home hub's "Monitoring & Alerts" step reads; a blocked run records nothing
     store.append_governance_event("monthly_run_recorded", {"month": month, "alerts": len(raised), "triggers": len(stored)})
     return MonthlyRunResult(status="ran", alerts=len(raised), triggers=len(stored))

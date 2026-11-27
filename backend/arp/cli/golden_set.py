@@ -8,7 +8,6 @@ import typer
 from pydantic import ValidationError
 
 from arp.api.auth import Principal
-from arp.bi.eval import load_bi_cases, run_bi_set
 from arp.cli._shared import _run_store
 from arp.config import get_settings
 from arp.extraction.evidence_gate import gate_run
@@ -214,29 +213,6 @@ def golden_set_refine(
     accuracy = passed / total if total else 0.0
     typer.echo(f"accuracy {accuracy:.3f} ({passed}/{total})")
     if accuracy < min_accuracy:
-        raise typer.Exit(1)
-
-
-@golden_set_app.command("bi")
-def golden_set_bi(
-    cases_file: Path = typer.Option(None, "--cases", help="Custom BI-case JSON file (same shape as the bundled set)."),
-    fail_on_regression: bool = typer.Option(True, help="Exit non-zero if any case fails."),
-) -> None:
-    """Runs the Superset chart planner against briefs with known-correct
-    shapes (datasets, viz types, metrics, or a refusal). Needs no Superset:
-    metas are built offline from the catalog. Requires ARP_ANTHROPIC_API_KEY;
-    not run in CI."""
-    llm = build_llm_client(get_settings())
-    cases = load_bi_cases(cases_file)
-    typer.echo(f"Running {len(cases)} BI case(s) against {get_settings().llm_model}...")
-    results = asyncio.run(run_bi_set(cases, llm=llm))
-    for r in results:
-        typer.echo(f"[{'PASS' if r.passed else 'FAIL'}] {r.brief}")
-        for f in r.failures:
-            typer.echo(f"       ! {f}")
-    passed = sum(r.passed for r in results)
-    typer.echo(f"\n{passed}/{len(results)} passed.")
-    if fail_on_regression and passed != len(results):
         raise typer.Exit(1)
 
 

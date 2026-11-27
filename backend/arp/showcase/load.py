@@ -14,13 +14,12 @@ import logging
 from collections.abc import Callable
 from pathlib import Path
 
-from arp.bi.published import month_end
 from arp.config import Settings
 from arp.portfolio.climate.esg_intake import FIELD_IDS as CLIMATE_FIELD_IDS
 from arp.portfolio.climate.schemas import FIELD_CARBON_INTENSITY, FIELD_SCOPE1, FIELD_SCOPE2, build_climate_schema
 from arp.portfolio.constituent_import import import_holdings_files
 from arp.portfolio.loads import LoadRecord, record_load_once
-from arp.portfolio.monthly_run import run_month
+from arp.portfolio.monthly_run import month_end, run_month
 from arp.schemas.common import CompanyRef
 from arp.schemas.datapoints import FieldDataType
 from arp.schemas.portfolio import DataPointObservation, Portfolio

@@ -3326,25 +3326,6 @@
     "title": "Body_upload_companies_api_argus_flows__flow_id__companies_upload_post",
     "type": "object"
    },
-   "Body_upload_data_api_projects__id__data_post": {
-    "properties": {
-     "file": {
-      "contentMediaType": "application/octet-stream",
-      "title": "File",
-      "type": "string"
-     },
-     "notional_eur": {
-      "title": "Notional Eur",
-      "type": "string"
-     }
-    },
-    "required": [
-     "file",
-     "notional_eur"
-    ],
-    "title": "Body_upload_data_api_projects__id__data_post",
-    "type": "object"
-   },
    "Body_upload_dataset_api_decision_datasets_post": {
     "properties": {
      "file": {
@@ -4407,80 +4388,86 @@
     "title": "CellRef",
     "type": "object"
    },
-   "ChartPlan": {
+   "ChartSpec": {
     "properties": {
-     "charts": {
-      "items": {
-       "$ref": "#/components/schemas/ChartSpec-Output"
-      },
-      "title": "Charts",
-      "type": "array"
+     "category_column": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "Column used for category/x-axis labels. Required for every type except scatter/heatmap.",
+      "title": "Category Column"
      },
-     "goal": {
+     "chart_type": {
+      "$ref": "#/components/schemas/ChartType",
+      "default": "bar"
+     },
+     "dataset_id": {
+      "title": "Dataset Id",
+      "type": "string"
+     },
+     "notes": {
       "default": "",
-      "title": "Goal",
+      "description": "Caption/takeaway text rendered under the chart.",
+      "title": "Notes",
       "type": "string"
      },
      "title": {
-      "title": "Title",
-      "type": "string"
-     }
-    },
-    "required": [
-     "title",
-     "charts"
-    ],
-    "title": "ChartPlan",
-    "type": "object"
-   },
-   "ChartSpec-Output": {
-    "properties": {
-     "dataset": {
-      "title": "Dataset",
-      "type": "string"
-     },
-     "filters": {
-      "additionalProperties": {
-       "type": "string"
-      },
-      "default": {},
-      "title": "Filters",
-      "type": "object"
-     },
-     "groupby": {
-      "default": [],
-      "items": {
-       "type": "string"
-      },
-      "title": "Groupby",
-      "type": "array"
-     },
-     "metrics": {
-      "items": {
-       "type": "string"
-      },
-      "title": "Metrics",
-      "type": "array"
-     },
-     "question": {
       "default": "",
-      "title": "Question",
-      "type": "string"
-     },
-     "title": {
       "title": "Title",
       "type": "string"
      },
-     "viz_type": {
-      "title": "Viz Type",
-      "type": "string"
+     "value_column": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "heatmap only: the numeric cell value column.",
+      "title": "Value Column"
+     },
+     "value_columns": {
+      "description": "One or more numeric columns to plot as series.",
+      "items": {
+       "type": "string"
+      },
+      "title": "Value Columns",
+      "type": "array"
+     },
+     "x_column": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "scatter only: numeric column for the x-axis (category_column is unused).",
+      "title": "X Column"
+     },
+     "y_column": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "description": "heatmap only: the row-axis category column (category_column is the column axis).",
+      "title": "Y Column"
      }
     },
     "required": [
-     "title",
-     "viz_type",
-     "dataset",
-     "metrics"
+     "dataset_id"
     ],
     "title": "ChartSpec",
     "type": "object"
@@ -7949,38 +7936,6 @@
     "title": "CreateRecordRequest",
     "type": "object"
    },
-   "CreateRequest": {
-    "properties": {
-     "description": {
-      "default": "",
-      "maxLength": 2000,
-      "title": "Description",
-      "type": "string"
-     },
-     "id": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Id"
-     },
-     "name": {
-      "maxLength": 200,
-      "minLength": 1,
-      "title": "Name",
-      "type": "string"
-     }
-    },
-    "required": [
-     "name"
-    ],
-    "title": "CreateRequest",
-    "type": "object"
-   },
    "CreateStreamRequest": {
     "properties": {
      "client_policy": {
@@ -8240,34 +8195,6 @@
     "title": "CriterionContribution",
     "type": "object"
    },
-   "DashboardItem": {
-    "properties": {
-     "id": {
-      "title": "Id",
-      "type": "integer"
-     },
-     "published": {
-      "title": "Published",
-      "type": "boolean"
-     },
-     "slug": {
-      "title": "Slug",
-      "type": "string"
-     },
-     "title": {
-      "title": "Title",
-      "type": "string"
-     }
-    },
-    "required": [
-     "id",
-     "slug",
-     "title",
-     "published"
-    ],
-    "title": "DashboardItem",
-    "type": "object"
-   },
    "DataPointObservation": {
     "description": "One resolved value of one data-point field for one company, at one\npoint in time. Append-only: a later correction is a new observation\nwith a later `observed_at`, never an edit to a prior one, so a trend\nquery reflects what was actually known at each point in time.",
     "properties": {
@@ -8445,32 +8372,6 @@
      "name"
     ],
     "title": "DataPointSchema",
-    "type": "object"
-   },
-   "DataSource": {
-    "properties": {
-     "files": {
-      "items": {
-       "type": "string"
-      },
-      "title": "Files",
-      "type": "array"
-     },
-     "kind": {
-      "const": "constituents",
-      "title": "Kind",
-      "type": "string"
-     },
-     "params": {
-      "additionalProperties": true,
-      "title": "Params",
-      "type": "object"
-     }
-    },
-    "required": [
-     "kind"
-    ],
-    "title": "DataSource",
     "type": "object"
    },
    "DatasetColumn": {
@@ -9195,89 +9096,6 @@
      }
     },
     "title": "DerivedRule",
-    "type": "object"
-   },
-   "DesignRequest": {
-    "properties": {
-     "brief": {
-      "maxLength": 2000,
-      "minLength": 1,
-      "title": "Brief",
-      "type": "string"
-     }
-    },
-    "required": [
-     "brief"
-    ],
-    "title": "DesignRequest",
-    "type": "object"
-   },
-   "DesignResult": {
-    "properties": {
-     "clarification_needed": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Clarification Needed"
-     },
-     "dashboard_id": {
-      "anyOf": [
-       {
-        "type": "integer"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Dashboard Id"
-     },
-     "plan": {
-      "anyOf": [
-       {
-        "$ref": "#/components/schemas/ChartPlan"
-       },
-       {
-        "type": "null"
-       }
-      ]
-     },
-     "rejected": {
-      "default": [],
-      "items": {
-       "type": "string"
-      },
-      "title": "Rejected",
-      "type": "array"
-     },
-     "slug": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Slug"
-     },
-     "url": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Url"
-     }
-    },
-    "title": "DesignResult",
     "type": "object"
    },
    "DeskChatCreated": {
@@ -10375,49 +10193,6 @@
      "criteria_text"
     ],
     "title": "DraftSchemaRequest",
-    "type": "object"
-   },
-   "EmbedRequest": {
-    "properties": {
-     "company_id": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Company Id"
-     },
-     "dashboard_id": {
-      "pattern": "^\\d+$",
-      "title": "Dashboard Id",
-      "type": "string"
-     }
-    },
-    "required": [
-     "dashboard_id"
-    ],
-    "title": "EmbedRequest",
-    "type": "object"
-   },
-   "EmbedToken": {
-    "properties": {
-     "embedded_id": {
-      "title": "Embedded Id",
-      "type": "string"
-     },
-     "token": {
-      "title": "Token",
-      "type": "string"
-     }
-    },
-    "required": [
-     "token",
-     "embedded_id"
-    ],
-    "title": "EmbedToken",
     "type": "object"
    },
    "EmergingThemesRunRequest": {
@@ -11524,56 +11299,6 @@
      "question"
     ],
     "title": "ExplorationRequest",
-    "type": "object"
-   },
-   "ExportRequest": {
-    "properties": {
-     "dashboard_id": {
-      "title": "Dashboard Id",
-      "type": "integer"
-     }
-    },
-    "required": [
-     "dashboard_id"
-    ],
-    "title": "ExportRequest",
-    "type": "object"
-   },
-   "ExportedDashboard": {
-    "properties": {
-     "file": {
-      "title": "File",
-      "type": "string"
-     },
-     "scoped": {
-      "default": false,
-      "title": "Scoped",
-      "type": "boolean"
-     },
-     "slug": {
-      "title": "Slug",
-      "type": "string"
-     },
-     "source": {
-      "enum": [
-       "template",
-       "superset-export"
-      ],
-      "title": "Source",
-      "type": "string"
-     },
-     "title": {
-      "title": "Title",
-      "type": "string"
-     }
-    },
-    "required": [
-     "slug",
-     "title",
-     "source",
-     "file"
-    ],
-    "title": "ExportedDashboard",
     "type": "object"
    },
    "Exposure": {
@@ -16188,71 +15913,6 @@
     "title": "OpenIssueRequest",
     "type": "object"
    },
-   "OpenResult": {
-    "properties": {
-     "dashboards": {
-      "items": {
-       "$ref": "#/components/schemas/OpenedDashboard"
-      },
-      "title": "Dashboards",
-      "type": "array"
-     },
-     "data": {
-      "items": {
-       "additionalProperties": true,
-       "type": "object"
-      },
-      "title": "Data",
-      "type": "array"
-     }
-    },
-    "required": [
-     "data",
-     "dashboards"
-    ],
-    "title": "OpenResult",
-    "type": "object"
-   },
-   "OpenedDashboard": {
-    "properties": {
-     "id": {
-      "anyOf": [
-       {
-        "type": "integer"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Id"
-     },
-     "published": {
-      "title": "Published",
-      "type": "boolean"
-     },
-     "slug": {
-      "title": "Slug",
-      "type": "string"
-     },
-     "status": {
-      "title": "Status",
-      "type": "string"
-     },
-     "title": {
-      "title": "Title",
-      "type": "string"
-     }
-    },
-    "required": [
-     "id",
-     "slug",
-     "title",
-     "published",
-     "status"
-    ],
-    "title": "OpenedDashboard",
-    "type": "object"
-   },
    "OutputFormat": {
     "enum": [
      "pptx",
@@ -18077,86 +17737,6 @@
     "title": "ProgrammeSuggestions",
     "type": "object"
    },
-   "Project": {
-    "properties": {
-     "created_at": {
-      "title": "Created At",
-      "type": "string"
-     },
-     "dashboards": {
-      "items": {
-       "$ref": "#/components/schemas/StoredDashboard"
-      },
-      "title": "Dashboards",
-      "type": "array"
-     },
-     "data": {
-      "items": {
-       "$ref": "#/components/schemas/DataSource"
-      },
-      "title": "Data",
-      "type": "array"
-     },
-     "description": {
-      "default": "",
-      "title": "Description",
-      "type": "string"
-     },
-     "id": {
-      "title": "Id",
-      "type": "string"
-     },
-     "name": {
-      "title": "Name",
-      "type": "string"
-     }
-    },
-    "required": [
-     "id",
-     "name",
-     "created_at"
-    ],
-    "title": "Project",
-    "type": "object"
-   },
-   "ProjectSummary": {
-    "properties": {
-     "created_at": {
-      "title": "Created At",
-      "type": "string"
-     },
-     "dashboards": {
-      "title": "Dashboards",
-      "type": "integer"
-     },
-     "data_files": {
-      "title": "Data Files",
-      "type": "integer"
-     },
-     "description": {
-      "title": "Description",
-      "type": "string"
-     },
-     "id": {
-      "title": "Id",
-      "type": "string"
-     },
-     "name": {
-      "title": "Name",
-      "type": "string"
-     }
-    },
-    "required": [
-     "id",
-     "name",
-     "description",
-     "created_at",
-     "data_files",
-     "dashboards"
-    ],
-    "title": "ProjectSummary",
-    "type": "object"
-   },
    "PromoteRequest": {
     "properties": {
      "reason": {
@@ -19919,7 +19499,7 @@
      "chart": {
       "anyOf": [
        {
-        "$ref": "#/components/schemas/arp__schemas__chart_specs__ChartSpec"
+        "$ref": "#/components/schemas/ChartSpec"
        },
        {
         "type": "null"
@@ -22167,25 +21747,6 @@
      "theme_name"
     ],
     "title": "RunState",
-    "type": "object"
-   },
-   "SaveDashboardRequest": {
-    "properties": {
-     "plan": {
-      "$ref": "#/components/schemas/ChartPlan"
-     },
-     "title": {
-      "maxLength": 200,
-      "minLength": 1,
-      "title": "Title",
-      "type": "string"
-     }
-    },
-    "required": [
-     "title",
-     "plan"
-    ],
-    "title": "SaveDashboardRequest",
     "type": "object"
    },
    "SavePolicyRequest": {
@@ -24612,38 +24173,6 @@
      }
     },
     "title": "StepSettings",
-    "type": "object"
-   },
-   "StoredDashboard": {
-    "properties": {
-     "file": {
-      "title": "File",
-      "type": "string"
-     },
-     "slug": {
-      "title": "Slug",
-      "type": "string"
-     },
-     "source": {
-      "enum": [
-       "template",
-       "superset-export"
-      ],
-      "title": "Source",
-      "type": "string"
-     },
-     "title": {
-      "title": "Title",
-      "type": "string"
-     }
-    },
-    "required": [
-     "slug",
-     "title",
-     "source",
-     "file"
-    ],
-    "title": "StoredDashboard",
     "type": "object"
    },
    "Storyline": {
@@ -28811,21 +28340,6 @@
     "title": "XbrlRunRequest",
     "type": "object"
    },
-   "arp__api__routers__bi__AskRequest": {
-    "properties": {
-     "question": {
-      "maxLength": 2000,
-      "minLength": 1,
-      "title": "Question",
-      "type": "string"
-     }
-    },
-    "required": [
-     "question"
-    ],
-    "title": "AskRequest",
-    "type": "object"
-   },
    "arp__api__routers__decision__CompareRequest": {
     "properties": {
      "config": {
@@ -29486,142 +29000,6 @@
      "question"
     ],
     "title": "AskRequest",
-    "type": "object"
-   },
-   "arp__bi__plan__ChartSpec": {
-    "properties": {
-     "dataset": {
-      "title": "Dataset",
-      "type": "string"
-     },
-     "filters": {
-      "additionalProperties": {
-       "type": "string"
-      },
-      "default": {},
-      "title": "Filters",
-      "type": "object"
-     },
-     "groupby": {
-      "default": [],
-      "items": {
-       "type": "string"
-      },
-      "title": "Groupby",
-      "type": "array"
-     },
-     "metrics": {
-      "items": {
-       "type": "string"
-      },
-      "title": "Metrics",
-      "type": "array"
-     },
-     "question": {
-      "default": "",
-      "title": "Question",
-      "type": "string"
-     },
-     "title": {
-      "title": "Title",
-      "type": "string"
-     },
-     "viz_type": {
-      "title": "Viz Type",
-      "type": "string"
-     }
-    },
-    "required": [
-     "title",
-     "viz_type",
-     "dataset",
-     "metrics"
-    ],
-    "title": "ChartSpec",
-    "type": "object"
-   },
-   "arp__schemas__chart_specs__ChartSpec": {
-    "properties": {
-     "category_column": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "description": "Column used for category/x-axis labels. Required for every type except scatter/heatmap.",
-      "title": "Category Column"
-     },
-     "chart_type": {
-      "$ref": "#/components/schemas/ChartType",
-      "default": "bar"
-     },
-     "dataset_id": {
-      "title": "Dataset Id",
-      "type": "string"
-     },
-     "notes": {
-      "default": "",
-      "description": "Caption/takeaway text rendered under the chart.",
-      "title": "Notes",
-      "type": "string"
-     },
-     "title": {
-      "default": "",
-      "title": "Title",
-      "type": "string"
-     },
-     "value_column": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "description": "heatmap only: the numeric cell value column.",
-      "title": "Value Column"
-     },
-     "value_columns": {
-      "description": "One or more numeric columns to plot as series.",
-      "items": {
-       "type": "string"
-      },
-      "title": "Value Columns",
-      "type": "array"
-     },
-     "x_column": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "description": "scatter only: numeric column for the x-axis (category_column is unused).",
-      "title": "X Column"
-     },
-     "y_column": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "description": "heatmap only: the row-axis category column (category_column is the column axis).",
-      "title": "Y Column"
-     }
-    },
-    "required": [
-     "dataset_id"
-    ],
-    "title": "ChartSpec",
     "type": "object"
    }
   }
@@ -31622,155 +31000,6 @@
     "summary": "Upload",
     "tags": [
      "authority-taxonomy"
-    ]
-   }
-  },
-  "/api/bi/ask": {
-   "post": {
-    "operationId": "ask_api_bi_ask_post",
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/arp__api__routers__bi__AskRequest"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/DesignResult"
-        }
-       }
-      },
-      "description": "Successful Response"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      },
-      "description": "Validation Error"
-     }
-    },
-    "summary": "Ask",
-    "tags": [
-     "bi"
-    ]
-   }
-  },
-  "/api/bi/dashboards": {
-   "get": {
-    "operationId": "dashboards_api_bi_dashboards_get",
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "items": {
-          "$ref": "#/components/schemas/DashboardItem"
-         },
-         "title": "Response Dashboards Api Bi Dashboards Get",
-         "type": "array"
-        }
-       }
-      },
-      "description": "Successful Response"
-     }
-    },
-    "summary": "Dashboards",
-    "tags": [
-     "bi"
-    ]
-   }
-  },
-  "/api/bi/design": {
-   "post": {
-    "description": "A rejected plan is a normal 200: the UI shows `rejected`.",
-    "operationId": "design_api_bi_design_post",
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/DesignRequest"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/DesignResult"
-        }
-       }
-      },
-      "description": "Successful Response"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      },
-      "description": "Validation Error"
-     }
-    },
-    "summary": "Design",
-    "tags": [
-     "bi"
-    ]
-   }
-  },
-  "/api/bi/embed-token": {
-   "post": {
-    "operationId": "embed_token_api_bi_embed_token_post",
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/EmbedRequest"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/EmbedToken"
-        }
-       }
-      },
-      "description": "Successful Response"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      },
-      "description": "Validation Error"
-     }
-    },
-    "summary": "Embed Token",
-    "tags": [
-     "bi"
     ]
    }
   },
@@ -41434,310 +40663,6 @@
     "summary": "Holdings Universe",
     "tags": [
      "portfolio"
-    ]
-   }
-  },
-  "/api/projects": {
-   "get": {
-    "operationId": "list_projects_api_projects_get",
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "items": {
-          "$ref": "#/components/schemas/ProjectSummary"
-         },
-         "title": "Response List Projects Api Projects Get",
-         "type": "array"
-        }
-       }
-      },
-      "description": "Successful Response"
-     }
-    },
-    "summary": "List Projects",
-    "tags": [
-     "projects"
-    ]
-   },
-   "post": {
-    "operationId": "create_project_api_projects_post",
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/CreateRequest"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "201": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/Project"
-        }
-       }
-      },
-      "description": "Successful Response"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      },
-      "description": "Validation Error"
-     }
-    },
-    "summary": "Create Project",
-    "tags": [
-     "projects"
-    ]
-   }
-  },
-  "/api/projects/{id}": {
-   "get": {
-    "operationId": "get_project_api_projects__id__get",
-    "parameters": [
-     {
-      "in": "path",
-      "name": "id",
-      "required": true,
-      "schema": {
-       "title": "Id",
-       "type": "string"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/Project"
-        }
-       }
-      },
-      "description": "Successful Response"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      },
-      "description": "Validation Error"
-     }
-    },
-    "summary": "Get Project",
-    "tags": [
-     "projects"
-    ]
-   }
-  },
-  "/api/projects/{id}/dashboards": {
-   "post": {
-    "operationId": "save_dashboard_api_projects__id__dashboards_post",
-    "parameters": [
-     {
-      "in": "path",
-      "name": "id",
-      "required": true,
-      "schema": {
-       "title": "Id",
-       "type": "string"
-      }
-     }
-    ],
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/SaveDashboardRequest"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/OpenedDashboard"
-        }
-       }
-      },
-      "description": "Successful Response"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      },
-      "description": "Validation Error"
-     }
-    },
-    "summary": "Save Dashboard",
-    "tags": [
-     "projects"
-    ]
-   }
-  },
-  "/api/projects/{id}/dashboards/export": {
-   "post": {
-    "operationId": "export_dashboard_api_projects__id__dashboards_export_post",
-    "parameters": [
-     {
-      "in": "path",
-      "name": "id",
-      "required": true,
-      "schema": {
-       "title": "Id",
-       "type": "string"
-      }
-     }
-    ],
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/ExportRequest"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ExportedDashboard"
-        }
-       }
-      },
-      "description": "Successful Response"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      },
-      "description": "Validation Error"
-     }
-    },
-    "summary": "Export Dashboard",
-    "tags": [
-     "projects"
-    ]
-   }
-  },
-  "/api/projects/{id}/data": {
-   "post": {
-    "operationId": "upload_data_api_projects__id__data_post",
-    "parameters": [
-     {
-      "in": "path",
-      "name": "id",
-      "required": true,
-      "schema": {
-       "title": "Id",
-       "type": "string"
-      }
-     }
-    ],
-    "requestBody": {
-     "content": {
-      "multipart/form-data": {
-       "schema": {
-        "$ref": "#/components/schemas/Body_upload_data_api_projects__id__data_post"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/Project"
-        }
-       }
-      },
-      "description": "Successful Response"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      },
-      "description": "Validation Error"
-     }
-    },
-    "summary": "Upload Data",
-    "tags": [
-     "projects"
-    ]
-   }
-  },
-  "/api/projects/{id}/open": {
-   "post": {
-    "operationId": "open__api_projects__id__open_post",
-    "parameters": [
-     {
-      "in": "path",
-      "name": "id",
-      "required": true,
-      "schema": {
-       "title": "Id",
-       "type": "string"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/OpenResult"
-        }
-       }
-      },
-      "description": "Successful Response"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      },
-      "description": "Validation Error"
-     }
-    },
-    "summary": "Open ",
-    "tags": [
-     "projects"
     ]
    }
   },
