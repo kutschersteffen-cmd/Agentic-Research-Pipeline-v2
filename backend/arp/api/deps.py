@@ -34,7 +34,6 @@ from arp.storage.document_store import DocumentContentStore
 from arp.storage.engagement_store import EngagementStore
 from arp.storage.engagement_store_factory import build_engagement_store
 from arp.storage.identifier_map import IdentifierMapStore
-from arp.storage.index_store import IndexStore
 from arp.storage.portfolio_store_factory import build_portfolio_store
 from arp.storage.postgres_engagement_store import PostgresEngagementStore
 from arp.storage.reporting_store import ReportingStore
@@ -91,10 +90,6 @@ def get_taxonomy_store() -> TaxonomyStore:
 @lru_cache
 def get_decision_store() -> DecisionStore:
     return DecisionStore(get_settings().frameworks_dir)
-
-
-def get_index_store() -> IndexStore:
-    return IndexStore(get_settings().indices_dir)
 
 
 @lru_cache

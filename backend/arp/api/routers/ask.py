@@ -14,7 +14,6 @@ from arp.api.auth import Principal, current_user
 from arp.api.deps import (
     get_decision_store,
     get_identifier_map,
-    get_index_store,
     get_llm_client,
     get_portfolio_store,
     get_reporting_store,
@@ -44,7 +43,7 @@ and never state a number: code runs the tool you pick and computes every figure.
 tool:
 - "portfolio": exposures, weights or counts over the firm's portfolio holdings (e.g. exposure to a company, sector
   or asset class).
-- "smart_search": open data issues, stored outputs (universes, runs, publications, taxonomies, calibrations) or input
+- "smart_search": open data issues, stored outputs (universes, runs, publications, taxonomies) or input
   feeds that failed or are behind.
 - "transition_plan": a company's newest transition plan assessment. Set company to the company exactly as the user
   wrote it.
@@ -73,7 +72,6 @@ class AskDeps:
     run_store: RunStore
     decisions: object
     taxonomy: object
-    index: object
     reports: object
     streams: StreamStore
     llm: LLMClient
@@ -83,11 +81,11 @@ class AskDeps:
 def ask_deps(
     settings: Settings = Depends(settings_dep), store=Depends(get_portfolio_store),
     idmap: IdentifierMapStore = Depends(get_identifier_map), run_store: RunStore = Depends(get_run_store),
-    decisions=Depends(get_decision_store), taxonomy=Depends(get_taxonomy_store), index=Depends(get_index_store),
+    decisions=Depends(get_decision_store), taxonomy=Depends(get_taxonomy_store),
     reports=Depends(get_reporting_store), streams: StreamStore = Depends(get_stream_store),
     llm: LLMClient = Depends(get_llm_client), principal: Principal = Depends(current_user),
 ) -> AskDeps:
-    return AskDeps(settings, store, idmap, run_store, decisions, taxonomy, index, reports, streams, llm, principal)
+    return AskDeps(settings, store, idmap, run_store, decisions, taxonomy, reports, streams, llm, principal)
 
 
 async def answer(req: ask.AskRequest, d: AskDeps) -> ask.AskResponse:
@@ -104,7 +102,7 @@ async def answer(req: ask.AskRequest, d: AskDeps) -> ask.AskResponse:
             qa, _usage = await qa_agent.answer_question(routing.standalone_question, d.llm, d.store, securities, companies)
             out |= {"portfolio": qa, "answer_text": qa.answer_text if qa.resolvable else qa.clarification_needed}
         elif tool == "smart_search":
-            lists = await run_in_threadpool(datahub_lists, d.settings, d.store, d.idmap, d.run_store, d.decisions, d.taxonomy, d.index, d.reports, date.today())
+            lists = await run_in_threadpool(datahub_lists, d.settings, d.store, d.idmap, d.run_store, d.decisions, d.taxonomy, d.reports, date.today())
             found, _usage = await smart_search.smart_search(routing.standalone_question, d.llm, **lists)
             out |= {"smart_search": found, "answer_text": found.answer_text if found.resolvable else found.clarification_needed}
         elif tool == "transition_plan":

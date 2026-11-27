@@ -1170,14 +1170,14 @@ export interface SecurityMasterStatus {
   identifiers: Record<"ISIN" | "CUSIP" | "SEDOL" | "FIGI" | "LEI" | "CIK" | "PERMID", number>;
   last_load: { status: "ok" | "failed"; detail: string; at: string; content_hash: string } | null;
 }
-export type OutputKind = "universe" | "run" | "publication" | "taxonomy" | "calibration";
+export type OutputKind = "universe" | "run" | "publication" | "taxonomy";
 export interface OutputItem {
   kind: OutputKind;
   id: string;
   name: string;
   version: number | null;
   as_of: string | null;
-  /** saved · completed/failed/… (runs) · published · draft/ratified (taxonomies) · draft/approved (calibrations) */
+  /** saved · completed/failed/… (runs) · published · draft/ratified (taxonomies) */
   status: string;
   by: string | null;
   run_type?: string;
@@ -1735,199 +1735,6 @@ export type EntitySensitivity = Served<S["EntitySensitivity"]>;
 export type EntityMovement = Served<S["EntityMovement"]>;
 
 export type DecisionComparison = Served<S["DecisionComparison"]>;
-
-// ---------------------------------------------------------------- index
-
-// Named for the index engine specifically: `MissingPolicy` is already taken by
-// Decision Studio's missing-data handling, which is a different question about
-// a different kind of gap.
-export type IndexMissingPolicy = "block" | "fail" | "pass";
-
-export interface RuleBase {
-  rule_id?: string;
-  label?: string;
-  enabled?: boolean;
-}
-
-export type ScreenRule = RuleBase &
-  (
-    | { type: "metric_threshold"; field: string; min_value?: number | null; max_value?: number | null; missing?: IndexMissingPolicy }
-    | { type: "flag_exclusion"; field: string; exclude_when?: boolean; missing?: IndexMissingPolicy }
-    | { type: "category_screen"; field: string; allow?: string[]; deny?: string[]; missing?: IndexMissingPolicy }
-  );
-
-export type SelectionRule = RuleBase &
-  (
-    | { type: "select_all" }
-    | {
-        type: "best_in_class_coverage";
-        score_field: string;
-        group_by?: string;
-        target_pct?: number;
-        basis?: "float_mcap" | "count";
-        buffer_pct?: number;
-        higher_is_better?: boolean;
-        missing?: IndexMissingPolicy;
-      }
-    | {
-        type: "absolute_threshold";
-        score_field: string;
-        threshold: number;
-        group_by?: string;
-        group_thresholds?: Record<string, number>;
-        higher_is_better?: boolean;
-        on_empty_group?: "leave_empty" | "fallback_relative" | "block";
-        fallback_target_pct?: number;
-        missing?: IndexMissingPolicy;
-      }
-    | { type: "top_n"; score_field: string; n: number; group_by?: string; higher_is_better?: boolean; missing?: IndexMissingPolicy }
-  );
-
-export type TiltRule = RuleBase &
-  (
-    | {
-        type: "metric_tilt";
-        field: string;
-        normalisation?: "none" | "max" | "group_max" | "rank_percentile" | "zscore";
-        group_by?: string;
-        floor?: number;
-        ceiling?: number;
-        higher_is_better?: boolean;
-        missing?: IndexMissingPolicy;
-      }
-    | { type: "bucket_tilt"; field: string; multipliers: Record<string, number>; default_multiplier?: number; missing?: IndexMissingPolicy }
-  );
-
-export interface BaseWeighting {
-  scheme: "free_float_mcap" | "equal" | "metric" | "inverse_metric";
-  field?: string | null;
-  floor?: number;
-}
-
-export interface GroupCap {
-  dimension: string;
-  max_weight: number;
-  label?: string;
-}
-
-export type RiskModelSpec = Served<S["RiskModelSpec"]>;
-
-export type ConstraintSolver = Served<S["ConstraintSolver"]>;
-
-export interface ConstraintSet {
-  single_name_cap?: number | null;
-  group_caps: GroupCap[];
-  ucits_5_10_40: boolean;
-  min_weight?: number | null;
-  max_constituents?: number | null;
-  min_constituents?: number | null;
-  max_iterations?: number;
-  solver: ConstraintSolver;
-}
-
-export interface DecarbonisationTrajectory {
-  enabled: boolean;
-  metric_field: string;
-  annual_reduction_rate: number;
-  base_date?: string | null;
-  universe_reduction_pct?: number | null;
-  compensate_missed_targets: boolean;
-  max_tilt_strength?: number;
-  tolerance?: number;
-  missing?: IndexMissingPolicy;
-}
-
-export interface ConstructionSpec {
-  index_currency: string;
-  screens: ScreenRule[];
-  selection: SelectionRule;
-  base_weighting: BaseWeighting;
-  tilts: TiltRule[];
-  constraints: ConstraintSet;
-  trajectory: DecarbonisationTrajectory;
-  calendar: { review_frequency: string; selection_lag_days: number; base_level: number };
-  rounding: { weight_decimals: number; shares_decimals: number; level_decimals: number };
-}
-
-export type IndexCalibration = Served<S["IndexCalibration"]>;
-
-export type StageTrace = Served<S["StageTrace"]>;
-
-export type IndexConstituent = Served<S["Constituent"]>;
-
-export interface IndexState {
-  index_id: string;
-  review_date: string;
-  base_date?: string | null;
-  base_metric_value?: number | null;
-  required_metric_value?: number | null;
-  achieved_metric_value?: number | null;
-  universe_metric_value?: number | null;
-  shortfall_carry: number;
-  binding_constraint: "none" | "trajectory" | "universe_relative";
-  divisor?: number | null;
-  index_level?: number | null;
-}
-
-export type ReviewDiagnostics = Served<S["ReviewDiagnostics"]>;
-
-export type IndexReviewResult = Served<S["ReviewResult"]>;
-
-export interface IndexFieldInventory {
-  metrics: string[];
-  flags: string[];
-  categories: string[];
-}
-
-/** A starting universe for Index Construction: the demo universe, a holdings file or a stored portfolio. */
-export interface IndexStartingUniverse {
-  universe_id: string;
-  label: string;
-  kind: "demo" | "file" | "portfolio";
-  as_of_date: string | null;
-}
-
-export interface IndexStartingUniverseDetail extends IndexStartingUniverse {
-  company_count: number;
-  notes: string[];
-  fields: IndexFieldInventory;
-}
-
-export interface RuleParamSpec {
-  name: string;
-  kind: string;
-  required?: boolean;
-  default?: unknown;
-  options?: string[];
-  help?: string;
-}
-
-export interface RuleTypeSpec {
-  type: string;
-  label: string;
-  help: string;
-  params: RuleParamSpec[];
-}
-
-export interface IndexCatalogue {
-  screens: RuleTypeSpec[];
-  selection: RuleTypeSpec[];
-  base_weighting: { scheme: string; label: string; needs_field: boolean }[];
-  tilts: RuleTypeSpec[];
-  constraints: RuleParamSpec[];
-  constraint_solver: {
-    help: string;
-    params: RuleParamSpec[];
-    available: boolean;
-    integer_available: boolean;
-    methods: { name: string; label: string; needs_solver: boolean; needs_risk_model: boolean }[];
-    risk_model: { help: string; params: RuleParamSpec[] };
-  };
-  trajectory: { help: string; params: RuleParamSpec[] };
-  presets: { name: string; label: string; description: string }[];
-  screen_bundles: { name: string; label: string; description: string }[];
-  fields: IndexFieldInventory;
-}
 
 // Stewardship process page (backend/arp/stewardship/process.py)
 export type MetricSource = "live" | "sample" | "portfolio" | "not_built";

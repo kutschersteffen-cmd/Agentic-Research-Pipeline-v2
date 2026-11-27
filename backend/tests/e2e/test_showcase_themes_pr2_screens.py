@@ -213,60 +213,6 @@ def test_plans_list_follows_the_open_plan(page):  # AC-90
     row.get_by_text("failed").wait_for(timeout=8_000)
 
 
-def _catalogue(page, available=True):
-    def handle(route):
-        body = route.fetch().json()
-        body["constraint_solver"]["available"] = available
-        route.fulfill(json=body)
-
-    page.route("**/api/index/catalogue", handle)
-
-
-def test_index_banner_and_missing_solver(page):  # AC-65, AC-69
-    _catalogue(page, available=False)
-    page.goto(f"{URL}/#/index")
-    page.get_by_text("The optimiser is not installed on this server. A calibration that asks for it").wait_for()
-    banner = "Demo data: reviews on this page run on a built-in synthetic universe of 60 companies. The results describe nothing real."
-    for tab in ("Compose", "Result"):
-        page.get_by_role("tab", name=tab).click()
-        page.get_by_text(banner).wait_for()
-    page.get_by_role("tab", name="Compose").click()
-    assert "pip install" not in page.locator("body").inner_text()
-
-
-def _review(page, answer):
-    _catalogue(page)
-    page.route("**/api/index/run", answer)
-    page.goto(f"{URL}/#/index")
-    page.get_by_role("button", name="Preview").click()
-
-
-def test_cvxpy_fallback_in_plain_words(page):  # AC-66
-    def answer(route):  # the real review, with the server's fallback exception added
-        body = route.fetch().json()
-        body["exceptions"] = ["solver.method='least_squares' but cvxpy is not installed; fell back to the deterministic "
-                              'waterfall (pip install -e ".[optimize]")']
-        route.fulfill(json=body)
-
-    _review(page, answer)
-    page.get_by_text('The optimiser is not installed on this server, so this review used step-by-step capping instead of '
-                     '"Least-squares projection". Ask your administrator.').wait_for()
-
-
-def test_screen_error_named_like_the_card(page):  # AC-70, AC-71
-    _review(page, lambda r: r.fulfill(status=422, json={"detail": [{
-        "loc": ["body", "spec", "screens", 0, "metric_threshold"],
-        "msg": "Value error, metric_threshold needs at least one of min_value / max_value"}]}))
-    page.get_by_text("Screen 1 (Metric threshold): needs at least one of min_value / max_value", exact=True).wait_for()
-
-
-def test_metric_tilt_card_title(page):  # AC-124
-    _catalogue(page)
-    page.goto(f"{URL}/#/index")
-    page.get_by_role("button", name="+ Metric tilt").click()
-    page.locator(".activity-editor strong", has_text="Metric tilt").wait_for()
-
-
 TAXONOMY = {"taxonomy_id": "tax1", "name": "Grid", "version": 1, "status": "ratified", "derivation_method": "manual",
             "theme": {"name": "Grid", "description": "d", "activities": []}, "created_at": "2026-11-11T09:00:00Z",
             "source_notes": "", "ratified_by": "a", "ratified_at": "2026-11-11T09:00:00Z"}

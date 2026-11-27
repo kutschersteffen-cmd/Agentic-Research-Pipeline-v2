@@ -18,9 +18,7 @@ Ratified decision frameworks (decision_score framework_id):
 - fw_capex_quality: Green capex quality
 
 Universe source files: data/universes/eu_listed.csv, data/universes/us_listed.csv
-Extraction schemas: green_capex, transition_plan_indicators
-Index calibrations (index_construct calibration_id): cal_eu_pab
-Candidate files: data/index/candidates_eu.json"""
+Extraction schemas: green_capex, transition_plan_indicators"""
 
 
 class _MemoryStore:

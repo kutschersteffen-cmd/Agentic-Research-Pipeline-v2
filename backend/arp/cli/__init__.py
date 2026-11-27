@@ -17,7 +17,6 @@ from arp.cli.extraction import extract_app
 from arp.cli.golden_set import golden_set_app
 from arp.cli.holdings import holdings_app
 from arp.cli.identity import identity_app
-from arp.cli.index import index_app
 from arp.cli.io_tables import io_app
 from arp.cli.plan import plan_app
 from arp.cli.portfolio import portfolio_app
@@ -113,7 +112,6 @@ app.add_typer(decision_app, name="decision")
 app.add_typer(documents_app, name="documents")
 app.add_typer(compute_app, name="compute")
 app.add_typer(identity_app, name="identity")
-app.add_typer(index_app, name="index")
 app.add_typer(golden_set_app, name="golden-set")
 app.add_typer(emerging_themes_app, name="emerging-themes")
 app.add_typer(db_app, name="db")

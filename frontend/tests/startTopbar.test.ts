@@ -41,7 +41,6 @@ test("pr1_sticky_parts_clear_the_top_bar", () => {
   assert.match(css, /--topbar-h: 76px;/);
   assert.match(css, /\.ballot-bar \{ position: sticky; top: var\(--topbar-h\);/);
   assert.match(css, /\.source-panel \{[^}]*top: calc\(var\(--topbar-h\) \+ 12px\);/);
-  assert.match(css, /\.ix-rail \{ position: sticky; top: calc\(var\(--topbar-h\) \+ var\(--s-6\)\); \}/);
   // On a phone the two-row bar scrolls away, so nothing needs to clear it.
   assert.match(css, /@media \(max-width: 760px\) \{ :root \{ --topbar-h: 0px; \} \.start-topbar \{ position: static; \} \}/);
 });

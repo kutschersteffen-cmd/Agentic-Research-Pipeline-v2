@@ -99,12 +99,6 @@ import type {
   Alert,
   AlertRule,
   AlertStatus,
-  ConstructionSpec,
-  IndexCalibration,
-  IndexCatalogue,
-  IndexStartingUniverse,
-  IndexStartingUniverseDetail,
-  IndexReviewResult,
   CompanyRef,
   DataPointSchema,
   RuleSuggestions,
@@ -1187,37 +1181,6 @@ export const api = {
   setHouseUniverse: (body: { source: "sample" | "portfolio" }) =>
     request<{ source: "sample" | "portfolio"; issuers: number }>("/api/stewardship/universe", { method: "PUT", body: JSON.stringify(body) }),
   getDecisionInputs: () => request<{ in_scope: number; published: DecisionInput[] }>("/api/stewardship/decision-inputs"),
-  // Index construction
-  getIndexCatalogue: () => request<IndexCatalogue>("/api/index/catalogue"),
-  listIndexUniverses: () => request<IndexStartingUniverse[]>("/api/index/universes"),
-  getIndexUniverse: (universeId: string) =>
-    request<IndexStartingUniverseDetail>(`/api/index/universes/${encodeURIComponent(universeId)}`),
-  getIndexPreset: (name: string) => request<ConstructionSpec>(`/api/index/presets/${name}`),
-  getIndexScreenBundle: (name: string) =>
-    request<{ name: string; screens: ConstructionSpec["screens"] }>(`/api/index/screen-bundles/${name}`),
-  listIndexCalibrations: () => request<IndexCalibration[]>("/api/index/calibrations"),
-  getIndexCalibration: (calibrationId: string, version?: number) =>
-    request<IndexCalibration>(`/api/index/calibrations/${calibrationId}${buildQuery({ version: version?.toString() })}`),
-  approveIndexCalibration: (calibrationId: string) =>
-    request<IndexCalibration>(`/api/index/calibrations/${calibrationId}/approve`, { method: "POST" }),
-  listIndexCalibrationVersions: (calibrationId: string) =>
-    request<IndexCalibration[]>(`/api/index/calibrations/${calibrationId}/versions`),
-  createIndexCalibration: (body: { name: string; effective_from: string; spec: ConstructionSpec; notes?: string }) =>
-    request<IndexCalibration>("/api/index/calibrations", { method: "POST", body: JSON.stringify(body) }),
-  createIndexCalibrationVersion: (
-    calibrationId: string,
-    body: { name: string; effective_from: string; spec: ConstructionSpec; notes?: string },
-  ) => request<IndexCalibration>(`/api/index/calibrations/${calibrationId}/versions`, { method: "POST", body: JSON.stringify(body) }),
-  runIndexReview: (body: {
-    index_id: string;
-    review_date: string;
-    spec?: ConstructionSpec;
-    calibration_id?: string;
-    persist?: boolean;
-    use_prior_state?: boolean;
-    decision_snapshot_ids?: string[];
-    universe?: string;
-  }) => request<IndexReviewResult>("/api/index/run", { method: "POST", body: JSON.stringify(body) }),
   // Value chain explorer
   valueChainStatus: () => request<VcStatus>("/api/value-chain/status"),
   valueChainSearch: (q: string, limit?: number) =>

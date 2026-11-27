@@ -48,14 +48,6 @@ class DecisionScore(_Step):
     framework_id: str | None = None
 
 
-class IndexConstruct(_Step):
-    calibration_id: str  # an approved Index Construction calibration; the version in force on review_date is used
-    candidates: str  # JSON file: the IndexCandidate list (prices, shares, sector, country, metrics)
-    review_date: str  # YYYY-MM-DD
-    index_id: str = "plan_index"
-    decision_snapshot_ids: list[str] | None = None  # published Decision Studio results to join as fields
-
-
 class ReportRender(_Step):
     source_ids: list[str]
     template_id: str | None = None
@@ -120,7 +112,6 @@ CATALOG: list[Capability] = [
     _run("financials_extraction", "Extract each company's financials.", FinancialsExtraction),
     _run("xbrl_facts", "Fetch each company's XBRL facts.", XbrlFacts),
     _run("decision_score", "Score a run with a ratified decision framework.", DecisionScore),
-    _run("index_construct", "Preview an index review from a calibration.", IndexConstruct),
     _run("report_render", "Render a report from runs.", ReportRender),
     _run("identity_resolution", "Resolve each company's website, CIK and LEI.", IdentityResolution),
     _run("tnfd_extraction", "Extract each company's TNFD disclosures for one reporting period.", TnfdExtraction),

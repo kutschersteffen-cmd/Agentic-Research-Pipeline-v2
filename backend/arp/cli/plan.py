@@ -53,14 +53,14 @@ def _llm():
 
 
 def _context() -> str:
-    from arp.api.deps import get_decision_store, get_index_store
+    from arp.api.deps import get_decision_store
     from arp.config import get_settings
     from arp.orchestration.plan_planner import planner_context
     from arp.storage.taxonomy_store import TaxonomyStore
     from arp.universe import saved_universes
 
     return planner_context(TaxonomyStore(get_settings().taxonomies_dir).list_all(),
-                           get_decision_store().list_frameworks(), get_index_store().list_calibrations(),
+                           get_decision_store().list_frameworks(),
                            saved_universes(get_settings().runs_dir))
 
 
@@ -205,22 +205,18 @@ def cancel(plan_id: str) -> None:
     typer.echo("cancelled")
 
 
-DEMO_BRIEF = "Demo: build the demo index, then EU grid storage green capex as a report"
-DEMO_REVIEW_DATE = "2026-10-31"
+DEMO_BRIEF = "Demo: EU grid storage green capex as a report"
 
 
-def _demo_script(calibration_id: str, candidates: str) -> str:
-    # Step 1 needs no model or network, so it really finishes in any environment; the later steps need a
-    # ratified taxonomy and the model, so outside a configured install they fail and show that state too.
-    return f"""i = index_construct(calibration_id="{calibration_id}", candidates="{candidates}", review_date="{DEMO_REVIEW_DATE}")
-u = universe_build(taxonomy_id="tax_demo_grid_storage", source="data/demo/universe.csv")
+def _demo_script() -> str:
+    return """u = universe_build(taxonomy_id="tax_demo_grid_storage", source="data/demo/universe.csv")
 e = extraction(universe_run_id=u.run_id, schema_id="green_capex",
                companies=[c.id for c in u.companies if c.exposure in ["pure_play", "significant"]])
 report_render(source_ids=[e.run_id])
 """
 
 
-DEMO_REPLANNED_BRIEF = "Demo (re-planned): build the demo index, then EU grid storage green capex as a report"
+DEMO_REPLANNED_BRIEF = "Demo (re-planned): EU grid storage green capex as a report"
 DEMO_OLD_SCRIPT = """u = universe_build(taxonomy_id="tax_demo_grid_storage_v0", source="data/demo/universe.csv")
 e = extraction(universe_run_id=u.run_id, schema_id="green_capex")
 report_render(source_ids=[e.run_id])
@@ -231,27 +227,10 @@ DEMO_OLD_ERROR = "step 1 universe_build failed: taxonomy tax_demo_grid_storage_v
 @plan_app.command("seed-demo")
 def seed_demo(replanned: bool = typer.Option(False, "--replanned",
                                              help="Store the plan already re-planned once (version 2).")) -> None:
-    """Store a demo plan (no LLM call) to show the Plans page, with a demo index calibration and candidates file so
-    its first step runs to done. With --replanned the plan is at version 2, its failed first script under previous
-    versions."""
-    import json
-
-    from arp.api.deps import get_index_store
-    from arp.config import get_settings
-    from arp.index.mock_data import demo_universe
-    from arp.index.presets import build_preset
-
-    index_store = get_index_store()
-    calibration = index_store.create_calibration("Plans demo (exclusion only)", build_preset("exclusion_only"),
-                                                 effective_from="2026-01-01", notes="Seeded by arp plan seed-demo.",
-                                                 created_by="plans-demo")
-    index_store.approve_calibration(calibration.calibration_id, "plans-demo-reviewer")
-    candidates = get_settings().indices_dir / "plans_demo_candidates.json"
-    candidates.parent.mkdir(parents=True, exist_ok=True)
-    candidates.write_text(json.dumps([c.model_dump(mode="json") for c in demo_universe()]))
-
+    """Store a demo plan (no LLM call) to show the Plans page. With --replanned the plan is at version 2,
+    its failed first script under previous versions."""
     store = _store()
-    script = _demo_script(calibration.calibration_id, str(candidates))
+    script = _demo_script()
     if replanned:
         old = {"version": 1, "script": DEMO_OLD_SCRIPT, "error": DEMO_OLD_ERROR, "replanned_at": "2026-10-31T09:00:00+00:00",
                "replanned_by": "plans-demo"}

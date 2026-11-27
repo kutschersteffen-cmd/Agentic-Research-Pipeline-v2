@@ -79,18 +79,6 @@ dev = [
     "vulture>=2.14,<3.0",
     "pre-commit>=3.7,<5.0",
 ]
-# Opt-in least-squares constraint projection for index construction
-# (arp/index/optimize.py). Without it, ConstraintSolver.method='least_squares'
-# falls back to the deterministic waterfall and records why. cvxpy ships
-# Clarabel, OSQP and SCS, which is every solver the projection can use --
-# no commercial licence and no risk model is involved at this stage.
-optimize = [
-    "cvxpy>=1.5",
-    # SCIP, via PySCIPopt, is the free mixed-integer backend -- needed only
-    # by cardinality limits and an enforced minimum weight, which are
-    # disjunctions rather than bounds. Apache-2.0 since SCIP 9.
-    "pyscipopt>=5.0",
-]
 # Empty: Postgres is required now and its packages are in `dependencies`.
 # Kept so existing `pip install -e ".[postgres,...]"` lines keep working.
 postgres = []
@@ -180,8 +168,6 @@ max-complexity = 15
 "arp/extraction/aggregator.py" = ["C901"]
 "arp/extraction/pipeline.py" = ["C901"]
 "arp/holdings/validate.py" = ["C901"]
-"arp/index/capping.py" = ["C901"]
-"arp/index/optimize.py" = ["C901"]
 "arp/ingestion/esef.py" = ["C901"]
 "arp/orchestration/plan_executor.py" = ["C901"]
 "arp/orchestration/plan_steps.py" = ["C901"]

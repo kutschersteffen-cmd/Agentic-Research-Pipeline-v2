@@ -8,10 +8,9 @@ const KINDS: { id: OutputKind | "all"; label: string }[] = [
   { id: "run", label: "Runs" },
   { id: "publication", label: "Published scores" },
   { id: "taxonomy", label: "Taxonomies" },
-  { id: "calibration", label: "Index calibrations" },
 ];
 const KIND_LABEL: Record<OutputKind, string> = {
-  universe: "Universe", run: "Run", publication: "Published scores", taxonomy: "Taxonomy", calibration: "Index calibration",
+  universe: "Universe", run: "Run", publication: "Published scores", taxonomy: "Taxonomy",
 };
 const DRAFTY = new Set(["draft", "failed", "cancelled", "pending", "running"]);
 const SHOWN = 200;
@@ -21,7 +20,6 @@ function href(kind: string, id: string, runType?: string): string | null {
   if (kind === "run") return runType === "proxy_voting" ? `#/voting/${encodeURIComponent(id)}` : "#/history";
   if (kind === "publication" || kind === "dataset") return "#/decision";
   if (kind === "taxonomy") return "#/taxonomy";
-  if (kind === "calibration" || kind === "index_review") return "#/index";
   if (kind === "report") return "#/reporting";
   return null;
 }
@@ -44,8 +42,8 @@ export function Outputs() {
     <div className="page">
       <h1>Outputs</h1>
       <p className="help-text">
-        Every stored result one step produces and another can use: saved universes, runs, published scores, taxonomies
-        and index calibrations, newest first. &ldquo;Used by&rdquo; lists what has already read each one, so you can see
+        Every stored result one step produces and another can use: saved universes, runs, published scores and
+        taxonomies, newest first. &ldquo;Used by&rdquo; lists what has already read each one, so you can see
         what a change would affect. Drafts and unfinished runs are marked.
       </p>
       {error && <p className="error-text" role="alert">Outputs could not be loaded: {error}</p>}

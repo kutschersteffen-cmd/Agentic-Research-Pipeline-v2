@@ -59,7 +59,7 @@ def test_context_lists_only_ratified():
 def test_stubs_list_every_step():
     stubs = step_stubs()
     assert "def extraction(*, universe_run_id: str, schema_id: str, companies: list[str] | None = None)" in stubs
-    assert stubs.count("def ") == 10  # agent-panel-code-mode D8 adds identity_resolution, tnfd_extraction
+    assert stubs.count("def ") == 9
 
 
 @pytest.fixture(autouse=True)
@@ -73,11 +73,3 @@ async def test_dry_run_error_is_retried(pg, fake_llm):  # review: dry-run failur
     plan_id = await draft_plan("b", llm, PlanStore(pg))
     assert "name nope is not defined" in llm.prompts[1]
     assert PlanStore(pg).get(plan_id)["status"] == "draft"
-
-
-def test_context_lists_index_calibrations():
-    from types import SimpleNamespace as NS
-
-    ctx = planner_context([], [], [NS(calibration_id="cal_pab", name="EU PAB")])
-    assert "- cal_pab: EU PAB" in ctx
-    assert "not available" not in ctx

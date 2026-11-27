@@ -96,7 +96,7 @@ def test_ac31_wait_accent(page):  # noqa: F811
 
 
 def test_drawing_now_accent(page):  # noqa: F811
-    _runs_stub(page, [{"run_id": "e2e-cal-now", "run_type": "calibration", "status": "running"}])
+    _runs_stub(page, [{"run_id": "e2e-cal-now", "run_type": "taxonomy_research", "status": "running"}])
     _open(page, "/#/rdLab")
     page.locator(f"{HEAD_DRAWING} .ws-accent-now").first.wait_for()
     assert page.locator(f"{HEAD_DRAWING} .ws-accent-now").count() == 1

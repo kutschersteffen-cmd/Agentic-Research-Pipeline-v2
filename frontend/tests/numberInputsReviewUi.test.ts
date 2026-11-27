@@ -1,7 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { listText, multipliersText, parseList, parseMultipliers, parseNumberList } from "../src/lib/draftInput.ts";
-import { specProblem } from "../src/lib/indexSpecCheck.ts";
 import { excerptView } from "../src/lib/sourceText.ts";
 import { earlierFailedLine, flowReviewHref, readEach } from "../src/lib/argusFlow.ts";
 import { waiting } from "../src/lib/argusStart.ts";
@@ -23,22 +22,6 @@ test("parseMultipliers and multipliersText", () => {
   assert.deepEqual(parseMultipliers("Energy\nUtilities = \nTech = 0\nBank = -1\n = 2\nOil = x\nGas = 1.2"), { Gas: 1.2 });
   assert.deepEqual(Object.entries(parseMultipliers("Oil = 1\nGas = 2\nOil = 3")), [["Oil", 3], ["Gas", 2]]);
   assert.equal(multipliersText({ Energy: 1.5, Oil: 2 }), "Energy = 1.5\nOil = 2");
-});
-
-const wf = { solver: { method: "waterfall" } };
-test("specProblem", () => {
-  const W = "Choose the field to weight by under 3 · Base weighting.";
-  assert.equal(specProblem({ base_weighting: { scheme: "metric" }, tilts: [], constraints: wf }), W);
-  assert.equal(specProblem({ base_weighting: { scheme: "inverse_metric", field: "" }, tilts: [], constraints: wf }), W);
-  assert.equal(specProblem({ base_weighting: { scheme: "equal" }, constraints: wf,
-    tilts: [{ type: "bucket_tilt" }, { type: "metric_tilt", normalisation: "group_max", group_by: "none" }] }), "Choose the group of tilt 2 under 4 · Tilts.");
-  assert.equal(specProblem({ base_weighting: { scheme: "equal" }, constraints: wf,
-    tilts: [{ type: "metric_tilt", normalisation: "group_max", group_by: "" }] }), "Choose the group of tilt 1 under 4 · Tilts.");
-  assert.equal(specProblem({ base_weighting: { scheme: "metric", field: "esg_score" }, constraints: wf,
-    tilts: [{ type: "metric_tilt", normalisation: "group_max", group_by: "sector" }] }), null);
-  assert.equal(specProblem({ base_weighting: { scheme: "metric" }, tilts: [], constraints: { solver: { method: "max_score" } } }), W);
-  assert.equal(specProblem({ base_weighting: { scheme: "equal" }, tilts: [], constraints: { solver: { method: "max_score" } } }),
-    "Choose the field to maximise under 5 · Constraints before running a max_score methodology.");
 });
 
 const T = "Intro here. In 2025 revenue grew to €39bn, up 16%. Backlog hit €136bn. Outro.";

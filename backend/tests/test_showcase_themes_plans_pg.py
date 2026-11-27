@@ -55,7 +55,6 @@ def client(store, runs_dir, fake_llm, monkeypatch):
     app.dependency_overrides[plans.plan_store] = lambda: store
     app.dependency_overrides[current_user] = lambda: Principal(user_id="alice", name="alice", role="approver")
     monkeypatch.setattr("arp.api.deps.get_decision_store", lambda: type("D", (), {"list_frameworks": lambda s: []})())
-    monkeypatch.setattr("arp.api.deps.get_index_store", lambda: type("I", (), {"list_calibrations": lambda s: []})())
 
     def use(outputs):
         llm = fake_llm({"PlanScript": list(outputs)})
@@ -84,7 +83,7 @@ def test_context_lists_saved_universes(client, runs_dir):  # AC-1 (unit side)
 
 
 def test_context_none_saved():  # AC-103
-    ctx = planner_context([], [], [], [])
+    ctx = planner_context([], [], [])
     assert ctx.endswith("Saved universes (universe_build source):\n- none saved yet")
 
 

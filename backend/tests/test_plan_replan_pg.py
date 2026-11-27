@@ -195,11 +195,7 @@ def test_check_rejects_assigning_previous(tmp_path):  # AC-16
     assert "line 1: name previous cannot be assigned" in result.stdout
 
 
-def test_seed_demo_replanned(pg, tmp_path, monkeypatch):  # AC-19 backend half
-    from arp.config import get_settings
-
-    monkeypatch.setenv("ARP_INDICES_DIR", str(tmp_path / "indices"))
-    get_settings.cache_clear()
+def test_seed_demo_replanned(pg):  # AC-19 backend half
     result = CliRunner().invoke(plan_cli.plan_app, ["seed-demo", "--replanned"])
     assert result.exit_code == 0, result.stdout
     plan = PlanStore(pg).get(result.stdout.splitlines()[0])
