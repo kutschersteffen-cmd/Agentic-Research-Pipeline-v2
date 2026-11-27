@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from alembic import op
+from alembic import context, op
 
 revision: str = "0001_baseline"
 down_revision: str | Sequence[str] | None = None
@@ -20,10 +20,16 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     """Converge fresh or pre-Alembic databases idempotently to the current ORM schema."""
     bind = op.get_bind()
-    dsn = bind.engine.url.render_as_string(hide_password=False)
-    from arp.storage.postgres_schema import ensure_schema
+    if context.is_offline_mode():
+        import arp.db.models  # noqa: F401
+        from arp.storage.postgres_models import Base
 
-    ensure_schema(dsn)
+        Base.metadata.create_all(bind=bind)
+        return
+
+    from arp.storage.postgres_schema import ensure_schema_on_connection
+
+    ensure_schema_on_connection(bind)
 
 
 def downgrade() -> None:

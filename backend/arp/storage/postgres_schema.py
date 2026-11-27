@@ -637,6 +637,37 @@ def _run_steps(conn: Connection, steps: tuple[SchemaStep, ...], applied: set[str
         done.append(step.name)
 
 
+def ensure_schema_on_connection(conn: Connection) -> dict:
+    """Bring the connected database up to the current SQLAlchemy ORM schema on `conn`.
+
+    Runs strictly on the caller's connection/transaction (no separate pooled engine),
+    so Alembic migrations and caller-supplied transactions remain atomic.
+    """
+    _sqlalchemy()
+    from sqlalchemy import inspect, text
+
+    import arp.db.models  # noqa: F401  (registers the company-foundation tables on Base)
+    from arp.storage.postgres_models import Base
+
+    conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+
+    steps_applied: list[str] = []
+    applied = _applied_step_names(conn)
+    _run_steps(conn, PRE_CREATE_STEPS, applied, steps_applied)
+
+    before = set(inspect(conn).get_table_names())
+    Base.metadata.create_all(bind=conn)
+    after = set(inspect(conn).get_table_names())
+    columns_added = _add_missing_columns(conn)
+    _run_steps(conn, SCHEMA_STEPS, _applied_step_names(conn), steps_applied)
+
+    return {
+        "tables_created": sorted(after - before),
+        "columns_added": [f"{t}.{c}" for t, c in columns_added],
+        "steps_applied": steps_applied,
+    }
+
+
 def ensure_schema(dsn: str) -> dict:
     """Brings a database up to what the models define, idempotently: the
     pgvector extension, any missing tables, any missing columns, then any
@@ -650,35 +681,8 @@ def ensure_schema(dsn: str) -> dict:
     claiming success without detail.
     """
     _sqlalchemy()
-    from sqlalchemy import inspect, text
-
-    import arp.db.models  # noqa: F401  (registers the company-foundation tables on Base)
-    from arp.storage.postgres_models import Base
-
-    engine = get_engine(dsn)
-    with engine.begin() as conn:
-        conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-
-    steps_applied: list[str] = []
-    with engine.begin() as conn:
-        applied = _applied_step_names(conn)
-        _run_steps(conn, PRE_CREATE_STEPS, applied, steps_applied)
-
-    with engine.connect() as conn:
-        before = set(inspect(conn).get_table_names())
-
-    Base.metadata.create_all(engine)
-
-    with engine.begin() as conn:
-        after = set(inspect(conn).get_table_names())
-        columns_added = _add_missing_columns(conn)
-        _run_steps(conn, SCHEMA_STEPS, _applied_step_names(conn), steps_applied)
-
-    return {
-        "tables_created": sorted(after - before),
-        "columns_added": [f"{t}.{c}" for t, c in columns_added],
-        "steps_applied": steps_applied,
-    }
+    with get_engine(dsn).begin() as conn:
+        return ensure_schema_on_connection(conn)
 
 
 def _gaps(conn: Connection, existing_tables: set[str]) -> tuple[list[str], list[str], set[str]]:
