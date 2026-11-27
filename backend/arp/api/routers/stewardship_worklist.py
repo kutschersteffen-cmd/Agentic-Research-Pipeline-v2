@@ -38,8 +38,8 @@ from arp.stewardship.house import house_build, house_universe
 from arp.stewardship.notes import NoteLog
 from arp.stewardship.programmes import ProgrammeLog, UnknownProgramme
 from arp.stewardship.sample import load_sample
-from arp.storage.engagement_store import EngagementStore
 from arp.storage.portfolio_store_factory import build_portfolio_store
+from arp.storage.postgres_engagement_store import PostgresEngagementStore as EngagementStore
 
 router = APIRouter(prefix="/api/stewardship", tags=["stewardship"])
 

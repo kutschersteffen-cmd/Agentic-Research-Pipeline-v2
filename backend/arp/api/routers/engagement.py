@@ -22,7 +22,7 @@ from arp.engagement.triggers import ControversySignal, StaticControversySource, 
 from arp.ingestion.registry import DocumentSourceRegistry
 from arp.schemas.common import CompanyRef
 from arp.schemas.engagement import Contact, EscalationStage, IssueSeverity, IssueStatus, TriggerSource
-from arp.storage.engagement_store import EngagementStore
+from arp.storage.postgres_engagement_store import PostgresEngagementStore as EngagementStore
 
 router = APIRouter(prefix="/api/engagement", tags=["engagement"])
 

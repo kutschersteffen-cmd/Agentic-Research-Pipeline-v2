@@ -124,8 +124,6 @@ class Settings(BaseSettings):
         description="SQLite content-addressed cache of parsed document text; see arp.storage.document_store.",
     )
     discovery_state_dir: Path = Field(default=REPO_ROOT / "backend" / ".discovery_state")
-    engagements_dir: Path = Field(default=REPO_ROOT / "engagements")
-    engagement_store: Literal["file", "postgres"] = Field(default="file", description="Where engagement records live: JSON files under engagements_dir, or Postgres (needs postgres_dsn).")
     vote_monitoring_window_days: int = Field(default=365, description="Days a vote stays in the monitoring window.")
     stewardship_streams_dir: Path = Field(default=REPO_ROOT / "stewardship_streams", description="Stewardship process page: one JSON file per client stream (envisioned policy, review decisions, built policy).")
     reports_dir: Path = Field(default=REPO_ROOT / "reports", description="Presentation/Reporting Tool: one directory per generated report (manifest, request, plan, rendered output file).")
@@ -599,7 +597,6 @@ class Settings(BaseSettings):
             self.document_store_dir,
             self.discovery_state_dir,
             self.event_refresh_state_dir,
-            self.engagements_dir,
             self.stewardship_streams_dir,
             self.reports_dir,
             self.report_templates_dir,
