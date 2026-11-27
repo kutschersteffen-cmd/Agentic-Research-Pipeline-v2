@@ -46,7 +46,6 @@ def test_ac1_menu_shows_signed_in_only(page):
     pop = _user_menu(page)
     assert pop.get_by_text("Signed in as dev (approver)").is_visible()
     assert pop.locator(".theme-switch").count() == 0  # one theme since expressive-ui-orb: no theme switch
-    assert pop.get_by_role("link", name="Arcade").count() == 1
     assert pop.get_by_label("Reviewing as").count() == 0
 
 

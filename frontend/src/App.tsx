@@ -46,7 +46,6 @@ const Feeds = lazy(() => import("./pages/Feeds").then((x) => ({ default: x.Feeds
 const Issues = lazy(() => import("./pages/Issues").then((x) => ({ default: x.Issues })));
 const SmartSearch = lazy(() => import("./pages/SmartSearch").then((x) => ({ default: x.SmartSearch })));
 const Outputs = lazy(() => import("./pages/Outputs").then((x) => ({ default: x.Outputs })));
-const Arcade = lazy(() => import("./pages/Arcade").then((x) => ({ default: x.Arcade })));
 const DecisionStudio = lazy(() => import("./pages/DecisionStudio").then((x) => ({ default: x.DecisionStudio })));
 const IndexBuilder = lazy(() => import("./pages/IndexBuilder").then((x) => ({ default: x.IndexBuilder })));
 const ArgusWalkthrough = lazy(() => import("./pages/ArgusWalkthrough").then((x) => ({ default: x.ArgusWalkthrough })));
@@ -94,7 +93,6 @@ const TABS = [
   { id: "xbrl", label: "XBRL Facts" },
   { id: "rfp", label: "RFP Answers" },
   { id: "library", label: "Data Library" },
-  { id: "arcade", label: "Arcade" },
   // Reached from company names elsewhere (#/companies/<ref>) and the palette; not in the sidebar.
   { id: "companies", label: "Company" },
 ] as const;
@@ -308,7 +306,6 @@ function App() {
         {active === "issues" && <Issues />}
         {active === "smartSearch" && <SmartSearch />}
         {active === "outputs" && <Outputs />}
-        {active === "arcade" && <Arcade selected={route.params[0] ?? null} />}
         {active === "theme" && <ThemeBuilder key={route.params[0]} initialRunId={route.params[0] ?? null} onSendToArgus={(path) => sendToArgus("argus", path)} pendingTaxonomyId={pendingTaxonomyId} onPendingTaxonomyTaken={() => setPendingTaxonomyId(null)} />}
         {active === "taxonomy" && route.params[0] === "authority" && <AuthorityTaxonomyRun key={route.params[1] ?? "new"} runId={route.params[1]} />}
         {active === "taxonomy" && route.params[0] !== "authority" && <TaxonomyLibrary onUseInTheme={sendToTheme} />}

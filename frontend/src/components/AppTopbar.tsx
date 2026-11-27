@@ -122,9 +122,6 @@ export function AppTopbar({ active, canAsk, waiting, onSearch }: Props) {
             <div ref={user.popRef} id={userPopId} className="start-topbar-pop" hidden={!user.open}>
               {!me && <ReviewerField hint={false} />}
               <SignedInAs />
-              <a href="#/arcade" onClick={() => user.setOpen(false)}>
-                Arcade
-              </a>
             </div>
           </div>
         </nav>

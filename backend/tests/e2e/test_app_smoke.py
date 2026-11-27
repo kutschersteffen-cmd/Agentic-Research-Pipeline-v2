@@ -91,7 +91,7 @@ def test_navigating_to_the_review_queue_loads_it_from_the_api(page):
 # App-wide top bar (spec 2026-11-15-app-wide-top-bar): the phone drawer is gone, so
 # test_phone_drawer_takes_focus_on_a_screen_without_a_sidebar_link is retired.
 
-ROUTES = ["/#/home", "/#/review", "/#/stewardiq", "/#/argus", "/#/history", "/#/library", "/#/arcade"]
+ROUTES = ["/#/home", "/#/review", "/#/stewardiq", "/#/argus", "/#/history", "/#/library"]
 
 
 def _open(page, path, width=1440, height=900):

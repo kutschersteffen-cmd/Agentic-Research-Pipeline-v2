@@ -179,7 +179,7 @@ test("r2_ac15_tiles_rounded", () => {
 test("r2_ac15b_square_controls_unchanged", (t) => {
   const main = onMain(t, "git show origin/main:frontend/src/index.css");
   if (main === null) return;
-  for (const sel of [".touchpad button", ".grl-dn", ".view-toggle button:last-child"]) {
+  for (const sel of [".grl-dn", ".view-toggle button:last-child"]) {
     const line = (src: string) => src.split("\n").find((l) => l.startsWith(`${sel} {`));
     assert.equal(line(css), line(main), sel);
   }

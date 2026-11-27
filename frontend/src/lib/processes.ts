@@ -299,7 +299,7 @@ export const PROCESSES: Process[] = WORKSPACES.flatMap((w) => w.processes);
 export const workspaceOfProcess = (id: string | undefined) => WORKSPACES.find((w) => w.processes.some((p) => p.id === id));
 
 // Routes with their own place in the top bar never belong to a workspace.
-const OWN_PLACE = new Set(["home", "review", "reporting", "arcade"]);
+const OWN_PLACE = new Set(["home", "review", "reporting"]);
 
 /** The workspace a route belongs to, for the workspace row: the longest screens href the hash equals or extends,
  * else the workspace whose overview the tab is, else a process step's screen. */

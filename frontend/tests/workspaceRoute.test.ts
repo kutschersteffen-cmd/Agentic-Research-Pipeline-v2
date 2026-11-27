@@ -7,7 +7,7 @@ test("pr1_ac10_workspace_of_route", () => {
   const cases: [string, string | null][] = [
     ["#/argus", "argus"], ["#/argus/abc123", "argus"], ["#/argus/new", "argus"],
     ["#/argus/new/transition_plan", "transitionIntel"], ["#/voting", "stewardiq"], ["#/library", "dataHub"],
-    ["#/review", null], ["#/reporting", null], ["#/home", null], ["#/arcade", null], ["#/nosuch", null],
+    ["#/review", null], ["#/reporting", null], ["#/home", null], ["#/nosuch", null],
     ["#/review/extraction/x", null],
   ];
   for (const [h, want] of cases) assert.equal(workspaceOfRoute(h), want, h);
