@@ -70,30 +70,31 @@ def _background(run_store: RunStore, create: Callable[..., str], execute: Callab
     return Step(start, finish)
 
 
-def build_steps(settings: Settings, run_store: RunStore) -> dict[str, Step]:
+def _load_universe(settings: Settings, taxonomy_id: str, source: str):
+    from arp.db.fields import SchemaRegistry
+    from arp.research.taxonomy_schema import released_run_schema
+    from arp.storage.taxonomy_store import TaxonomyStore
+    from arp.universe import load_company_universe, not_saved_message, saved_universes, universe_source_path
+
+    # shortcut: `source` is a saved universe's file name or a path inside the universes folder; portfolio ids
+    # come with the Plans page (plan task 9).
+    taxonomy, schema = released_run_schema(TaxonomyStore(settings.taxonomies_dir), SchemaRegistry(settings.postgres_dsn),
+                                           taxonomy_id, None)
+    path = universe_source_path(settings.runs_dir, source)
+    if path is None:  # never read a file outside the universes folder
+        raise ValueError(not_saved_message(source, saved_universes(settings.runs_dir)))
+    companies = load_company_universe(path)
+    return taxonomy, schema, path, companies
+
+
+def _universe_step(settings: Settings, run_store: RunStore) -> Step:
     from arp.api.deps import get_registry
     from arp.llm.factory import build_llm_client, build_verifier_llm_client
-
-    def _universe(taxonomy_id: str, source: str):
-        from arp.db.fields import SchemaRegistry
-        from arp.research.taxonomy_schema import released_run_schema
-        from arp.storage.taxonomy_store import TaxonomyStore
-        from arp.universe import load_company_universe, not_saved_message, saved_universes, universe_source_path
-
-        # shortcut: `source` is a saved universe's file name or a path inside the universes folder; portfolio ids
-        # come with the Plans page (plan task 9).
-        taxonomy, schema = released_run_schema(TaxonomyStore(settings.taxonomies_dir), SchemaRegistry(settings.postgres_dsn),
-                                               taxonomy_id, None)
-        path = universe_source_path(settings.runs_dir, source)
-        if path is None:  # never read a file outside the universes folder
-            raise ValueError(not_saved_message(source, saved_universes(settings.runs_dir)))
-        companies = load_company_universe(path)
-        return taxonomy, schema, path, companies
 
     def universe_start(launch_key: str | None, *, taxonomy_id: str, source: str) -> str:
         from arp.research.pipeline import create_theme_run
 
-        taxonomy, schema, path, companies = _universe(taxonomy_id, source)
+        taxonomy, schema, path, companies = _load_universe(settings, taxonomy_id, source)
         return _launch(run_store, launch_key, lambda: create_theme_run(
             taxonomy.theme, companies, settings, run_store, universe_path=str(path), taxonomy_id=taxonomy.taxonomy_id,
             taxonomy_version=taxonomy.version, extraction_schema=schema))
@@ -102,7 +103,7 @@ def build_steps(settings: Settings, run_store: RunStore) -> dict[str, Step]:
         from arp.research.indirect_exposure.factory import resolve_indirect_exposure_model
         from arp.research.pipeline import execute_theme_run, load_theme_run_matches
 
-        taxonomy, _schema, _path, companies = _universe(taxonomy_id, source)
+        taxonomy, _schema, _path, companies = _load_universe(settings, taxonomy_id, source)
         if not _finished(run_store, run_id):
             asyncio.run(execute_theme_run(
                 run_id, taxonomy.theme, companies, llm=build_llm_client(settings),
@@ -118,6 +119,10 @@ def build_steps(settings: Settings, run_store: RunStore) -> dict[str, Step]:
             row["included"] = row["included"] or m.verdict.value == "include"
         return _result(run_id, run_store, list(best.values()))
 
+    return Step(universe_start, universe_finish)
+
+
+def _discovery_step(settings: Settings, run_store: RunStore) -> Step:
     def discovery_create(*, universe_run_id: str, doc_types: list[str] | None = None,
                          companies: list[str] | None = None) -> str:
         from arp.discovery.pipeline import create_discovery_run
@@ -131,6 +136,13 @@ def build_steps(settings: Settings, run_store: RunStore) -> dict[str, Step]:
 
         await execute_discovery_run(run_id, _companies(run_store, universe_run_id, companies), settings=settings,
                                     run_store=run_store, doc_types=doc_types)
+
+    return _background(run_store, discovery_create, discovery_execute)
+
+
+def _extraction_step(settings: Settings, run_store: RunStore) -> Step:
+    from arp.api.deps import get_registry
+    from arp.llm.factory import build_llm_client, build_verifier_llm_client
 
     def extraction_create(*, universe_run_id: str, schema_id: str, companies: list[str] | None = None) -> str:
         from arp.db.fields import SchemaRegistry
@@ -151,6 +163,10 @@ def build_steps(settings: Settings, run_store: RunStore) -> dict[str, Step]:
                                      verifier_llm=build_verifier_llm_client(settings), registry=get_registry(),
                                      settings=settings, run_store=run_store)
 
+    return _background(run_store, extraction_create, extraction_execute)
+
+
+def _xbrl_step(settings: Settings, run_store: RunStore) -> Step:
     def xbrl_create(*, universe_run_id: str, companies: list[str] | None = None, market: str = "auto") -> str:
         from arp.xbrl_pipeline.fetch import create_xbrl_run
 
@@ -163,6 +179,12 @@ def build_steps(settings: Settings, run_store: RunStore) -> dict[str, Step]:
         await execute_xbrl_run(run_id, _companies(run_store, universe_run_id, companies), settings=settings,
                                run_store=run_store, tags=None, refresh=False, market=market)
 
+    return _background(run_store, xbrl_create, xbrl_execute)
+
+
+def _identity_step(settings: Settings, run_store: RunStore) -> Step:
+    from arp.llm.factory import build_llm_client
+
     def identity_create(*, universe_run_id: str, companies: list[str] | None = None) -> str:
         from arp.discovery.identity_pipeline import create_identity_run
 
@@ -173,6 +195,12 @@ def build_steps(settings: Settings, run_store: RunStore) -> dict[str, Step]:
 
         await execute_identity_run(run_id, _companies(run_store, universe_run_id, companies),
                                    llm=build_llm_client(settings), settings=settings, run_store=run_store)
+
+    return _background(run_store, identity_create, identity_execute)
+
+
+def _report_step(settings: Settings) -> Step:
+    from arp.llm.factory import build_llm_client
 
     def report_start(_launch_key: str | None, *, source_ids: list[str], template_id: str | None = None) -> str:
         # shortcut: a report manifest has no params to carry the launch key, so a crash inside create_and_plan leaves
@@ -199,13 +227,17 @@ def build_steps(settings: Settings, run_store: RunStore) -> dict[str, Step]:
         return {"id": manifest.report_id, "run_id": None, "result_ref": f"report:{manifest.report_id}",
                 "companies": [], "gate": manifest.status == ReportStatus.STORYLINE_READY}
 
+    return Step(report_start, report_finish)
+
+
+def build_steps(settings: Settings, run_store: RunStore) -> dict[str, Step]:
     return {
-        "universe_build": Step(universe_start, universe_finish),
-        "document_discovery": _background(run_store, discovery_create, discovery_execute),
-        "extraction": _background(run_store, extraction_create, extraction_execute),
-        "xbrl_facts": _background(run_store, xbrl_create, xbrl_execute),
-        "report_render": Step(report_start, report_finish),
-        "identity_resolution": _background(run_store, identity_create, identity_execute),
+        "universe_build": _universe_step(settings, run_store),
+        "document_discovery": _discovery_step(settings, run_store),
+        "extraction": _extraction_step(settings, run_store),
+        "xbrl_facts": _xbrl_step(settings, run_store),
+        "report_render": _report_step(settings),
+        "identity_resolution": _identity_step(settings, run_store),
     }
 
 
