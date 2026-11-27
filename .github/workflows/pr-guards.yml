@@ -8,35 +8,84 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write  # to drop the override label on a new push
 
-# Push runs and label runs of a PR each cancel their own older run; a label run never cancels a push run, as it skips dropping tests-weakened-ok.
+# Serialize push and label runs per PR (cancel-in-progress: false) so a concurrent label event cannot race
+# override removal or overwrite a failing synchronize/reopened run with a stale label snapshot.
 concurrency:
-  group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number }}-${{ contains(fromJSON('["labeled", "unlabeled"]'), github.event.action) && 'labels' || 'push' }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
 
 jobs:
   test-guard:
     name: No tests removed
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write  # to drop override labels on a new push or reopen
     steps:
+      # Override labels approve the commits the owner saw, not later ones: a new push or reopen drops them immediately,
+      # before any checkout, so no later step or concurrent event sees stale override labels.
+      - name: Drop overrides on new push or reopen
+        if: ${{ !contains(fromJSON('["labeled", "unlabeled"]'), github.event.action) && (contains(github.event.pull_request.labels.*.name, 'tests-weakened-ok') || contains(github.event.pull_request.labels.*.name, 'dead-code-cleanup')) }}
+        run: |
+          args=()
+          if [ "$HAS_TESTS_WEAKENED_OK" = "true" ]; then
+            args+=(--remove-label tests-weakened-ok)
+          fi
+          if [ "$HAS_DEAD_CODE_CLEANUP" = "true" ]; then
+            args+=(--remove-label dead-code-cleanup)
+          fi
+          if [ "${#args[@]}" -gt 0 ]; then
+            gh pr edit "$PR_NUMBER" "${args[@]}"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HAS_TESTS_WEAKENED_OK: ${{ contains(github.event.pull_request.labels.*.name, 'tests-weakened-ok') }}
+          HAS_DEAD_CODE_CLEANUP: ${{ contains(github.event.pull_request.labels.*.name, 'dead-code-cleanup') }}
+
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Self-test the guard
         run: python3 .github/scripts/test_guard.py --selftest
 
-      # The label approves the commits the owner saw, not later ones: a new push drops it.
-      - name: Drop the override on a new push
-        if: ${{ github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'tests-weakened-ok') }}
-        run: gh pr edit ${{ github.event.pull_request.number }} --remove-label tests-weakened-ok
+      - name: Compare test counts with main
+        run: |
+          if [ "$EVENT_ACTION" = "labeled" ] || [ "$EVENT_ACTION" = "unlabeled" ]; then
+            if gh pr view "$PR_NUMBER" --json labels --jq '.labels[].name' | grep -Fxiq -e 'tests-weakened-ok' -e 'dead-code-cleanup'; then
+              echo "Override label active on live PR; skipping test count comparison."
+              exit 0
+            fi
+          fi
+          python3 .github/scripts/test_guard.py "origin/$BASE_REF"
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          EVENT_ACTION: ${{ github.event.action }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_REF: ${{ github.base_ref }}
 
-      - name: Compare test counts with main
-        if: ${{ github.event.action == 'synchronize' || !contains(github.event.pull_request.labels.*.name, 'tests-weakened-ok') }}
-        run: python3 .github/scripts/test_guard.py origin/${{ github.base_ref }}
+  arch-guard:
+    name: Architecture & import cycles
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Self-test the guard
+        run: python3 .github/scripts/arch_guard.py --selftest
+
+      - name: Enforce layer DAG and ban new import cycles
+        run: python3 .github/scripts/arch_guard.py
 
   context-guard:
     name: Generated context guard

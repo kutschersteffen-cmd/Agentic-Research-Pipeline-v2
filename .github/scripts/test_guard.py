@@ -1,7 +1,8 @@
 """Fail when a PR removes tests or asserts under backend/tests or frontend/tests.
 
 CI twin of the test-guard mod (.claude/mods/test-guard): same paths, same markers, but it
-blocks instead of warning. The owner overrides it with the `tests-weakened-ok` PR label.
+blocks instead of warning. The owner overrides it with the `tests-weakened-ok` or
+`dead-code-cleanup` PR label.
 
 Usage: python3 test_guard.py <base-ref>        compare <base-ref>...HEAD
        python3 test_guard.py --selftest
@@ -128,7 +129,10 @@ def main() -> int:
     print("Tests or asserts were removed (test functions + asserts + it/test/expect calls):")
     for path, before, after in found:
         print(f"  {path}: {before} -> {after}")
-    print("\nRestore them, or have the owner add the `tests-weakened-ok` label if the removal is intended.")
+    print(
+        "\nRestore them, or have the owner add the `tests-weakened-ok` or `dead-code-cleanup` label "
+        "if the removal is intended."
+    )
     return 1
 
 

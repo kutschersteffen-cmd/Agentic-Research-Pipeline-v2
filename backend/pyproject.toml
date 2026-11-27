@@ -79,6 +79,7 @@ dev = [
     "pytest-cov>=5.0,<8.0",
     "diff-cover>=10.0,<11.0",
     "ruff>=0.8,<1.0",
+    "vulture>=2.14,<3.0",
     "pre-commit>=3.7,<5.0",
 ]
 # Opt-in least-squares constraint projection for index construction
@@ -198,11 +199,70 @@ line-length = 130
 target-version = "py311"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM"]
+select = ["E", "F", "I", "UP", "B", "SIM", "C901"]
 ignore = [
     "E501",  # line length -- long descriptive Field()/docstring prose is intentional throughout this codebase
     "B008",  # function-call-in-default-argument -- FastAPI's Depends()/Body() idiom, used throughout api/routers/
 ]
 
+[tool.ruff.lint.mccabe]
+max-complexity = 15
+
+# Pre-existing files with McCabe complexity > 15; new files and all other files
+# are gated at <= 15 immediately. Shrinks to empty across refactoring PRs 2-9.
+[tool.ruff.lint.per-file-ignores]
+"arp/agent_board/checks.py" = ["C901"]
+"arp/api/routers/runs.py" = ["C901"]
+"arp/decision/indicator_list.py" = ["C901"]
+"arp/decision/mechanism.py" = ["C901"]
+"arp/emerging_themes/pipeline.py" = ["C901"]
+"arp/extraction/aggregator.py" = ["C901"]
+"arp/extraction/pipeline.py" = ["C901"]
+"arp/holdings/validate.py" = ["C901"]
+"arp/index/capping.py" = ["C901"]
+"arp/index/optimize.py" = ["C901"]
+"arp/ingestion/esef.py" = ["C901"]
+"arp/orchestration/plan_executor.py" = ["C901"]
+"arp/orchestration/plan_steps.py" = ["C901"]
+"arp/publish/candidates.py" = ["C901"]
+"arp/refine/deck_ops.py" = ["C901"]
+"arp/replication/backtest_engine.py" = ["C901"]
+"arp/reporting/chart_builder.py" = ["C901"]
+"arp/reporting/mermaid_flow.py" = ["C901"]
+"arp/reporting/pptx_writer.py" = ["C901"]
+"arp/research/authority_taxonomy/consolidate.py" = ["C901"]
+"arp/research_desk/turn.py" = ["C901"]
+"arp/retention.py" = ["C901"]
+"arp/retrieval/select_evidence.py" = ["C901"]
+"arp/review/decide.py" = ["C901"]
+"arp/showcase/simulate.py" = ["C901"]
+"arp/signal_lab/methods/topics.py" = ["C901"]
+"arp/stewardship/cockpit.py" = ["C901"]
+"arp/stewardship/intake.py" = ["C901"]
+"arp/stewardship/policies.py" = ["C901"]
+"tests/test_dossier_position.py" = ["C901"]
+
 [tool.ruff.lint.isort]
 known-first-party = ["arp"]
+
+[tool.vulture]
+min_confidence = 80
+paths = ["arp"]
+ignore_decorators = [
+    "@app.*",
+    "@router.*",
+    "@*.command",
+    "@*.callback",
+    "@field_validator",
+    "@model_validator",
+    "@validator",
+    "@computed_field",
+    "@event.listens_for",
+]
+ignore_names = [
+    "model_config",
+    "__tablename__",
+    "__table_args__",
+    "__mapper_args__",
+    "verbose",
+]
