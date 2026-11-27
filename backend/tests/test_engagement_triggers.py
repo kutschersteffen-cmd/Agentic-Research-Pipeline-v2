@@ -68,7 +68,7 @@ def test_scan_for_stalled_issues_flags_and_marks_status(pg):
         s.execute(
             update(StwEngagementModel)
             .where(StwEngagementModel.engagement_id == issue.issue_id)
-            .values(opened_at=old)
+            .values(started_at=old)
         )
 
     events = scan_for_stalled_issues(store, sla_days=45)
