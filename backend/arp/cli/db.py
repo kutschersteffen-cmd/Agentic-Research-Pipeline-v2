@@ -137,3 +137,32 @@ def db_verify() -> None:
         typer.echo(f"{len(report.differences)} difference(s) between files and database.", err=True)
         raise typer.Exit(1)
     typer.echo("No differences between files and database.")
+
+
+@db_app.command("upgrade")
+def db_upgrade() -> None:
+    """Apply all pending Alembic migrations up to `head`."""
+    from arp.db.migrations import current_revision, upgrade_head
+
+    dsn = require_dsn(get_settings())
+    upgrade_head(dsn)
+    typer.echo(f"Alembic upgraded to {current_revision(dsn)}.")
+
+
+@db_app.command("current")
+def db_current() -> None:
+    """Print the database's current Alembic migration revision."""
+    from arp.db.migrations import current_revision
+
+    rev = current_revision(require_dsn(get_settings()))
+    typer.echo(rev or "unversioned")
+
+
+@db_app.command("stamp-head")
+def db_stamp_head() -> None:
+    """Stamp an existing database at Alembic `head` without executing migration DDL."""
+    from arp.db.migrations import current_revision, stamp_head
+
+    dsn = require_dsn(get_settings())
+    stamp_head(dsn)
+    typer.echo(f"Alembic stamped at {current_revision(dsn)}.")
