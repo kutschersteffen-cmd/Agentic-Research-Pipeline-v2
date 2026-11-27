@@ -22,9 +22,11 @@ if TYPE_CHECKING:
 try:
     from neo4j import GraphDatabase
     from neo4j.exceptions import DriverError, Neo4jError
+
+    _GRAPH_ERRORS: tuple[type[BaseException], ...] = (Neo4jError, DriverError)
 except ImportError:  # optional extra: arp[graph]
     GraphDatabase = None  # type: ignore[assignment]
-    DriverError = Neo4jError = ()  # type: ignore[assignment,misc]
+    _GRAPH_ERRORS = ()
 
 NOT_CONFIGURED = "company graph not configured: set ARP_NEO4J_URI"
 COLUMNS = (
@@ -77,7 +79,7 @@ def _graph_errors(fn):
     def wrapper(*args, **kwargs):
         try:
             return fn(*args, **kwargs)
-        except (Neo4jError, DriverError) as exc:
+        except _GRAPH_ERRORS as exc:
             raise CompanyGraphError(f"company graph unavailable: {exc}") from exc
 
     return wrapper

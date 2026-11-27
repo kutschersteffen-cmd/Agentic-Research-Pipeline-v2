@@ -72,7 +72,7 @@ ENV PATH="/opt/venv/bin:${PATH}" \
 
 # House decks render through headless Chromium (arp/reporting/browser.py); a
 # shared path so the non-root arp user finds the browser root installed.
-RUN python -m playwright install --with-deps chromium
+RUN if python -c "import playwright" 2>/dev/null; then python -m playwright install --with-deps chromium; fi
 
 WORKDIR /app
 COPY --from=builder /app/backend ./backend

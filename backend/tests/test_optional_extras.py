@@ -19,7 +19,20 @@ from arp.config import Settings
 from arp.reporting import browser, chart_data, vega
 from arp.schemas.reporting import ChartSpec, ChartType
 
-BLOCKED_TOP_LEVEL = ("docling", "neo4j", "playwright", "pptx", "vl_convert", "fastembed", "reportlab")
+BLOCKED_TOP_LEVEL = (
+    "docling",
+    "docling_core",
+    "docling_ibm_models",
+    "docling_parse",
+    "pypdfium2",
+    "neo4j",
+    "playwright",
+    "pptx",
+    "vl_convert",
+    "fastembed",
+    "onnxruntime",
+    "reportlab",
+)
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 PYPROJECT = BACKEND_ROOT / "pyproject.toml"
 
@@ -145,3 +158,7 @@ def test_optional_module_fallbacks_import_cleanly(module_name: str, blocked_pkg:
     finally:
         sys.modules.pop(probe_name, None)
     assert hasattr(probe, expected_attr)
+    if module_name == "arp.company_graph":
+        settings = Settings(neo4j_uri="bolt://localhost:7687", neo4j_user="neo4j", neo4j_password="pw")
+        with pytest.raises(probe.CompanyGraphError, match=r"arp\[graph\]"):
+            probe.open_graph(settings)
