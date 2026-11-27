@@ -49,7 +49,7 @@ def env(tmp_path):
     dataset = tmp_path / "esg_simulated.csv"
     write_dataset(simulate(read_holdings(holdings), []), dataset)
     settings = Settings(
-        engagements_dir=tmp_path / "eng", stewardship_streams_dir=tmp_path / "streams", frameworks_dir=tmp_path / "fw", runs_dir=tmp_path / "runs",
+        engagements_dir=tmp_path / "eng", stewardship_streams_dir=tmp_path / "streams", runs_dir=tmp_path / "runs",
     )
     store = PortfolioStore(tmp_path / "pf")
     with dataset.open(newline="", encoding="utf-8") as fh:

@@ -8,7 +8,6 @@ from pydantic import BaseModel, Field
 
 from arp.api.auth import Principal, current_user, require_role
 from arp.api.deps import (
-    get_decision_store,
     get_document_content_store,
     get_llm_client,
     get_registry,
@@ -16,14 +15,12 @@ from arp.api.deps import (
     get_xbrl_source,
     settings_dep,
 )
-from arp.api.routers.decision import template_for_run
 from arp.api.run_scheduling import schedule_llm_run
 from arp.api.saved_universe import load_saved_universe
 from arp.config import Settings
 from arp.db.company_view import results_by_company
 from arp.db.fields import SchemaRegistry
 from arp.db.session import transaction
-from arp.decision.templates import attach_to_run, decision_kind_for_schema
 from arp.extraction.pipeline import create_extraction_run, execute_extraction_run
 from arp.extraction.schema_builder import RuleSuggestions, draft_schema, suggest_rules
 from arp.extraction.steps import MODES, ExtractionProfile, StepSettings, pipeline_shape, restart_overrides
@@ -41,7 +38,6 @@ from arp.review.items import get_item
 from arp.schemas.common import CompanyRef
 from arp.schemas.datapoints import DataPointSchema, FieldQuality
 from arp.schemas.review import BulkAcceptRequest
-from arp.storage.decision_store import DecisionStore
 from arp.storage.document_store import DocumentContentStore
 from arp.storage.run_store import RunStore
 
@@ -150,8 +146,6 @@ class RunRequest(BaseModel):
     trial: bool = Field(default=False, description="Allow a schema with draft fields; the run is marked as a trial.")
     companies: list[CompanyRef] | None = None
     universe_path: str | None = None
-    decision_framework_id: str | None = Field(default=None, description="Scoring template to score the results with.")
-    decision_framework_version: int | None = None
 
 
 @router.post("/runs")
@@ -160,7 +154,6 @@ async def start_extraction_run(
     settings: Settings = Depends(settings_dep),
     run_store: RunStore = Depends(get_run_store),
     registry: DocumentSourceRegistry = Depends(get_registry),
-    decision_store: DecisionStore = Depends(get_decision_store),
     xbrl_source=Depends(get_xbrl_source),
     principal: Principal = Depends(current_user),
 ) -> dict:
@@ -170,18 +163,9 @@ async def start_extraction_run(
         raise HTTPException(400, "Provide either `companies` or `universe_path`.")
 
     schema = req.datapoint_schema
-    template = None
-    if req.decision_framework_id:
-        template = template_for_run(
-            decision_store, decision_kind_for_schema(schema.schema_id), req.decision_framework_id, req.decision_framework_version,
-            [f.name for f in schema.fields],
-        )
 
     def _create() -> str:
-        run_id = create_extraction_run(schema, companies, settings, run_store, trial=req.trial)
-        if template is not None:
-            attach_to_run(run_store, run_id, template, decision_store.get_audit(template.framework_id, template.version))
-        return run_id
+        return create_extraction_run(schema, companies, settings, run_store, trial=req.trial)
 
     async def _run(run_id: str, llm, verifier_llm) -> None:
         await execute_extraction_run(
@@ -209,8 +193,6 @@ class StartRequest(BaseModel):
     as_of: str | None = Field(default=None, description="tnfd: the reporting period the run covers, e.g. FY2025.")
     companies: list[CompanyRef] | None = None
     universe_path: str | None = None
-    decision_framework_id: str | None = Field(default=None, description="Decision Studio framework applied as the run's last step.")
-    decision_framework_version: int | None = None
     mode: Literal["cheap", "normal", "max"] | None = Field(
         default=None, description="Run mode preset (arp/extraction/steps.py MODES); `step_settings` override it per setting.",
     )
@@ -225,7 +207,6 @@ async def start_extraction(
     settings: Settings = Depends(settings_dep),
     run_store: RunStore = Depends(get_run_store),
     registry: DocumentSourceRegistry = Depends(get_registry),
-    decision_store: DecisionStore = Depends(get_decision_store),
     xbrl_source=Depends(get_xbrl_source),
     principal: Principal = Depends(current_user),
 ) -> dict:
@@ -238,10 +219,10 @@ async def start_extraction(
         settings = MODES[req.mode].apply(settings)
     if req.step_settings:
         settings = req.step_settings.apply(settings)
-    return await _dispatch(req, settings, run_store, registry, decision_store, xbrl_source, principal)
+    return await _dispatch(req, settings, run_store, registry, xbrl_source, principal)
 
 
-async def _dispatch(req: StartRequest, settings: Settings, run_store: RunStore, registry, decision_store, xbrl_source, principal) -> dict:
+async def _dispatch(req: StartRequest, settings: Settings, run_store: RunStore, registry, xbrl_source, principal) -> dict:
     from arp.api.routers import financials, tnfd
 
     companies = req.companies or (load_saved_universe(req.universe_path, settings) if req.universe_path else None)
@@ -249,11 +230,9 @@ async def _dispatch(req: StartRequest, settings: Settings, run_store: RunStore, 
         raise HTTPException(400, "Provide either `companies` or `universe_path`.")
     common = {
         "companies": companies,
-        "decision_framework_id": req.decision_framework_id,
-        "decision_framework_version": req.decision_framework_version,
         "batch": req.batch,
     }
-    stores = {"settings": settings, "run_store": run_store, "registry": registry, "decision_store": decision_store, "principal": principal}
+    stores = {"settings": settings, "run_store": run_store, "registry": registry, "principal": principal}
     if req.profile in ("custom", "transition_plan"):
         if req.profile == "transition_plan":  # the preset, installed (a no-op when saved) and run like a custom schema
             schema = install_preset(TRANSITION_PLAN_SCHEMA_ID, _registry_for(settings))
@@ -357,26 +336,18 @@ async def restart_run(
     req: RestartRequest,
     settings: Settings = Depends(settings_dep),
     run_store: RunStore = Depends(get_run_store),
-    decision_store: DecisionStore = Depends(get_decision_store),
     xbrl_source=Depends(get_xbrl_source),
     principal: Principal = Depends(current_user),
 ) -> dict:
     """Starts the run again from one of its steps, as a new run with the
     same inputs and step settings. What comes before the step is reused
     from the document and LLM caches; the step and everything after it run
-    afresh (see arp.extraction.steps.restart_overrides). From the rules
-    step, the run itself is scored again instead -- nothing is extracted."""
+    afresh (see arp.extraction.steps.restart_overrides)."""
     manifest = _manifest_or_404(run_store, run_id)
     if manifest.run_type == "transition_plan":  # its pipeline is gone; preset runs are "extraction" runs
         raise HTTPException(400, "Transition-plan runs can no longer be restarted: start a new transition-plan assessment.")
     if manifest.status in ("running", "pending"):
         raise HTTPException(409, "Stop the run first, or wait for it to finish.")
-    if req.from_step == "rules":
-        from arp.decision.templates import score_run
-
-        if not score_run(run_store, run_id):
-            raise HTTPException(400, "No Decision Studio framework is attached to this run.")
-        return {"run_id": run_id, "run_type": manifest.run_type, "rescored": True}
     saved = _saved(run_store, run_id, "start_request.json")
     if saved is None:
         raise HTTPException(400, "This run was not started from the Extraction screen, so there is nothing to restart it from.")
@@ -403,7 +374,7 @@ async def restart_run(
         registry = build_registry(run_settings, DocumentContentStore(run_settings.document_store_dir, enabled=False, dsn=require_dsn(run_settings)))
     old_dir = run_store.run_dir(run_id)
     started = await _dispatch(
-        original.model_copy(update={"companies": companies}), run_settings, run_store, for_run(registry, old_dir), decision_store, xbrl_source, principal
+        original.model_copy(update={"companies": companies}), run_settings, run_store, for_run(registry, old_dir), xbrl_source, principal
     )
     if (old_dir / ONLY_DOCUMENTS).is_file():  # an Argus run's kept files carry over to the restarted run
         (run_store.run_dir(started["run_id"]) / ONLY_DOCUMENTS).write_bytes((old_dir / ONLY_DOCUMENTS).read_bytes())

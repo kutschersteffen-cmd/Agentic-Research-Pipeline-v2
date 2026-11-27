@@ -185,10 +185,9 @@ export const WORKSPACES: Workspace[] = [
       ["#/taxonomy", "Taxonomy Library"],
       ["#/theme", "Thematic Universe"],
       ["#/valueChain", "Value Chain Explorer"],
-      ["#/decision", "Decision Studio"],
     ],
     // Emerging Themes is the second tab of Themes (the Themes hub).
-    row: ["#/designStrategy", "#/themes", "#/decision"],
+    row: ["#/designStrategy", "#/themes"],
     more: ["#/taxonomy", "#/theme", "#/valueChain"],
     processes: [
       {
@@ -201,7 +200,6 @@ export const WORKSPACES: Workspace[] = [
           { tab: "taxonomy", label: "Define", does: "The theme's activities; ratify a version.", handsOn: "Ratified taxonomy", carried: true, runTypes: ["taxonomy_research"] },
           { tab: "theme", label: "Match", does: "Companies matched to activities with exposure estimates and cited rationale.", handsOn: "Theme universe", carried: true, runTypes: ["theme"], reviewedElsewhere: true },
           { tab: "review", label: "Review", does: "Resolve contested classifications.", handsOn: "Reviewed universe", carried: true, runTypes: ["theme"] },
-          { tab: "decision", label: "Score", does: "Score and tier the universe in Decision Studio; ratify, then publish.", handsOn: "Published scores", carried: true },
           { tab: "reporting", label: "Report", does: "Committee deck." },
         ],
       },

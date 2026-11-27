@@ -32,7 +32,6 @@ def start_request(
     s = flow.settings
     body: dict = {
         "mode": s.mode, "batch": s.batch,
-        "decision_framework_id": s.decision_framework_id, "decision_framework_version": s.decision_framework_version,
         "step_settings": StepSettings(evidence_max_chunks=s.evidence_passages) if s.evidence_passages else None,
     }
     if choice.kind == "profile":

@@ -64,13 +64,11 @@ def _get(store: PlanStore, plan_id: str) -> dict:
 
 
 def _context() -> str:
-    from arp.api.deps import get_decision_store
     from arp.orchestration.plan_planner import planner_context
     from arp.storage.taxonomy_store import TaxonomyStore
     from arp.universe import saved_universes
 
     return planner_context(TaxonomyStore(get_settings().taxonomies_dir).list_all(),
-                           get_decision_store().list_frameworks(),
                            saved_universes(get_settings().runs_dir))
 
 

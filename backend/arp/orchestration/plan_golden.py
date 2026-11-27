@@ -14,9 +14,6 @@ CONTEXT = """Ratified taxonomies (universe_build taxonomy_id):
 - tax_green_hydrogen: Green hydrogen
 - tax_heat_pumps: Heat pumps
 
-Ratified decision frameworks (decision_score framework_id):
-- fw_capex_quality: Green capex quality
-
 Universe source files: data/universes/eu_listed.csv, data/universes/us_listed.csv
 Extraction schemas: green_capex, transition_plan_indicators"""
 

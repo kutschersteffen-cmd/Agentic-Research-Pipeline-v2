@@ -9,16 +9,16 @@ import json
 import logging
 import unicodedata
 from collections import defaultdict
+from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from arp.core.auth import Principal
-from arp.decision.sources import from_transition_plan_run, is_transition_plan_preset_run
 from arp.portfolio.qa_agent import QAAnswer
 from arp.review.items import list_open_items
-from arp.schemas.common import JobStatus
+from arp.schemas.common import JobStatus, RunManifest
 from arp.smart_search import SearchAnswer
 from arp.stewardship.benchmark import BenchmarkStore
 from arp.stewardship.process import SAMPLE_PATH
@@ -169,9 +169,68 @@ def _names(run_store: RunStore, run_id: str) -> set[str]:
     return {str(r.get("name") or r.get("company_id") or "") for r in run_store.read_results(run_id)}
 
 
+_TRANSITION_PLAN_SCHEMA_ID = "transition_plan_indicators"
+_INDICATORS_PATH = Path(__file__).parent / "transition_plan" / "data" / "indicators.json"
+
+
+@lru_cache
+def _tp_indicators() -> list[tuple[str, str]]:
+    rows = json.loads(_INDICATORS_PATH.read_text(encoding="utf-8"))
+    return [(r["identifier"], r["walk_or_talk"]) for r in rows]
+
+
+def is_transition_plan_preset_run(manifest: RunManifest) -> bool:
+    """An extraction run on the transition-plan preset."""
+    return manifest.run_type == "extraction" and manifest.params.get("schema_id") == _TRANSITION_PLAN_SCHEMA_ID
+
+
+def _row_from_legacy_record(record: dict) -> dict[str, str]:
+    walk_total = record.get("walk_total_count") or 0
+    walk_disclosed = record.get("walk_disclosed_count") or 0
+    return {
+        "Company": str(record.get("name") or record.get("company_id") or ""),
+        "Company_Id": str(record.get("company_id") or ""),
+        "Indicators_Disclosed_Count": str(record.get("disclosed_count") or 0),
+        "Walk_Disclosed_Count": str(walk_disclosed),
+        "Talk_Disclosed_Count": str(record.get("talk_disclosed_count") or 0),
+        "Walk_Share_pct": f"{(walk_disclosed / walk_total * 100):.1f}" if walk_total else "",
+        "Assessment_Confidence_pct": f"{(record.get('overall_confidence') or 0.0) * 100:.1f}",
+    }
+
+
+def _row_from_preset_record(record: dict) -> dict[str, str]:
+    indicators = _tp_indicators()
+    walk_total = sum(kind == "walk" for _, kind in indicators)
+    by_name: dict[str, dict] = {}
+    for f in record.get("fields", []):
+        by_name.setdefault(str(f.get("field_name") or f.get("field_id")), f)
+    found = {ident: by_name[ident] for ident, _ in indicators if (by_name.get(ident) or {}).get("value") is not None}
+    confs = [float(f["confidence"]) if f.get("confidence") is not None and f.get("grounded") else 0.0 for f in found.values()]
+    disclosed = [(ident, kind) for ident, kind in indicators if ident in found and found[ident]["value"] is True]
+    walk = sum(kind == "walk" for _, kind in disclosed)
+    talk = sum(kind == "talk" for _, kind in disclosed)
+    assessment = f"{sum(confs) / len(confs) * 100:.1f}" if confs else "0.0"
+    return {
+        "Company": str(record.get("name") or record.get("company_id") or ""),
+        "Company_Id": str(record.get("company_id") or ""),
+        "Indicators_Disclosed_Count": str(len(disclosed)),
+        "Walk_Disclosed_Count": str(walk),
+        "Talk_Disclosed_Count": str(talk),
+        "Walk_Share_pct": f"{walk / walk_total * 100:.1f}" if walk_total else "",
+        "Assessment_Confidence_pct": assessment,
+    }
+
+
 def _row(run_store: RunStore, run_id: str, company: str) -> dict | None:
     try:
-        return next((r for r in from_transition_plan_run(run_store, run_id).rows if r["Company"] == company), None)
+        manifest = run_store.load_manifest(run_id)
+        is_preset = manifest is not None and is_transition_plan_preset_run(manifest)
+        builder = _row_from_preset_record if is_preset else _row_from_legacy_record
+        for record in run_store.read_results(run_id):
+            row = builder(record)
+            if row["Company"] == company:
+                return row
+        return None
     except Exception:  # one unreadable run must not block every lookup that reaches it
         logger.warning("transition plan run %s could not be read", run_id, exc_info=True)
         return None

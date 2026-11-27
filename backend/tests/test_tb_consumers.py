@@ -12,7 +12,6 @@ from typer.testing import CliRunner
 
 from arp.cli.transition_barrier import transition_barrier_app
 from arp.config import get_settings
-from arp.decision import sources
 from arp.transition_barrier import dataset
 from tests import test_tb_derivation, test_tb_facts, test_tb_ratings
 from tests.test_tb_derivation import decide, env  # noqa: F401  (env is a fixture)
@@ -21,21 +20,6 @@ from tests.test_transition_barrier_rule_book import REPO, _node_with
 from tests.transition_barrier_helpers import A_APPROVER
 
 pytestmark = pytest.mark.usefixtures("pg")
-
-
-def eu_feasibility() -> str:
-    """The one pillar value of the STL-R1 European Union row in Decision Studio (50.0 is M, 100.0 is H)."""
-    ds = sources.from_transition_barrier()
-    [row] = [r for r in ds.rows if r["Assessment"] == "Steel - European Union"]
-    [value] = [row[c] for c in ds.columns if c.endswith("_Feasibility_0_100") and row[c]]
-    return value
-
-
-def test_ac97_decision_studio_sees_the_confirmation(client):  # noqa: F811
-    run_id = ratify_change(client)
-    assert eu_feasibility() == "100.0"  # hand-rated H until the approver confirms
-    decide(client, A_APPROVER, run_id, KEY)
-    assert eu_feasibility() == "50.0"  # M, in the same process
 
 
 def test_ac96_export_carries_the_ratified_rating(client, tmp_path, monkeypatch):  # noqa: F811

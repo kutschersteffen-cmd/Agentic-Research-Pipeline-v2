@@ -288,20 +288,6 @@ def test_every_answer_equals_main(data, fixture, request):
     assert answers() == json.loads((FIXTURES / fixture).read_text())
 
 
-def test_a_published_decision_reaches_load_sample(store_s):
-    # AC-27
-    from arp.schemas.decision import PublishedDecision, PublishedRow
-    from arp.storage.decision_store import DecisionStore
-
-    process.house_universe()
-    DecisionStore(get_settings().frameworks_dir).save_published(PublishedDecision(
-        framework_id="fw", framework_version=1, framework_name="F", dataset_id="d", dataset_name="D", id_column="id",
-        published_by="A", rows=[PublishedRow(entity_id="C1", name="Company C1", score=72.5, tier=1)],
-    ))  # fmt: skip
-    c1 = next(i for i in process.load_sample()["issuers"] if i["issuer_id"] == "C1")
-    assert c1["fields"]["decision.fw.tier"] == 1
-
-
 def test_one_check_per_request(store_s, logs):
     # AC-28
     process.house_universe()

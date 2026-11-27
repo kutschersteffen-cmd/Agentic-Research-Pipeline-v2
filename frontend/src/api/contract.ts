@@ -3,12 +3,11 @@
 // Add a line when you type a new request<...>() against an endpoint with a response model and the
 // frontend type is hand-written; a type declared as Served<S["..."]> in types.ts needs no line.
 import type { Me } from "../lib/reviewKeys";
-import type { BarrierValue, Cockpit, CompanyTransition, DataPointSchema, EmergingThemesScheduleConfig, MechanismEnvelope, QAAnswer, RuleGraph, S, Served } from "../types";
+import type { BarrierValue, Cockpit, CompanyTransition, DataPointSchema, EmergingThemesScheduleConfig, QAAnswer, S, Served } from "../types";
 
 type Satisfies<Backend extends Frontend, Frontend> = [Backend, Frontend];
 // The backend types these fields loosely (plain dicts, a list[str]); the frontend's narrower
 // type is taken on trust until the backend models them.
-type MechanismEnvelopeServed = Served<S["MechanismEnvelope"]> & { config: { rule_graph: RuleGraph | null; tier_graph: RuleGraph | null } };
 type QAAnswerServed = Served<S["QAAnswer"]> & { spec: { date_range: [string, string] | null } | null };
 type TransitionBarrierServed = Omit<Served<S["BarrierOut"]>, "values"> & { values: BarrierValue[] };
 type TransitionServed = Omit<Served<S["TransitionOut"]>, "actions"> & {
@@ -19,7 +18,6 @@ export type ApiContract = [
   Satisfies<Served<S["CockpitResponse"]>, Cockpit>,
   Satisfies<Served<S["DataPointSchema"]>, DataPointSchema>,
   Satisfies<Served<S["EmergingThemesScheduleConfig"]>, EmergingThemesScheduleConfig>,
-  Satisfies<MechanismEnvelopeServed, MechanismEnvelope>,
   Satisfies<Served<S["Principal"]>, Me>,
   Satisfies<QAAnswerServed, QAAnswer>,
   Satisfies<TransitionServed, CompanyTransition>,

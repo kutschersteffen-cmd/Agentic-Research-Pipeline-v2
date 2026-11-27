@@ -63,8 +63,6 @@ class FlowSettings(BaseModel):
     mode: Literal["cheap", "normal", "max"] = "normal"
     evidence_passages: int | None = Field(default=None, ge=1, le=50)
     batch: bool = False
-    decision_framework_id: str | None = None
-    decision_framework_version: int | None = None
 
 
 class ArgusFlow(BaseModel):

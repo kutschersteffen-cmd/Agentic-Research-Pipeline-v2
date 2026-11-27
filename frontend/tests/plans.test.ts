@@ -22,7 +22,6 @@ test("calls beyond the dry run (a data-dependent loop) are listed too", () => {
 test("a step links to its run, or to the screen of a run-less result", () => {
   assert.equal(resultHref(call(1, { run_id: "run_a b" })), "#/history/run_a%20b");
   assert.equal(resultHref(call(1, { result_ref: "report:rep_1" })), "#/reporting");
-  assert.equal(resultHref(call(1, { result_ref: "decision:run_x" })), "#/decision");
   assert.equal(resultHref(call(1)), null);
 });
 

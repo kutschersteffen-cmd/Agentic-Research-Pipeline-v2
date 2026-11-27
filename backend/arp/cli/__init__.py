@@ -8,7 +8,6 @@ from arp.cli.calibration import calibration_app
 from arp.cli.climate import climate_app
 from arp.cli.compute import compute_app
 from arp.cli.db import db_app
-from arp.cli.decision import decision_app
 from arp.cli.discovery import discover_app
 from arp.cli.documents import documents_app
 from arp.cli.emerging_themes import emerging_themes_app
@@ -109,7 +108,6 @@ app.add_typer(voting_app, name="voting")
 app.add_typer(stewardship_app, name="stewardship")
 app.add_typer(portfolio_app, name="portfolio")
 app.add_typer(climate_app, name="climate")
-app.add_typer(decision_app, name="decision")
 app.add_typer(documents_app, name="documents")
 app.add_typer(compute_app, name="compute")
 app.add_typer(identity_app, name="identity")

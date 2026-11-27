@@ -39,7 +39,7 @@ test("eo_ac39_40_running_rd_lab", () => {
   const v = cardView(ws("rdLab"), R1, null, NOW);
   assert.deepEqual(v.dots, ["now", "idle"]);
   assert.equal(v.status.word, "Running");
-  assert.equal(runningDetail(ws("rdLab"), R1, null), "Spot · step 1 of 6");
+  assert.equal(runningDetail(ws("rdLab"), R1, null), "Spot · step 1 of 5");
   assert.equal(runningDetail(ws("rdLab"), null, null), null);
   assert.equal(runningDetail(ws("argus"), R1, null), null);
 });

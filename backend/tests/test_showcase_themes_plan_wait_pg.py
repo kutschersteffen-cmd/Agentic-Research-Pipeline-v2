@@ -15,7 +15,7 @@ from arp.orchestration.plan_store import PlanStore
 
 GATED = """u = universe_build(taxonomy_id="t", source="u.csv")
 e = extraction(universe_run_id=u.run_id, schema_id="s")
-d = decision_score(source_run_id=e.run_id)
+d = report_render(run_ids=[e.run_id])
 """
 PLAIN = 'u = universe_build(taxonomy_id="t", source="u.csv")\n'
 
@@ -32,7 +32,7 @@ class World:
                 return {"id": kind, "run_id": f"r_{kind}", "companies": [], "gate": gate}
             return fn
         return {"universe_build": step("universe_build"), "extraction": step("extraction", gate=True),
-                "decision_score": step("decision_score")}
+                "report_render": step("report_render")}
 
 
 @pytest.fixture
@@ -98,7 +98,7 @@ def test_reviewed_plan_continues_by_itself(client, store, world):  # AC-15, AC-1
     world.reviewed = True
     time.sleep(1.5)  # no API request meanwhile
     assert client.get(f"/api/plans/{plan_id}").json()["status"] == "done"
-    assert world.calls == {"universe_build": 1, "extraction": 1, "decision_score": 1}
+    assert world.calls == {"universe_build": 1, "extraction": 1, "report_render": 1}
 
 
 def test_cancel_while_waiting(client, store, world):  # AC-17, AC-18
@@ -109,5 +109,5 @@ def test_cancel_while_waiting(client, store, world):  # AC-17, AC-18
     world.reviewed = True
     time.sleep(1.0)
     assert [c["seq"] for c in store.calls(plan_id)] == [1, 2]
-    assert world.calls["decision_score"] == 0
+    assert world.calls["report_render"] == 0
     assert store.get(plan_id)["status"] == "cancelled"

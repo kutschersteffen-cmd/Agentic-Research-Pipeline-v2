@@ -70,13 +70,6 @@ api_health_ok() {
   echo "$body" | sed '$d' | python3 -c 'import json,sys; s=json.load(sys.stdin).get("status"); sys.exit(0 if s=="ok" else f"status={s!r}")'
 }
 
-coop_headers() {
-  local h
-  h=$(curl -s -D - -o /dev/null --max-time 20 "$1" | tr -d '\r')
-  echo "$h" | grep -qi '^cross-origin-opener-policy: same-origin$' || { echo "no COOP same-origin"; return 1; }
-  echo "$h" | grep -qi '^cross-origin-embedder-policy: require-corp$' || { echo "no COEP require-corp"; return 1; }
-}
-
 start_compute() {
   docker run -d --name compute -p 127.0.0.1:8080:8080 "$image" >/dev/null
   wait_for http://127.0.0.1:8080/healthz 300 || { dump_logs compute; return 1; }
@@ -122,7 +115,6 @@ case $name in
     if start_backend "$backend_image" && start_frontend frontend 5173 \
       && start_frontend frontend-hosts 5174 -e ARP_PUBLIC_HOSTS="localhost 127.0.0.1 arp.example.test"; then
       check root expect_status 200 http://127.0.0.1:5173/
-      check coop coop_headers http://127.0.0.1:5173/
       check api-proxy api_health_ok http://127.0.0.1:5173/api/health
       check api-proxy-other-host expect_status 200 http://127.0.0.1:5174/api/me \
         -H 'Host: arp.example.test' -H 'Origin: http://arp.example.test'
@@ -130,7 +122,7 @@ case $name in
         -H 'Host: rebind.example.test' -H 'Origin: http://rebind.example.test'
       check foreign-origin expect_status 401 http://127.0.0.1:5173/api/me -H 'Origin: http://evil.example.test'
     else
-      for c in root coop api-proxy api-proxy-other-host rebind-host foreign-origin; do fail "$c" "stack did not start"; done
+      for c in root api-proxy api-proxy-other-host rebind-host foreign-origin; do fail "$c" "stack did not start"; done
     fi
     ;;
   arp-compute)

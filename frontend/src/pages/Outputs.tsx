@@ -18,7 +18,6 @@ const SHOWN = 200;
 /** Where an output (or a consumer of it) is opened. */
 function href(kind: string, id: string, runType?: string): string | null {
   if (kind === "run") return runType === "proxy_voting" ? `#/voting/${encodeURIComponent(id)}` : "#/history";
-  if (kind === "publication" || kind === "dataset") return "#/decision";
   if (kind === "taxonomy") return "#/taxonomy";
   if (kind === "report") return "#/reporting";
   return null;

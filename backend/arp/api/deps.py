@@ -28,7 +28,6 @@ from arp.publish.scheduler import PublishingScheduler
 from arp.retrieval.content_store_factory import content_store_for
 from arp.review.analytics import ReviewAnalyticsScheduler
 from arp.stewardship.process import StreamStore
-from arp.storage.decision_store import DecisionStore
 from arp.storage.document_blob_store import blob_store_for
 from arp.storage.document_store import DocumentContentStore
 from arp.storage.engagement_store import EngagementStore
@@ -62,12 +61,6 @@ def publish_store_dep(settings: Settings = Depends(settings_dep)) -> PublishStor
     return PublishStore(require_dsn(settings))
 
 
-def authoritative_store_dep(settings: Settings = Depends(settings_dep)):
-    from arp.authoritative.store import AuthoritativeStore
-
-    return AuthoritativeStore(require_dsn(settings))
-
-
 def blob_store_dep(settings: Settings = Depends(settings_dep)):
     return blob_store_for(IndexingConfig.from_settings(settings))
 
@@ -87,9 +80,6 @@ def get_taxonomy_store() -> TaxonomyStore:
     return TaxonomyStore(get_settings().taxonomies_dir)
 
 
-@lru_cache
-def get_decision_store() -> DecisionStore:
-    return DecisionStore(get_settings().frameworks_dir)
 
 
 @lru_cache

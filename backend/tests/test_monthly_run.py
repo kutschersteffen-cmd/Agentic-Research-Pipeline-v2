@@ -23,7 +23,6 @@ def settings(tmp_path):
     return Settings(
         engagements_dir=tmp_path / "eng",
         stewardship_streams_dir=tmp_path / "streams",
-        frameworks_dir=tmp_path / "fw",
         runs_dir=tmp_path / "runs",
     )
 

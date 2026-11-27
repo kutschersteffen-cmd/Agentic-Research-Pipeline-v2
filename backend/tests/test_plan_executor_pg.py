@@ -11,7 +11,7 @@ from arp.orchestration.plan_store import PlanStore
 
 CHAIN = """u = universe_build(taxonomy_id="t_grid storage", source="u.csv")
 e = extraction(universe_run_id=u.run_id, schema_id="green_capex")
-d = decision_score(source_run_id=e.run_id)
+d = report_render(run_ids=[e.run_id])
 """
 
 
@@ -40,7 +40,7 @@ class Stubs:
         return Step(start, finish)
 
     def all(self):
-        return {k: self.step(k) for k in ("universe_build", "extraction", "decision_score")}
+        return {k: self.step(k) for k in ("universe_build", "extraction", "report_render")}
 
 
 @pytest.fixture
@@ -97,8 +97,8 @@ def test_review_gate_resumes_with_running_status(store):  # AC-23, AC-24 (state 
     reviewed, release = threading.Event(), threading.Event()
     stubs = Stubs(gate_kind="extraction")
     steps = stubs.all()
-    inner = steps["decision_score"]
-    steps["decision_score"] = lambda **kw: (release.wait(5), inner(**kw))[1]
+    inner = steps["report_render"]
+    steps["report_render"] = lambda **kw: (release.wait(5), inner(**kw))[1]
     t = threading.Thread(target=run_plan, args=(plan_id, store, steps, lambda c: reviewed.is_set()),
                          kwargs={"poll_seconds": 0.02})
     t.start()
@@ -130,7 +130,7 @@ def test_resume_reuses_finished_steps(store):  # AC-28, AC-29
     calls = store.calls(plan_id)
     assert calls[0]["run_id"] == first
     assert calls[1]["run_id"] not in (None, first)
-    assert stubs.started == ["extraction", "decision_score"]
+    assert stubs.started == ["extraction", "report_render"]
 
 
 def test_second_run_refused_while_running(store):  # AC-31 (executor level)

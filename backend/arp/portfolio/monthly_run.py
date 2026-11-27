@@ -77,7 +77,7 @@ def run_month(
     raised = evaluate_threshold_rules(store, as_of=month_end(month))
     raised += evaluate_news_triggers(store, min_severity=settings.portfolio_monitoring_news_min_severity)
     live = [a for a in list_alerts(store) if a.status in LIVE]
-    sample = load_sample(settings.frameworks_dir, vote_items(settings.runs_dir), live, from_portfolio(store, as_of=obs_as_of))
+    sample = load_sample(None, vote_items(settings.runs_dir), live, from_portfolio(store, as_of=obs_as_of))
     records = build_engagement_store(settings).list_all()
     triggers = monitoring.evaluate(PolicyStore(settings.stewardship_streams_dir).active("monitoring_rules"), sample, records)
     trigger_store = TriggerStore(settings.stewardship_streams_dir)

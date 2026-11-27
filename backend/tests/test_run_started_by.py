@@ -46,7 +46,7 @@ def client(tmp_path, monkeypatch, pg):
     app.include_router(financials.router)
     app.dependency_overrides[deps.settings_dep] = lambda: settings
     app.dependency_overrides[deps.get_run_store] = lambda: store
-    for dep in (deps.get_registry, deps.get_decision_store, deps.get_xbrl_source):
+    for dep in (deps.get_registry, deps.get_xbrl_source):
         app.dependency_overrides[dep] = lambda: None
     app.dependency_overrides[current_user] = lambda: Principal(user_id="u-1", name="Alice Smith", role="analyst")
     return TestClient(app), store

@@ -6,13 +6,10 @@ from types import SimpleNamespace
 from arp import catalog
 from arp.api.routers.universe import save_universe
 from arp.config import Settings
-from arp.decision.dataset import Dataset
 from arp.orchestration.job_manager import JobManager
 from arp.schemas.common import CompanyRef
-from arp.schemas.decision import PublishedDecision
 from arp.schemas.taxonomy import DerivationMethod
 from arp.schemas.thematic import ThemeDefinition
-from arp.storage.decision_store import DecisionStore
 from arp.storage.run_store import RunStore
 from arp.storage.taxonomy_store import TaxonomyStore
 
@@ -22,24 +19,21 @@ class _Reports:
         return [SimpleNamespace(report_id="rpt_1", title="Q3 pack")]
 
     def load_request(self, report_id):
-        return SimpleNamespace(run_refs=[SimpleNamespace(kind="decision", ref_id="pub_1")])
+        return SimpleNamespace(run_refs=[])
 
 
 def test_catalog_lists_every_kind_with_what_uses_it(tmp_path, pg):
     settings = Settings(runs_dir=tmp_path / "runs")
     settings.runs_dir.mkdir()
-    rs, decisions, taxonomy = RunStore(pg, settings.runs_dir), DecisionStore(tmp_path / "fw"), TaxonomyStore(tmp_path / "tax")
+    rs, taxonomy = RunStore(pg, settings.runs_dir), TaxonomyStore(tmp_path / "tax")
 
     universe = save_universe(settings, [CompanyRef(company_id="c1", name="Acme")], "climate leaders")["path"]
     tax = taxonomy.create("Grid", ThemeDefinition(name="Grid", description="grid"), DerivationMethod.LLM_DRAFT)
     theme_run = JobManager(rs).create_run("theme", {"universe_path": universe, "taxonomy_id": tax.taxonomy_id, "taxonomy_version": 1}, 1).run_id
     extraction = JobManager(rs).create_run("extraction", {}, 1).run_id
     (rs.run_dir(extraction) / "inputs.json").write_text(json.dumps({"universe_path": universe}))
-    decisions.save_dataset(Dataset(name="scores", columns=["a"], rows=[], source="extraction_run", source_ref=extraction))
-    decisions.save_published(PublishedDecision(snapshot_id="pub_1", framework_id="fw", framework_version=2, framework_name="Green",
-                                               dataset_id="ds", dataset_name="scores", id_column="Company_Id", published_by="IC"))
 
-    out = catalog.catalog(runs_dir=settings.runs_dir, run_store=rs, decisions=decisions, taxonomy=taxonomy,
+    out = catalog.catalog(runs_dir=settings.runs_dir, run_store=rs, taxonomy=taxonomy,
                           reports=_Reports())
     by = {(o["kind"], o["id"]): o for o in out}
 
@@ -48,12 +42,8 @@ def test_catalog_lists_every_kind_with_what_uses_it(tmp_path, pg):
     assert sorted(c["id"] for c in u["used_by"]) == sorted([theme_run, extraction])
     assert [c["id"] for c in by[("taxonomy", tax.taxonomy_id)]["used_by"]] == [theme_run]
     assert by[("taxonomy", tax.taxonomy_id)]["status"] == "draft"
-    assert [c["kind"] for c in by[("run", extraction)]["used_by"]] == ["dataset"]
-    pub = by[("publication", "pub_1")]
-    assert pub["name"] == "Green v2 · scores" and pub["by"] == "IC"
-    assert sorted(c["kind"] for c in pub["used_by"]) == ["report"]
 
-    only = catalog.catalog(runs_dir=settings.runs_dir, run_store=rs, decisions=decisions, taxonomy=taxonomy,
+    only = catalog.catalog(runs_dir=settings.runs_dir, run_store=rs, taxonomy=taxonomy,
                            reports=_Reports(), kind="universe")
     assert {o["kind"] for o in only} == {"universe"}
 

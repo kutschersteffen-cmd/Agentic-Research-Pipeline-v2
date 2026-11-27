@@ -147,7 +147,7 @@ INDICATORS = [{"number": i, "identifier": ident, "category": "target", "walk_or_
               for i, (ident, kind) in enumerate([("A_headline_1", "walk"), ("W2", "walk"), ("W3", "walk"), ("T1", "talk"), ("T2", "talk")], 1)]
 
 
-def step_5(page, schema_id, fields, decision=None):
+def step_5(page, schema_id, fields):
     run_id = "extraction_tp1"
     fid = stub_flow(page, 5, run_id=run_id, schema_choice={"kind": "schema", "schema_id": schema_id, "version": 1, "profile": None})
     page.route(f"**/api/extraction/runs/{run_id}/results*", lambda r: r.fulfill(json={"total": 1, "results": [
@@ -162,9 +162,6 @@ def step_5(page, schema_id, fields, decision=None):
                     "extraction_instructions": "", "required": False, "source_doc_types": [], "seed_keywords": []} for f in fields]}))
     page.route("**/api/transition-plan/indicators", lambda r: r.fulfill(json=INDICATORS))
     page.route(f"**/api/runs/{run_id}", lambda r: r.fulfill(json={**RUN, "run_id": run_id, "run_type": "extraction", "status": "completed"}))
-    page.route(f"**/api/decision/runs/{run_id}/decision", decision or (lambda r: r.fulfill(
-        status=404, json={"detail": "No scoring template is attached to this run."})))
-    page.route("**/api/decision/templates/match", lambda r: r.fulfill(json=[]))
     page.goto(f"{URL}/#/argus/{fid}/5")
     table = page.get_by_role("table", name="Extracted values")
     table.locator("tbody tr").first.wait_for()
@@ -184,26 +181,6 @@ def test_step_5_field_cell_holds_the_question_then_the_id(page):  # AC-57
 def test_step_5_walk_and_talk_line(page):  # AC-58
     step_5(page, TP, TP_FIELDS)
     page.get_by_text("Disclosed 3 of 5 · Walk 2 of 3 · Talk 1 of 2").wait_for()
-
-
-def test_step_5_scoring_shows_score_and_tier(page):  # AC-59
-    decision = {"framework": {"name": "TP scoring", "version": 1}, "run_status": "completed", "scored_at": None,
-                "missing_columns": [], "level_scale": None,
-                "result": {"tier_summary": [], "excluded_count": 0, "insufficient_count": 0, "entities": [
-                    {"entity_key": "acme", "name": "Acme", "rank": 1, "score": 62.5, "tier_name": "Tier 2", "tier_action": "",
-                     "status": "scored", "notes": []}]}}
-    step_5(page, TP, TP_FIELDS, decision=lambda r: r.fulfill(json=decision))
-    section = page.locator("section.card", has=page.get_by_role("heading", name="Scoring"))
-    row = section.locator("tr", has_text="Acme")
-    row.wait_for()
-    assert "62.5" in row.inner_text() and "Tier 2" in row.inner_text()
-
-
-def test_step_5_scoring_without_template_offers_the_picker(page):  # AC-60
-    step_5(page, TP, TP_FIELDS)
-    section = page.locator("section.card", has=page.get_by_role("heading", name="Scoring"))
-    section.get_by_role("button", name="Score this run").wait_for()
-    assert "No scoring template is attached" not in section.inner_text()
 
 
 def test_step_5_other_template_field_cell_unchanged(page):  # AC-61 (must not change)

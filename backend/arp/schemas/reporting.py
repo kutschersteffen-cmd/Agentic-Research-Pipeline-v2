@@ -291,7 +291,7 @@ class Finding(BaseModel):
 
 
 class RunRef(BaseModel):
-    kind: Literal["decision", "run"]
+    kind: Literal["run"]
     ref_id: str
 
 

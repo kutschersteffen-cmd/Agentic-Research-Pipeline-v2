@@ -164,11 +164,6 @@ def test_universe_adapter_takes_best_exposure(run_store, monkeypatch, tmp_path):
     assert by_id["beta"]["exposure"] == "none" and by_id["beta"]["included"] is False
 
 
-def test_decision_adapter_needs_a_framework(run_store, universe_run):
-    with pytest.raises(ValueError, match="no decision framework attached"):
-        build_steps(get_settings(), run_store)["decision_score"](source_run_id=universe_run)
-
-
 def test_background_adapter_start_finds_its_run_by_launch_key(run_store, universe_run, monkeypatch):  # AC-3 path
     import arp.discovery.pipeline as discovery
 

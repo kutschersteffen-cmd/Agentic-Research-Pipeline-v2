@@ -76,7 +76,7 @@ def env(pg, tmp_path, monkeypatch):
     rs = RunStore(pg, tmp_path / "runs")
     app.dependency_overrides[current_user] = lambda: PRINCIPAL
     app.dependency_overrides[deps.get_run_store] = lambda: rs
-    for dep in (deps.get_registry, deps.get_decision_store, deps.get_xbrl_source, deps.get_edgar_source,
+    for dep in (deps.get_registry, deps.get_xbrl_source, deps.get_edgar_source,
                 deps.get_web_search_client, deps.get_llm_client, deps.get_topic_store, deps.get_engagement_store):
         app.dependency_overrides[dep] = lambda: None
     yield TestClient(app, raise_server_exceptions=False), u, outside, recorded

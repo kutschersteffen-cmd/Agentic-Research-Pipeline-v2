@@ -26,15 +26,15 @@ test("eo_ac46_caption", () => {
 test("eo_ac48_status_line", () => {
   const v = cardView(ws("rdLab"), R1, null, new Date(T));
   assert.equal(v.status.word, "Running");
-  assert.equal(runningDetail(ws("rdLab"), R1, null, true), "Build a thematic portfolio · Spot · step 1 of 6");
-  assert.equal(runningDetail(ws("rdLab"), R1, null), "Spot · step 1 of 6"); // the start card keeps its detail
+  assert.equal(runningDetail(ws("rdLab"), R1, null, true), "Build a thematic portfolio · Spot · step 1 of 5");
+  assert.equal(runningDetail(ws("rdLab"), R1, null), "Spot · step 1 of 5"); // the start card keeps its detail
   assert.match(hub, /data-ws-status/);
 });
 
 test("eo_ac49_51_step_rail", () => {
-  assert.deepEqual(stepRail(thematic, R1, null), ["now", "idle", "idle", "idle", "idle", "idle"]);
-  assert.deepEqual(stepRail(thematic, R2, null), ["idle", "idle", "done", "wait", "idle", "idle"]);
-  assert.deepEqual(stepRail(thematic, null, null), Array(6).fill("unknown"));
+  assert.deepEqual(stepRail(thematic, R1, null), ["now", "idle", "idle", "idle", "idle"]);
+  assert.deepEqual(stepRail(thematic, R2, null), ["idle", "idle", "done", "wait", "idle"]);
+  assert.deepEqual(stepRail(thematic, null, null), Array(5).fill("unknown"));
   const planned = { ...thematic, steps: [...thematic.steps.slice(0, 1), { ...thematic.steps[1], planned: true }] };
   assert.deepEqual(stepRail(planned, null, null), ["unknown", "planned"]);
   assert.deepEqual(stepRail(planned, R1, null), ["now", "planned"]);

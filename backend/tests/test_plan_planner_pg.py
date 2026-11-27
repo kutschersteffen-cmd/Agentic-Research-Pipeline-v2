@@ -50,16 +50,14 @@ def test_context_lists_only_ratified():
 
     tax = [NS(taxonomy_id="tax_a", theme=NS(name="Grid storage"), status="ratified"),
            NS(taxonomy_id="tax_b", theme=NS(name="Draft theme"), status="draft")]
-    fw = [NS(framework_id="fw_1", name="Capex quality", ratified=True), NS(framework_id="fw_2", name="x", ratified=False)]
-    ctx = planner_context(tax, fw)
+    ctx = planner_context(tax)
     assert "- tax_a: Grid storage" in ctx and "tax_b" not in ctx
-    assert "- fw_1: Capex quality" in ctx and "fw_2" not in ctx
 
 
 def test_stubs_list_every_step():
     stubs = step_stubs()
     assert "def extraction(*, universe_run_id: str, schema_id: str, companies: list[str] | None = None)" in stubs
-    assert stubs.count("def ") == 9
+    assert stubs.count("def ") == 8
 
 
 @pytest.fixture(autouse=True)

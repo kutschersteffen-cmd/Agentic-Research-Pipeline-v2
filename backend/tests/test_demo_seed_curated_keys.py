@@ -128,7 +128,7 @@ def pg_store(pg, tmp_path):
     from arp.storage.postgres_portfolio_store import PostgresPortfolioStore
 
     settings = Settings(engagements_dir=tmp_path / "eng", stewardship_streams_dir=tmp_path / "streams",
-                        frameworks_dir=tmp_path / "fw", runs_dir=tmp_path / "runs")
+                        runs_dir=tmp_path / "runs")
     store = PostgresPortfolioStore(pg, PortfolioStore(tmp_path / "files"))
 
     def run_load():
