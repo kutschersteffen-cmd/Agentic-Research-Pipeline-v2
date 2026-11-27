@@ -19,6 +19,7 @@ def alembic_config(dsn: str) -> Config:
     cfg = Config(str(ALEMBIC_INI))
     cfg.set_main_option("script_location", str(ALEMBIC_DIR))
     cfg.attributes["dsn"] = dsn
+    cfg.attributes["configure_logger"] = False
     return cfg
 
 
