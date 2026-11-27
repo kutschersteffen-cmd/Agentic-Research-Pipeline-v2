@@ -160,6 +160,133 @@ def _model_vector_ranking(
     return None if query_vec is None else _cosine_ranking(candidates, keys, cached, query_vec[0])
 
 
+def _record_explain(
+    explain: dict | None,
+    method: str,
+    picked: list[DocumentChunk],
+    rest: list[DocumentChunk],
+    *,
+    candidate_count: int,
+    scores: dict[str, dict],
+    ran: dict[str, str | None],
+    reranked: bool = False,
+) -> list[DocumentChunk]:
+    if explain is not None:
+        near = [c.chunk_id for c in rest[:3]]
+        keep = [c.chunk_id for c in picked] + near
+        explain.update(
+            method=method, reranked=reranked, candidates=candidate_count,
+            scores={cid: scores[cid] for cid in keep if scores.get(cid)}, near_misses=near, **ran,
+        )
+    return picked
+
+
+def _finalize_ranking(
+    ranked: list[DocumentChunk],
+    method: str,
+    *,
+    query_text: str,
+    max_chunks: int,
+    rerank_candidates: int | None,
+    rerank_model: str,
+    explain: dict | None,
+    candidate_count: int,
+    scores: dict[str, dict],
+    ran: dict[str, str | None],
+) -> list[DocumentChunk]:
+    if rerank_candidates is None:
+        return _record_explain(
+            explain, method, ranked[:max_chunks], ranked[max_chunks:],
+            candidate_count=candidate_count, scores=scores, ran=ran,
+        )
+    pool = ranked[:rerank_candidates]
+    rerank_scores: dict[str, float] | None = {} if explain is not None else None
+    picked = rerank(query_text, pool, max_chunks, scores_out=rerank_scores, model=rerank_model)
+    if not rerank_scores:  # not recording, or the model did not score
+        return _record_explain(
+            explain, method, picked, pool[max_chunks:],
+            candidate_count=candidate_count, scores=scores, ran=ran,
+        )
+    ran["rerank_model"] = RERANK_KEYS[rerank_model]
+    for cid, score in rerank_scores.items():
+        scores.setdefault(cid, {})["rerank"] = score
+    chosen = {c.chunk_id for c in picked}
+    rest = sorted((c for c in pool if c.chunk_id not in chosen), key=lambda c: rerank_scores[c.chunk_id], reverse=True)
+    return _record_explain(
+        explain, method, picked, rest,
+        candidate_count=candidate_count, scores=scores, ran=ran, reranked=True,
+    )
+
+
+def _bm25_score(
+    candidates: list[DocumentChunk],
+    query_text: str,
+    texts: dict[str, str],
+    *,
+    retrieval_backend: str,
+    opensearch_client,
+    require_hit: bool,
+    parents: dict[str, DocumentChunk] | None,
+) -> tuple[list[tuple[str, float]], dict[str, DocumentChunk], str]:
+    use_opensearch_bm25 = retrieval_backend == "opensearch" and opensearch_client is not None
+    if use_opensearch_bm25:
+        by_id = {c.chunk_id: c for c in candidates}
+        scored = _opensearch_bm25_ranking(candidates, query_text, opensearch_client)
+    else:
+        key = INDEX_CACHE.make_key(candidates, texts)
+        retriever, by_id = INDEX_CACHE.get_or_build(key, candidates, texts)
+        results = retriever.retrieve(query_text)
+        scored = [(r.node.id_, r.score or 0.0) for r in results]
+
+    if require_hit:
+        scored = [(chunk_id, score) for chunk_id, score in scored if score > 0.0]
+    if parents:
+        best: dict[str, float] = {}
+        for chunk_id, score in scored:  # highest first, so the first piece seen is the parent's best
+            best.setdefault(parents[chunk_id].chunk_id, score)
+        scored = list(best.items())
+        by_id = {p.chunk_id: p for p in parents.values()}
+    return scored, by_id, "opensearch" if use_opensearch_bm25 else "bm25"
+
+
+def _hybrid_fuse(
+    candidates: list[DocumentChunk],
+    query_text: str,
+    content_store: DocumentContentStore,
+    texts: dict[str, str],
+    bm25_ranking: list[str],
+    *,
+    embed_model: str,
+    has_index_texts: bool,
+    parents: dict[str, DocumentChunk] | None,
+    scores: dict[str, dict],
+) -> tuple[list[str], str]:
+    from arp.retrieval.embeddings import EMBED_KEYS
+
+    embed_key = EMBED_KEYS[embed_model]
+    vector_ranking = (
+        _model_vector_ranking(candidates, query_text, content_store, texts, embed_key) if embed_key != "embed" else None
+    )
+    if vector_ranking is None:
+        if embed_key != "embed" and _FALLBACK_WARNING not in compute_client._warned:  # once per process
+            compute_client._warned.add(_FALLBACK_WARNING)
+            logger.warning(_FALLBACK_WARNING)
+        embed_key = "embed"
+        vector_ranking = (
+            _vector_ranking(candidates, query_text, content_store, texts=texts) if has_index_texts
+            else _vector_ranking(candidates, query_text, content_store)
+        )
+    if parents:
+        vector_ranking = list(dict.fromkeys(parents[chunk_id].chunk_id for chunk_id in vector_ranking))
+    rrf: dict[str, float] = {}
+    fused = _rrf_fuse([bm25_ranking, vector_ranking], scores_out=rrf)
+    for rank, chunk_id in enumerate(vector_ranking, start=1):
+        scores.setdefault(chunk_id, {})["vector_rank"] = rank
+    for chunk_id, score in rrf.items():
+        scores.setdefault(chunk_id, {})["rrf"] = score
+    return fused, embed_key
+
+
 def select_relevant_chunks(
     chunks: list[DocumentChunk],
     query_terms: list[str],
@@ -251,98 +378,44 @@ def select_relevant_chunks(
     """
     scores: dict[str, dict] = {}
     ran: dict[str, str | None] = {"embed_model": None, "rerank_model": None}
-    candidates = chunks
-    if doc_type_filter:
-        candidates = [c for c in candidates if c.doc_type in doc_type_filter]
+    candidates = [c for c in chunks if c.doc_type in doc_type_filter] if doc_type_filter else chunks
     if not candidates:
         return []
-
-    def record(method: str, picked: list[DocumentChunk], rest: list[DocumentChunk], reranked: bool = False) -> list[DocumentChunk]:
-        if explain is not None:
-            near = [c.chunk_id for c in rest[:3]]
-            keep = [c.chunk_id for c in picked] + near
-            explain.update(
-                method=method, reranked=reranked, candidates=len(candidates),
-                scores={cid: scores[cid] for cid in keep if scores.get(cid)}, near_misses=near, **ran,
-            )
-        return picked
-
     if not query_terms:
-        return record("none", candidates[:max_chunks], [])
+        return _record_explain(
+            explain, "none", candidates[:max_chunks], [],
+            candidate_count=len(candidates), scores=scores, ran=ran,
+        )
 
     query_text = " ".join(query_terms)
     texts = {c.chunk_id: (index_texts or {}).get(c.chunk_id, c.text) for c in candidates}
-
-    def finish(ranked: list[DocumentChunk], method: str) -> list[DocumentChunk]:
-        if rerank_candidates is None:
-            return record(method, ranked[:max_chunks], ranked[max_chunks:])
-        pool = ranked[:rerank_candidates]
-        rerank_scores: dict[str, float] | None = {} if explain is not None else None
-        picked = rerank(query_text, pool, max_chunks, scores_out=rerank_scores, model=rerank_model)
-        if not rerank_scores:  # not recording, or the model did not score
-            return record(method, picked, pool[max_chunks:])
-        ran["rerank_model"] = RERANK_KEYS[rerank_model]
-        for cid, score in rerank_scores.items():
-            scores.setdefault(cid, {})["rerank"] = score
-        chosen = {c.chunk_id for c in picked}
-        rest = sorted((c for c in pool if c.chunk_id not in chosen), key=lambda c: rerank_scores[c.chunk_id], reverse=True)
-        return record(method, picked, rest, reranked=True)
-
-    use_opensearch_bm25 = retrieval_backend == "opensearch" and opensearch_client is not None
-    if use_opensearch_bm25:
-        by_id = {c.chunk_id: c for c in candidates}
-        scored = _opensearch_bm25_ranking(candidates, query_text, opensearch_client)
-    else:
-        key = INDEX_CACHE.make_key(candidates, texts)
-        retriever, by_id = INDEX_CACHE.get_or_build(key, candidates, texts)
-        results = retriever.retrieve(query_text)
-        scored = [(r.node.id_, r.score or 0.0) for r in results]
-
-    if require_hit:
-        scored = [(chunk_id, score) for chunk_id, score in scored if score > 0.0]
-    if parents:
-        best: dict[str, float] = {}
-        for chunk_id, score in scored:  # highest first, so the first piece seen is the parent's best
-            best.setdefault(parents[chunk_id].chunk_id, score)
-        scored = list(best.items())
-        by_id = {p.chunk_id: p for p in parents.values()}
+    scored, by_id, bm25_method = _bm25_score(
+        candidates, query_text, texts,
+        retrieval_backend=retrieval_backend, opensearch_client=opensearch_client,
+        require_hit=require_hit, parents=parents,
+    )
     for chunk_id, score in scored:
         scores.setdefault(chunk_id, {})["bm25"] = float(score)
-    bm25_method = "opensearch" if use_opensearch_bm25 else "bm25"
 
-    use_hybrid = hybrid_retrieval_enabled and content_store is not None
-    if not use_hybrid:
-        if require_hit and not scored and fallback_to_all:
-            if on_unranked_fallback is not None and rerank_candidates is None:
-                on_unranked_fallback()
-            return finish(candidates, "unranked")
-        return finish([by_id[chunk_id] for chunk_id, _ in scored], bm25_method)
-
-    bm25_ranking = [chunk_id for chunk_id, _ in scored]
-    from arp.retrieval.embeddings import EMBED_KEYS
-
-    embed_key = EMBED_KEYS[embed_model]
-    vector_ranking = (
-        _model_vector_ranking(candidates, query_text, content_store, texts, embed_key) if embed_key != "embed" else None
-    )
-    if vector_ranking is None:
-        if embed_key != "embed" and _FALLBACK_WARNING not in compute_client._warned:  # once per process
-            compute_client._warned.add(_FALLBACK_WARNING)
-            logger.warning(_FALLBACK_WARNING)
-        embed_key = "embed"
-        vector_ranking = (
-            _vector_ranking(candidates, query_text, content_store, texts=texts) if index_texts
-            else _vector_ranking(candidates, query_text, content_store)
+    if hybrid_retrieval_enabled and content_store is not None:
+        fused, ran["embed_model"] = _hybrid_fuse(
+            candidates, query_text, content_store, texts, [chunk_id for chunk_id, _ in scored],
+            embed_model=embed_model, has_index_texts=bool(index_texts), parents=parents, scores=scores,
         )
-    ran["embed_model"] = embed_key
-    if parents:
-        vector_ranking = list(dict.fromkeys(parents[chunk_id].chunk_id for chunk_id in vector_ranking))
-    rrf: dict[str, float] = {}
-    fused = _rrf_fuse([bm25_ranking, vector_ranking], scores_out=rrf)
-    for rank, chunk_id in enumerate(vector_ranking, start=1):
-        scores.setdefault(chunk_id, {})["vector_rank"] = rank
-    for chunk_id, score in rrf.items():
-        scores.setdefault(chunk_id, {})["rrf"] = score
-    if not fused and fallback_to_all:
-        return finish(candidates, "unranked")
-    return finish([by_id[chunk_id] for chunk_id in fused], "hybrid" if bm25_method == "bm25" else "opensearch_hybrid")
+        if not fused and fallback_to_all:
+            ranked, method = candidates, "unranked"
+        else:
+            ranked = [by_id[chunk_id] for chunk_id in fused]
+            method = "hybrid" if bm25_method == "bm25" else "opensearch_hybrid"
+    elif require_hit and not scored and fallback_to_all:
+        if on_unranked_fallback is not None and rerank_candidates is None:
+            on_unranked_fallback()
+        ranked, method = candidates, "unranked"
+    else:
+        ranked, method = [by_id[chunk_id] for chunk_id, _ in scored], bm25_method
+
+    return _finalize_ranking(
+        ranked, method,
+        query_text=query_text, max_chunks=max_chunks, rerank_candidates=rerank_candidates,
+        rerank_model=rerank_model, explain=explain, candidate_count=len(candidates), scores=scores, ran=ran,
+    )
