@@ -269,7 +269,7 @@ function App() {
             ))}
           </nav>
         )}
-        <ErrorBoundary key={location.pathname}>
+        <ErrorBoundary resetKey={route}>
         <Suspense fallback={<p className="muted" role="status">Loading…</p>}>
         {active === "home" && <StartPage />}
         {active === "argus" && route.params[0] === "new" && <ArgusNew preset={route.params[1] ?? null} />}

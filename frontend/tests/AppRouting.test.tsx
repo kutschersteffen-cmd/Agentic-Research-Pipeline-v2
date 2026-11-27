@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, useNavigate } from "react-router-dom";
 import Root, { AppEntry } from "../src/App";
+import { ErrorBoundary } from "../src/components/ErrorBoundary";
 import { setLeaveGuard } from "../src/lib/leaveGuard";
 
 // Stub WebGL / canvas / dialog / matchMedia / scrollTo for jsdom.
@@ -160,5 +161,26 @@ describe("App routing with HashRouter / MemoryRouter", () => {
     window.location.hash = "#/home";
     render(<Root />);
     await waitFor(() => expect(document.title).toContain("Start"));
+  });
+
+  it("clears ErrorBoundary error when resetKey changes", () => {
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    function Boom({ fail }: { fail: boolean }) {
+      if (fail) throw new Error("boom");
+      return <div>recovered</div>;
+    }
+    const { rerender } = render(
+      <ErrorBoundary resetKey="a">
+        <Boom fail={true} />
+      </ErrorBoundary>,
+    );
+    expect(screen.getByText("This screen stopped working")).toBeTruthy();
+    rerender(
+      <ErrorBoundary resetKey="b">
+        <Boom fail={false} />
+      </ErrorBoundary>,
+    );
+    expect(screen.getByText("recovered")).toBeTruthy();
+    errSpy.mockRestore();
   });
 });
