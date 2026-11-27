@@ -29,7 +29,6 @@ from arp.cli.rfp import rfp_app
 from arp.cli.runs import runs_app
 from arp.cli.scale import scale_app
 from arp.cli.showcase import showcase_app
-from arp.cli.snapshots import snapshots_app
 from arp.cli.stewardship import stewardship_app
 from arp.cli.taxonomy import taxonomy_app
 from arp.cli.taxonomy_researcher import taxonomy_researcher_app
@@ -124,7 +123,6 @@ app.add_typer(taxonomy_researcher_app, name="taxonomy-researcher")
 app.add_typer(calibration_app, name="calibration")
 app.add_typer(reporting_app, name="report")
 app.add_typer(publish_app, name="publish")
-app.add_typer(snapshots_app, name="snapshots")
 app.add_typer(holdings_app, name="holdings")
 app.add_typer(retention_app, name="retention")
 app.add_typer(xbrl_app, name="xbrl")

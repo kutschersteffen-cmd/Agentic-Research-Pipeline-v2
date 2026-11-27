@@ -1,4 +1,4 @@
-"""Holdings intake (E77): file upload, template download, holder status and the API pull."""
+"""Holdings intake (E77): file upload, template download, and holder status."""
 
 from __future__ import annotations
 
@@ -6,7 +6,6 @@ from dataclasses import asdict, replace
 from datetime import date
 from typing import Literal
 
-import httpx
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
@@ -14,13 +13,11 @@ from starlette.concurrency import run_in_threadpool
 from arp.api.auth import Principal, current_user, require_role
 from arp.api.deps import get_identifier_map, get_portfolio_store, settings_dep
 from arp.config import Settings
-from arp.holdings.api_source import pull_holder
 from arp.holdings.file_source import file_ref, load_mapping, read_rows, template
 from arp.holdings.intake import IntakeError, holder_status, ingest, previous_month_end
 from arp.holdings.validate import validate
 from arp.schemas.common import now_iso
 from arp.schemas.portfolio import HolderConfig
-from arp.snapshots.client import SnapshotClient, SnapshotHashMismatch, SnapshotInvalid
 from arp.storage.identifier_map import IdentifierMapStore
 from arp.storage.safe_path import safe_id
 
@@ -128,36 +125,3 @@ def put_holder(
         "role": user.role, "old_source": old.source, "new_source": new.source,
     })
     return new
-
-
-@router.post("/holders/{kind}/{holder_id}/pull")
-def pull(
-    kind: Kind,
-    holder_id: str,
-    as_of: str | None = None,
-    settings: Settings = Depends(settings_dep),
-    store=Depends(get_portfolio_store),
-    idmap: IdentifierMapStore = Depends(get_identifier_map),
-) -> dict:
-    if not settings.holdings_api_url:
-        raise HTTPException(503, "holdings_api_url is not set")
-    holder = store.get_holder(kind, holder_id)
-    if holder is None:
-        raise HTTPException(404, f"unknown holder {kind}/{holder_id}")
-    client = SnapshotClient(settings.holdings_api_url, settings.holdings_api_token)
-    try:
-        result = pull_holder(holder, as_of or previous_month_end(date.today()), client=client,
-                             base_url=settings.holdings_api_url, store=store, idmap=idmap)
-    except IntakeError as e:
-        raise _intake_error(e) from None
-    except FileExistsError:
-        raise HTTPException(409, "another write took this revision first; retry") from None
-    except httpx.HTTPError as e:
-        raise HTTPException(502, f"upstream pull failed: {type(e).__name__}") from None
-    except (SnapshotHashMismatch, SnapshotInvalid) as e:
-        raise HTTPException(502, f"upstream pull failed: {e}") from None
-    except ValueError as e:
-        raise HTTPException(422, {"message": str(e), "errors": []}) from None
-    finally:
-        client.close()
-    return asdict(result)

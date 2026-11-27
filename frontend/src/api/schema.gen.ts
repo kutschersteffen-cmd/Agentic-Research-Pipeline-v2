@@ -3339,23 +3339,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/holdings/holders/{kind}/{holder_id}/pull": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Pull */
-        post: operations["pull_api_holdings_holders__kind___holder_id__pull_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/holdings/template": {
         parameters: {
             query?: never;
@@ -8083,74 +8066,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/snapshots": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Months */
-        get: operations["months_api_v1_snapshots_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/snapshots/latest": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Latest */
-        get: operations["latest_api_v1_snapshots_latest_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/snapshots/{month}/manifest": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Manifest */
-        get: operations["manifest_api_v1_snapshots__month__manifest_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/snapshots/{month}/{dataset}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Dataset */
-        get: operations["dataset_api_v1_snapshots__month___dataset__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/value-chain/codes": {
         parameters: {
             query?: never;
@@ -12255,21 +12170,6 @@ export interface components {
             kind: components["schemas"]["ColumnKind"];
             /** Name */
             name: string;
-        };
-        /** DatasetEntry */
-        DatasetEntry: {
-            /** Files */
-            files: {
-                [key: string]: string;
-            };
-            /** Major */
-            major: number;
-            /** Name */
-            name: string;
-            /** Rows */
-            rows: number;
-            /** Schema Version */
-            schema_version: string;
         };
         /**
          * DatasetSummary
@@ -18056,36 +17956,6 @@ export interface components {
         SmartSearchRequest: {
             /** Question */
             question: string;
-        };
-        /** SnapshotManifest */
-        SnapshotManifest: {
-            /** As Of */
-            as_of: string;
-            /**
-             * Changes
-             * @default []
-             */
-            changes: {
-                [key: string]: unknown;
-            }[];
-            /** Cutoff */
-            cutoff?: string | null;
-            /** Datasets */
-            datasets: components["schemas"]["DatasetEntry"][];
-            /** Event Id Cutoff */
-            event_id_cutoff?: number | null;
-            /** Frozen At */
-            frozen_at: string;
-            /** Month */
-            month: string;
-            /** Revision */
-            revision: number;
-            /** Schema Version */
-            schema_version: string;
-            /** Snapshot Id */
-            snapshot_id: string;
-            /** Supersedes */
-            supersedes?: string | null;
         };
         /** SourceAsk */
         SourceAsk: {
@@ -26577,42 +26447,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HolderConfig"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    pull_api_holdings_holders__kind___holder_id__pull_post: {
-        parameters: {
-            query?: {
-                as_of?: string | null;
-            };
-            header?: never;
-            path: {
-                kind: "index" | "portfolio";
-                holder_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
                 };
             };
             /** @description Validation Error */
@@ -35288,117 +35122,6 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    months_api_v1_snapshots_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
-    latest_api_v1_snapshots_latest_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SnapshotManifest"];
-                };
-            };
-        };
-    };
-    manifest_api_v1_snapshots__month__manifest_get: {
-        parameters: {
-            query?: {
-                revision?: number | null;
-            };
-            header?: never;
-            path: {
-                month: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SnapshotManifest"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    dataset_api_v1_snapshots__month___dataset__get: {
-        parameters: {
-            query?: {
-                format?: "csv" | "jsonl";
-                revision?: number | null;
-                major?: number | null;
-            };
-            header?: never;
-            path: {
-                month: string;
-                dataset: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

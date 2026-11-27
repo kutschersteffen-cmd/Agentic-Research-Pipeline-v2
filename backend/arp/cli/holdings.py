@@ -2,23 +2,19 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict
-from datetime import date
 from pathlib import Path
 
-import httpx
 import typer
 
 from arp.cli._shared import cli_principal
 from arp.config import Settings, get_settings
-from arp.holdings.api_source import pull_due, pull_holder
 from arp.holdings.file_source import file_ref, load_mapping, read_rows, template
-from arp.holdings.intake import IntakeError, ingest, previous_month_end
+from arp.holdings.intake import IntakeError, ingest
 from arp.holdings.validate import validate
-from arp.snapshots.client import SnapshotClient, SnapshotHashMismatch
 from arp.storage.identifier_map import IdentifierMapStore
 from arp.storage.portfolio_store_factory import build_portfolio_store
 
-holdings_app = typer.Typer(help="Holdings intake: file import, monthly API pull and templates (E77).")
+holdings_app = typer.Typer(help="Holdings intake: file import and templates (E77).")
 
 
 def _stores(settings: Settings):
@@ -59,37 +55,6 @@ def import_cmd(
     except (ValueError, FileExistsError) as e:
         _fail(str(e))
     typer.echo(json.dumps(asdict(result), indent=2))
-
-
-@holdings_app.command("pull")
-def pull_cmd(
-    holder: str | None = typer.Option(None, "--holder"),
-    kind: str = typer.Option("portfolio", "--kind"),
-    as_of: str | None = typer.Option(None, "--as-of"),
-) -> None:
-    """Pulls one holder, or every API holder whose last month is missing, from ARP_HOLDINGS_API_URL."""
-    settings = get_settings()
-    if not settings.holdings_api_url:
-        _fail("holdings_api_url is not set (ARP_HOLDINGS_API_URL).")
-    store, idmap = _stores(settings)
-    client = SnapshotClient(settings.holdings_api_url, settings.holdings_api_token)
-    try:
-        if holder is None:
-            out = pull_due(store, settings=settings, client=client, today=date.today(), idmap=idmap)
-        else:
-            cfg = store.get_holder(kind, holder)
-            if cfg is None:
-                _fail(f"unknown holder {kind}/{holder}")
-            r = pull_holder(cfg, as_of or previous_month_end(date.today()), client=client,
-                            base_url=settings.holdings_api_url, store=store, idmap=idmap)
-            out = [{"holder_id": holder, "kind": kind, **asdict(r)}]
-    except (ValueError, FileExistsError, httpx.HTTPError, SnapshotHashMismatch) as e:
-        _fail(str(e))
-    finally:
-        client.close()
-    typer.echo(json.dumps(out, indent=2))
-    if any(o["status"] == "failed" for o in out):
-        raise typer.Exit(1)
 
 
 @holdings_app.command("template")

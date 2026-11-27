@@ -177,8 +177,8 @@ _400 = [
     ("arp.research.value_chain.links", "LinkError"), ("arp.research.value_chain.revenue", "RecipeError"),
     ("arp.research.taxonomy_schema", "ThemeRunRefused"), ("arp.research.exposure_layers", "LayerSettingsError"),
     ("arp.orchestration.jobs", "NotResumable"), ("arp.orchestration.plan_interp", "PlanScriptError"),
-    ("arp.orchestration.plan_planner", "PlanRejected"), ("arp.snapshots.client", "SnapshotInvalid"),
-    ("arp.snapshots.build", "SnapshotSettling"), ("arp.publish.release", "WithdrawalError"),
+    ("arp.orchestration.plan_planner", "PlanRejected"),
+    ("arp.publish.release", "WithdrawalError"),
     ("arp.publish.facts", "LicenceRefused"), ("arp.transition_alignment.benchmarks", "BenchmarksError"),
     ("arp.holdings.intake", "IntakeError"), ("arp.holdings.security_master", "MasterRejected"),
     ("arp.transition_barrier.rule_book", "RuleBookError"), ("arp.reporting.chart_builder", "ChartDataError"),
@@ -188,8 +188,8 @@ _503 = [
     ("arp.transition_barrier.refresh.pipeline", "RefreshDisabledError"),
     ("arp.reporting.browser", "BrowserUnavailable"), ("arp.orchestration.jobs", "RunBusy"),
     ("arp.orchestration.plan_store", "PlanNotReplannable"), ("arp.orchestration.plan_executor", "PlanNotRunnable"),
-    ("arp.orchestration.plan_interp", "StepLimitExceeded"), ("arp.snapshots.client", "SnapshotHashMismatch"),
-    ("arp.snapshots.build", "SnapshotFrozen"), ("arp.publish.facts", "ConcurrentPublish"),
+    ("arp.orchestration.plan_interp", "StepLimitExceeded"),
+    ("arp.publish.facts", "ConcurrentPublish"),
 ]
 
 # Not in the spec's table; the owner chose to keep today's status.

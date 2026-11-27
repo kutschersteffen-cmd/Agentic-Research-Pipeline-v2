@@ -104,10 +104,6 @@ class Settings(BaseSettings):
     qa_audit_path: Path | None = Field(default=None, description="Q&A audit log; defaults to portfolios_dir/qa_audit.jsonl.")
     documents_dir: Path = Field(default=REPO_ROOT / "data" / "documents")
     xbrl_dir: Path = Field(default=REPO_ROOT / "data" / "xbrl")
-    snapshot_store_dir: Path = REPO_ROOT / "data" / "snapshot_store"
-    snapshot_pull_dir: Path = REPO_ROOT / "data" / "snapshots"  # where `arp snapshots pull` writes
-    holdings_api_url: str | None = None  # base URL of the ARP instance snapshots are pulled from
-    holdings_api_token: str | None = None
     esg_api_base_url: str | None = Field(  # corporate ESG provider; ARP_ESG_API_URL (or ARP_ESG_API_BASE_URL)
         default=None,
         validation_alias=AliasChoices("ARP_ESG_API_URL", "ARP_ESG_API_BASE_URL"),
@@ -116,11 +112,9 @@ class Settings(BaseSettings):
     news_api_url: str = "https://api.refinitiv.com"  # Refinitiv Data Platform; ARP_NEWS_API_URL (portfolio/news/api_source.py)
     news_api_client_id: str | None = None  # RDP service account, ARP_NEWS_API_CLIENT_ID
     news_api_client_secret: str | None = None  # ARP_NEWS_API_CLIENT_SECRET: never logged or stored in a load detail
-    holdings_pull_day: int = Field(default=2, ge=1, le=28)
-    publishing_schedule_enabled: bool = Field(default=False)  # daily re-ground sample, pull, snapshot, corrections
+    publishing_schedule_enabled: bool = Field(default=False)  # daily re-ground sample
     publish_state_dir: Path = REPO_ROOT / "data" / "publish"
     reground_sample_size: int = Field(default=20, ge=0)
-    snapshot_day: int = Field(default=1, ge=1, le=10)  # n-th business day of the month the snapshot is built
     max_upload_bytes: int = Field(default=100_000_000, description="Largest manual document upload accepted, in bytes.")
     max_request_bytes: int = Field(default=250_000_000, description="Largest multipart/form-data request accepted, in bytes (whole body).")
     max_body_bytes: int = Field(default=20_000_000, description="Largest request of any other kind accepted, in bytes (whole body).")

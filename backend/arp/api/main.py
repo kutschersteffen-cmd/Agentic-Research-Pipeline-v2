@@ -66,7 +66,6 @@ from arp.api.routers import (
     sandbox_tools,
     search,
     security_master,
-    snapshots,
     stewardship,
     stewardship_cockpit,
     stewardship_intake,
@@ -242,7 +241,6 @@ app.include_router(review.router, dependencies=[Depends(authorize)])
 app.include_router(waiting.router, dependencies=[Depends(authorize)])
 app.include_router(walkthrough.router, dependencies=[Depends(authorize)])
 app.include_router(publish.router, dependencies=[Depends(authorize)])
-app.include_router(snapshots.router, dependencies=[Depends(authorize)])
 app.include_router(holdings.router, dependencies=[Depends(authorize)])
 app.include_router(security_master.router, dependencies=[Depends(authorize)])
 app.include_router(outputs.router, dependencies=[Depends(authorize)])
