@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from arp.engagement.orchestrator import is_stalled
 from arp.schemas.common import CompanyRef
 from arp.schemas.engagement import IssueSeverity, IssueStatus, TriggerEvent, TriggerSource
-from arp.storage.engagement_store import EngagementStore
+from arp.storage.postgres_engagement_store import PostgresEngagementStore as EngagementStore
 
 
 class ControversySignal(BaseModel):

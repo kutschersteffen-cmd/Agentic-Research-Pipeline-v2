@@ -6,7 +6,7 @@ from arp.schemas.engagement import CorrespondenceType, EscalationStage, Interact
 from arp.stewardship import drafting
 from arp.stewardship.config_store import PolicyStore
 from arp.stewardship.style import check, load_blocklist
-from arp.storage.engagement_store import EngagementStore
+from arp.storage.postgres_engagement_store import PostgresEngagementStore
 
 BLOCKLIST = load_blocklist()
 
@@ -36,8 +36,8 @@ def test_blocklist_is_a_versioned_policy_that_rejects_bad_entries(tmp_path):
 
 
 @pytest.fixture
-def setup(tmp_path):
-    engagements = EngagementStore(tmp_path / "e")
+def setup(tmp_path, pg):
+    engagements = PostgresEngagementStore(pg)
     _, issue = engagements.open_issue("ACME", "Acme", theme="climate_transition")
     return drafting.DraftStore(tmp_path / "s"), engagements, issue
 

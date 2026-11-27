@@ -12,7 +12,7 @@ from arp.api.routers import engagement, stewardship, taxonomies
 from arp.config import Settings
 from arp.schemas.taxonomy import DerivationMethod
 from arp.stewardship.config_store import StreamStore
-from arp.storage.engagement_store import EngagementStore
+from arp.storage.postgres_engagement_store import PostgresEngagementStore
 from arp.storage.taxonomy_store import TaxonomyStore
 from tests.conftest import PRINCIPAL
 from tests.test_taxonomy_store import _theme
@@ -36,8 +36,8 @@ def test_taxonomy_ratify_ignores_supplied_ratified_by(tmp_path):
     assert res.status_code == 200 and res.json()["ratified_by"] == PRINCIPAL.name
 
 
-def test_engagement_validate_and_verify_ignore_supplied_names(tmp_path):
-    store = EngagementStore(tmp_path)
+def test_engagement_validate_and_verify_ignore_supplied_names(pg):
+    store = PostgresEngagementStore(pg)
     _, issue = store.open_issue("ACME", "Acme", theme="climate_transition")
     client = _client(engagement, {deps.get_engagement_store: lambda: store})
     base = f"/api/engagement/records/ACME/issues/{issue.issue_id}"
@@ -53,7 +53,7 @@ def test_engagement_validate_and_verify_ignore_supplied_names(tmp_path):
 
 @pytest.fixture
 def stew(tmp_path, pg):
-    streams, engagements = StreamStore(tmp_path / "s"), EngagementStore(tmp_path / "e")
+    streams, engagements = StreamStore(tmp_path / "s"), PostgresEngagementStore(pg)
     client = _client(
         stewardship,
         {
