@@ -40,7 +40,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_PACKAGE_ROOT = REPO_ROOT / "backend" / "arp"
 DEFAULT_ALLOWLIST = REPO_ROOT / ".github" / "arch_allowlist.json"
 
-ENTRYPOINTS = frozenset({"arp.api", "arp.cli", "arp.worker", "arp.__main__"})
+ENTRYPOINT_SUBPACKAGES = frozenset({"api", "cli", "worker", "__main__"})
 
 
 @dataclass(frozen=True)
@@ -134,13 +134,12 @@ def extract_imports(
     return resolved
 
 
-def layer_of(mod: str, root_pkg: str = "arp") -> tuple[str, str | None]:
+def layer_of(mod: str) -> tuple[str, str | None]:
     """Classify a module into (layer, domain_name_or_none)."""
     parts = mod.split(".")
     if len(parts) == 1:
         return ("root", None)
-    top = f"{parts[0]}.{parts[1]}"
-    if top in {f"{root_pkg}.api", f"{root_pkg}.cli", f"{root_pkg}.worker", f"{root_pkg}.__main__"}:
+    if parts[1] in ENTRYPOINT_SUBPACKAGES:
         return ("entrypoint", None)
     if parts[1] == "runtime":
         return ("runtime", None)
@@ -164,10 +163,10 @@ def package_key(mod: str) -> str:
     return mod
 
 
-def check_layer_edge(src: str, dst: str, root_pkg: str = "arp") -> str | None:
+def check_layer_edge(src: str, dst: str) -> str | None:
     """Return a violation rule name if `src -> dst` breaks the layer DAG, else None."""
-    src_layer, src_domain = layer_of(src, root_pkg)
-    dst_layer, dst_domain = layer_of(dst, root_pkg)
+    src_layer, src_domain = layer_of(src)
+    dst_layer, dst_domain = layer_of(dst)
 
     if src_layer in ("entrypoint", "root") or dst_layer == "root":
         return None
@@ -256,7 +255,7 @@ def analyze(package_root: Path) -> AnalysisResult:
     layer_violations: list[str] = []
     for src in sorted(adj):
         for dst in sorted(adj[src]):
-            rule = check_layer_edge(src, dst, root_pkg)
+            rule = check_layer_edge(src, dst)
             if rule is not None:
                 layer_violations.append(f"{rule}: {src} -> {dst}")
 
@@ -393,7 +392,7 @@ def selftest() -> None:
                 "arp/platform/db.py": "from arp.domains.alpha import service\n",
                 "arp/domains/__init__.py": "",
                 "arp/domains/alpha/__init__.py": "",
-                "arp/domains/alpha/service.py": "from ...api import deps\n",
+                "arp/domains/alpha/service.py": "from ...api import deps\nfrom arp.runtime import container\n",
                 "arp/domains/beta/__init__.py": "",
                 "arp/domains/beta/service.py": "from arp.domains.alpha.service import deps\n",
             },
@@ -402,6 +401,7 @@ def selftest() -> None:
         rules = {v.split(":")[0] for v in res.layer_violations}
         assert rules == {
             "no_upward_to_entrypoint",
+            "no_upward_to_runtime",
             "core_must_be_leaf",
             "platform_cannot_import_domain",
             "domain_internal_import",
