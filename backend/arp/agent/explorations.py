@@ -166,7 +166,7 @@ def _output_models() -> dict[str, type[BaseModel]]:
     from arp import ask, smart_search
     from arp.portfolio import qa_agent
 
-    return {"benchmark_sectors": ask.BenchmarkCard, "transition_plan": ask.TransitionPlanCard,
+    return {"transition_plan": ask.TransitionPlanCard,
             "portfolio_exposure": qa_agent.QAAnswer, "smart_search": smart_search.SearchAnswer}
 
 
@@ -178,7 +178,7 @@ def declarations() -> str:
         args = cap.input_model.model_json_schema()
         out = outputs.get(cap.id)
         returns = _ts(out.model_json_schema(), out.model_json_schema().get("$defs", {})) if out else "unknown"
-        nullable = cap.id in ("benchmark_sectors", "transition_plan")
+        nullable = cap.id == "transition_plan"
         lines.append(f"  /** {cap.summary} Resolves to {cap.output_note}{' or null' if nullable else ''}. */")
         lines.append(f"  {cap.id}(args: {_ts(args, args.get('$defs', {}))}): Promise<{returns}{' | null' if nullable else ''}>;")
     lines.append("};")

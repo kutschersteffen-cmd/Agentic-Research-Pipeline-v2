@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 
 from arp.api.auth import Principal, authorize, current_user
-from arp.api.deps import get_llm_client, get_portfolio_store, get_run_store, get_stream_store, settings_dep
+from arp.api.deps import get_llm_client, get_portfolio_store, get_run_store, settings_dep
 from arp.api.main import app
 from arp.ask import NONE_TEXT, AskRouting
 from arp.config import Settings
@@ -15,11 +15,8 @@ from arp.portfolio.qa_agent import _ParsedQuestion
 from arp.schemas.common import CompanyRef
 from arp.schemas.portfolio import Holding, Portfolio, SecurityRef
 from arp.smart_search import SearchFilter
-from arp.stewardship.benchmark import BenchmarkStore
-from arp.stewardship.process import StreamStore
 from arp.storage.portfolio_store import PortfolioStore
 from tests.conftest import FakeLLMClient
-from tests.test_ask_tools import write_benchmark
 from tests.test_ask_transition_plan import old_run
 
 BMW_Q = "What is the exposure to BMW in our portfolio?"
@@ -35,7 +32,7 @@ BMW_PARSE = _ParsedQuestion(resolvable=True, security_filter={"company_id": "bmw
 
 @pytest.fixture
 def env(tmp_path, run_store):
-    """Holdings where BMW's lines total EUR 1,234,567.00, a run store, a streams root and an audit file in tmp_path."""
+    """Holdings where BMW's lines total EUR 1,234,567.00, a run store and an audit file in tmp_path."""
     store = PortfolioStore(tmp_path / "pf")
     store.save_company(CompanyRef(company_id="bmw", name="BMW AG"))
     store.save_security(SecurityRef(security_id="bmw_eq", name="BMW", asset_class="equity", currency="EUR", company_id="bmw"))
@@ -46,14 +43,13 @@ def env(tmp_path, run_store):
         for sid, v in (("bmw_eq", 1_000_000.0), ("bmw_bd", 234_567.0))
     ])
     settings = Settings(runs_dir=tmp_path / "runs", identifier_map_path=tmp_path / "idmap.jsonl", portfolios_dir=tmp_path / "pf")
-    streams = StreamStore(tmp_path / "streams")
     llm = FakeLLMClient({})
     app.dependency_overrides.update({
         settings_dep: lambda: settings, get_portfolio_store: lambda: store, get_run_store: lambda: run_store,
-        get_stream_store: lambda: streams, get_llm_client: lambda: llm,
+        get_llm_client: lambda: llm,
     })
-    yield {"client": TestClient(app), "llm": llm, "run_store": run_store, "streams": streams, "settings": settings}
-    for dep in (settings_dep, get_portfolio_store, get_run_store, get_stream_store, get_llm_client):
+    yield {"client": TestClient(app), "llm": llm, "run_store": run_store, "settings": settings}
+    for dep in (settings_dep, get_portfolio_store, get_run_store, get_llm_client):
         app.dependency_overrides.pop(dep, None)
 
 
@@ -130,21 +126,19 @@ def test_viewer_is_refused(env):  # AC-23
 
 
 def test_one_audit_row_per_call(env, tmp_path):  # AC-24
-    write_benchmark(env["streams"].root, name="MSCI World")
-    bid = BenchmarkStore(env["streams"].root).list()[0]["benchmark_id"]
     old_run(env["run_store"], "tp_1", "2026-10-20T00:00:00+00:00", ["BASF SE"])
     script(
         env,
         AskRouting=[routing("portfolio", BMW_Q), routing("smart_search"), routing("transition_plan", company="BASF"),
-                    routing("benchmark_sectors", benchmark_id=bid), routing("none"), routing("portfolio", BMW_Q)],
+                    routing("none"), routing("portfolio", BMW_Q)],
         _ParsedQuestion=[BMW_PARSE, BMW_PARSE], SearchFilter=[SearchFilter(target="feeds")],
     )
-    for q, history in ((BMW_Q, []), ("feeds?", []), ("BASF?", []), ("sectors?", []), ("cobalt?", []),
+    for q, history in ((BMW_Q, []), ("feeds?", []), ("BASF?", []), ("cobalt?", []),
                        ("now only equities", [{"question": BMW_Q, "tool": "portfolio", "standalone_question": BMW_Q}])):
         assert ask(env, q, history).status_code == 200
     rows = audit(env)
     assert [r["endpoint"] for r in rows] == [
-        "ask.portfolio", "ask.smart_search", "ask.transition_plan", "ask.benchmark_sectors", "ask.none", "ask.portfolio",
+        "ask.portfolio", "ask.smart_search", "ask.transition_plan", "ask.none", "ask.portfolio",
     ]
     assert rows[-1]["question"] == "now only equities"
 
@@ -180,25 +174,22 @@ def test_tool_failure_is_502_audited_under_the_tool(env, monkeypatch):  # AC-50
 
 def _counts(env) -> tuple:
     with transaction(env["run_store"].dsn) as s:
-        tables = tuple(s.scalar(select(func.count()).select_from(t)) for t in (Run, ReviewDecision, CompanyFact))
-    return (*tables, len(BenchmarkStore(env["streams"].root).list()))
+        return tuple(s.scalar(select(func.count()).select_from(t)) for t in (Run, ReviewDecision, CompanyFact))
 
 
 def test_ask_only_reads(env):  # AC-28
-    write_benchmark(env["streams"].root, name="MSCI World")
-    bid = BenchmarkStore(env["streams"].root).list()[0]["benchmark_id"]
     old_run(env["run_store"], "tp_1", "2026-10-20T00:00:00+00:00", ["BASF SE"])
     script(
         env,
         AskRouting=[routing("portfolio", BMW_Q), routing("smart_search"), routing("transition_plan", company="BASF"),
-                    routing("benchmark_sectors", benchmark_id=bid), routing("none")],
+                    routing("none")],
         _ParsedQuestion=[BMW_PARSE], SearchFilter=[SearchFilter(target="feeds")],
     )
     before = _counts(env)
-    for q in ("a", "b", "c", "d", "e"):
+    for q in ("a", "b", "c", "d"):
         assert ask(env, q).status_code == 200
     assert _counts(env) == before
-    assert len(audit(env)) == 5
+    assert len(audit(env)) == 4
 
 
 def test_history_turn_text_is_limited(env):  # review I3

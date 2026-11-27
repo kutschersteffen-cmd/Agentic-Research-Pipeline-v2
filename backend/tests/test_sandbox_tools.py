@@ -54,29 +54,29 @@ def test_missing_unknown_and_released_tokens_are_refused(client):
 
 def test_call_runs_as_the_minting_user_and_is_logged(client):
     token = _token()
-    res = _post(client, "benchmark_sectors", token, {"benchmark_id": None})
+    res = _post(client, "transition_plan", token, {"company": None})
     assert res.status_code == 200
-    assert res.json() == {"capability": "benchmark_sectors", "args": {"benchmark_id": None}, "user": "alice"}
+    assert res.json() == {"capability": "transition_plan", "args": {"company": None}, "user": "alice"}
     assert sandbox.release(token).tool_calls == [
-        {"capability_id": "benchmark_sectors", "args": {"benchmark_id": None}, "result_bytes": len(res.content)}]
+        {"capability_id": "transition_plan", "args": {"company": None}, "result_bytes": len(res.content)}]
 
 
 def test_token_only_covers_its_capabilities(client):
-    token = sandbox.mint_token(["benchmark_sectors"], ALICE)
+    token = sandbox.mint_token(["transition_plan"], ALICE)
     assert _post(client, "smart_search", token, {"question": "q"}).status_code == 403
 
 
 def test_bad_arguments_answer_422(client):
-    res = _post(client, "benchmark_sectors", _token(), {"benchmark": "x"})
+    res = _post(client, "transition_plan", _token(), {"issuer": "x"})
     assert res.status_code == 422
-    assert res.json()["detail"].startswith("benchmark_sectors: benchmark: ")
+    assert res.json()["detail"].startswith("transition_plan: issuer: ")
 
 
 def test_fifty_calls_then_the_limit(client):
     token = _token()
     for _ in range(50):
-        assert _post(client, "benchmark_sectors", token).status_code == 200
-    res = _post(client, "benchmark_sectors", token)
+        assert _post(client, "transition_plan", token).status_code == 200
+    res = _post(client, "transition_plan", token)
     assert (res.status_code, res.json()["detail"]) == (429, "capability call limit 50 exceeded")
     execution = sandbox.release(token)
     assert len(execution.tool_calls) == 50

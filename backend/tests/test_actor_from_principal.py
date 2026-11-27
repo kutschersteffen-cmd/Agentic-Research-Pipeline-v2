@@ -73,7 +73,7 @@ def test_put_universe_works_without_set_by_and_records_the_principal(stew):
     assert res.json()["set_by"] == PRINCIPAL.name
 
 
-def test_stewardship_commitment_benchmark_and_run_ignore_supplied_names(stew, monkeypatch):
+def test_stewardship_commitment_ignores_supplied_name(stew):
     client, _, engagements = stew
     _, issue = engagements.open_issue("ACME", "Acme", theme="climate_transition")
     res = client.post(
@@ -81,24 +81,3 @@ def test_stewardship_commitment_benchmark_and_run_ignore_supplied_names(stew, mo
         json={"company_id": "ACME", "issue_id": issue.issue_id, "text": "Cut", "recorded_by": MALLORY},
     )
     assert res.status_code == 200 and res.json()["recorded_by"] == PRINCIPAL.name
-
-    csv = (
-        "Fund Holdings as of,\"Sep 26, 2026\"\n\n"
-        "Ticker,Name,Sector,Asset Class,Market Value,Weight (%),Location\n"
-        "AAPL,APPLE INC,Information Technology,Equity,100,60,United States\n"
-    )
-    monkeypatch.setattr(stewardship, "parse_ishares_holdings", lambda _t: {"name": "F", "as_of": "2026-09-26", "constituents": []})
-    res = client.post("/api/stewardship/benchmarks", json={"text": csv, "uploaded_by": MALLORY})
-    assert res.status_code == 200 and res.json()["uploaded_by"] == PRINCIPAL.name
-
-    stream_id = client.post("/api/stewardship/streams", json={"name": "Fund"}).json()["stream_id"]
-    seen = {}
-
-    def fake_record_run(stream, kpis, by):
-        seen["by"] = by
-        return {**stream, "program_runs": [{"recorded_by": by}]}
-
-    monkeypatch.setattr(stewardship, "record_run", fake_record_run)
-    monkeypatch.setattr(stewardship, "monitor", lambda *a: {})
-    res = client.post(f"/api/stewardship/streams/{stream_id}/program/runs", json={"recorded_by": MALLORY})
-    assert res.status_code == 200 and seen["by"] == PRINCIPAL.name

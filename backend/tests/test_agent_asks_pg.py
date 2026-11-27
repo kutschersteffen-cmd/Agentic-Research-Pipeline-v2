@@ -34,26 +34,26 @@ def as_viewer():
 
 
 def test_new_thread_answers_and_stores(env, pg):  # noqa: F811 - AC-68 (unit side)
-    script(env, AskRouting=[routing("benchmark_sectors", "Sector weights of MSCI World?")])
-    r = post(env, "sector weights of msci world")
+    script(env, AskRouting=[routing("transition_plan", "Transition plan for BASF?", company="BASF")])
+    r = post(env, "transition plan for basf")
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["thread_id"] == body["id"]
-    assert (body["tool"], body["standalone_question"], body["error"]) == ("benchmark_sectors", "Sector weights of MSCI World?", None)
-    assert body["response"]["benchmark_sectors"]["is_sample"] is True
+    assert (body["tool"], body["standalone_question"], body["error"]) == ("transition_plan", "Transition plan for BASF?", None)
+    assert body["response"]["tool"] == "transition_plan"
     assert (body["plans"], body["explorations"]) == ([], [])
     assert set(body) == {"id", "thread_id", "question", "standalone_question", "tool", "response", "error", "asked_by",
                          "created_at", "plans", "explorations"}  # AC-72a
 
 
 def test_follow_up_sends_the_threads_history(env):  # noqa: F811 - AC-68b, AC-72
-    script(env, AskRouting=[routing("benchmark_sectors", "Sector weights of MSCI World?"), routing("benchmark_sectors", "top 3")])
-    t = post(env, "sector weights of msci world").json()["thread_id"]
-    r = post(env, "and only the top 3", t)
+    script(env, AskRouting=[routing("transition_plan", "Transition plan for BASF?", company="BASF"), routing("none", "explain")])
+    t = post(env, "transition plan for basf").json()["thread_id"]
+    r = post(env, "explain that", t)
     assert r.status_code == 200 and r.json()["thread_id"] == t
-    assert "- Sector weights of MSCI World? [benchmark_sectors]" in env["llm"].prompts[-1].splitlines()
+    assert "- Transition plan for BASF? [transition_plan]" in env["llm"].prompts[-1].splitlines()
     rows = env["client"].get("/api/agent/asks", params={"thread_id": t}).json()
-    assert [a["question"] for a in rows] == ["sector weights of msci world", "and only the top 3"]
+    assert [a["question"] for a in rows] == ["transition plan for basf", "explain that"]
 
 
 def test_history_is_the_newest_5_answered_asks(env):  # noqa: F811 - AC-68c
@@ -97,10 +97,10 @@ def test_failed_ask_is_stored_with_200(env):  # noqa: F811 - AC-69, AC-69b
 
 
 def test_audit_rows(env):  # noqa: F811 - AC-71
-    script(env, AskRouting=[routing("benchmark_sectors", "s")])
+    script(env, AskRouting=[routing("transition_plan", "s", company="BASF")])
     post(env, "a")
     post(env, "b")  # nothing scripted left: routing raises
-    assert [r["endpoint"] for r in audit(env)] == ["ask.benchmark_sectors", "ask.error"]
+    assert [r["endpoint"] for r in audit(env)] == ["ask.transition_plan", "ask.error"]
 
 
 def test_tool_failure_is_stored_and_audited_under_the_tool(env, monkeypatch):  # noqa: F811 - AC-71b

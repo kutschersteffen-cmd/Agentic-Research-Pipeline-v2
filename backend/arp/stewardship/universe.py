@@ -19,6 +19,7 @@ or synthetic engagement history.
 from __future__ import annotations
 
 import gc
+import hashlib
 import json
 import logging
 import os
@@ -31,13 +32,17 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from arp.schemas.portfolio import DataPointObservation
-from arp.stewardship.benchmark import placeholder_clti
 from arp.storage.atomic_io import atomic_write_text
 from arp.storage.portfolio_store import PortfolioStore, portfolio_directories
 
 SOURCES = ("sample", "portfolio")
 FILL_WAIT_S = 60  # start-up and requests wait at most this long for the observation fill, then read the files themselves
 logger = logging.getLogger(__name__)
+
+
+def placeholder_clti(issuer_id: str) -> int:
+    """A fixed 5-95 score per company from its id until real scores are supplied."""
+    return 5 + int(hashlib.sha256(issuer_id.encode()).hexdigest(), 16) % 91
 _filled = threading.Event()
 _filled.set()  # set: no start-up fill running
 _fill_started = 0.0

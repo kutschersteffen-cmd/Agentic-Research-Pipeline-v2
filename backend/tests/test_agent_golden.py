@@ -34,7 +34,7 @@ def test_a_model_error_fails_the_case(monkeypatch):
 def test_tool_route_serves_the_sandbox_tools_from_this_process():
     with golden.tool_route() as origin:
         assert httpx.get(f"{origin}/health").json() == {"ok": True}
-        res = httpx.post(f"{origin}/api/sandbox/tools/benchmark_sectors", json={})
+        res = httpx.post(f"{origin}/api/sandbox/tools/transition_plan", json={})
         assert res.status_code == 401  # no execution token
     assert not golden._answers(origin)
 
