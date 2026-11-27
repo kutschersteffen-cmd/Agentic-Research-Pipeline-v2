@@ -7,7 +7,6 @@ export { STAGE_TABS };
 import { useMe } from "../lib/reviewer";
 import { FlowChart, FlowList } from "./steward/flow";
 import { DraftingStudio } from "./steward/drafting";
-import { ProgramStudio } from "./steward/program";
 import { TrackingStudio } from "./steward/tracking";
 import { WorkbenchStudio } from "./steward/workbench";
 import {
@@ -20,8 +19,7 @@ import {
 } from "./steward/studios";
 import type { MetricSource } from "../types";
 
-// "program" is not a stage: it calibrates a client program across stages 2-5 (Part 5).
-const CLIENT_STAGES = new Set(["client_policy", "reporting", "program"]);
+const CLIENT_STAGES = new Set(["client_policy", "reporting"]);
 // Workbench is a section of Selection; its old link opens Selection at that section.
 const IN_SELECTION = new Set(["workbench"]);
 const NEW_STREAM = "+new";
@@ -308,7 +306,7 @@ export function StewardWorkflow({ initialTab }: { initialTab?: string }) {
       {tab !== "overview" && CLIENT_STAGES.has(tab) && stream === "house" && (
         <p className="muted card">Choose a client in Program, or "+ New client stream…", to work on its policy and reporting.</p>
       )}
-      {tab !== "overview" && tab !== "program" && !stage && loading && <p className="status-text">Loading…</p>}
+      {tab !== "overview" && !stage && loading && <p className="status-text">Loading…</p>}
 
       {studioProps && tab === "monitoring" && <MonitoringStudio {...studioProps} />}
       {studioProps && tab === "selection" && <SelectionStudio {...studioProps} />}
@@ -323,7 +321,6 @@ export function StewardWorkflow({ initialTab }: { initialTab?: string }) {
       {studioProps && tab === "tracking" && <TrackingStudio {...studioProps} />}
       {studioProps && tab === "client_policy" && stream !== "house" && <ClientPolicyStudio key={stream} {...studioProps} streamId={stream} />}
       {studioProps && tab === "reporting" && stream !== "house" && <ReportingStudio key={stream} {...studioProps} streamId={stream} />}
-      {tab === "program" && stream !== "house" && <ProgramStudio key={stream} streamId={stream} />}
     </div>
   );
 }

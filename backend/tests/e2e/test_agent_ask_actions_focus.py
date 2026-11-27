@@ -21,7 +21,7 @@ pytestmark = [
 T = "11111111-1111-4111-8111-111111111111"
 CREATED = "2026-11-22T10:00:00+00:00"
 ASK = {"id": T, "thread_id": T, "question": "Sector weights?", "standalone_question": "Sector weights of MSCI World?",
-       "tool": "benchmark_sectors", "response": None, "error": None, "asked_by": "dev", "created_at": CREATED,
+       "tool": "transition_plan", "response": None, "error": None, "asked_by": "dev", "created_at": CREATED,
        "plans": [], "explorations": []}
 EXPLORATION = {"id": "22222222-2222-4222-8222-222222222222", "question": "Sector weights of MSCI World?",
                "code": "return 1", "status": "done", "result": 1, "error": None, "tool_calls": [], "model": "stand-in",

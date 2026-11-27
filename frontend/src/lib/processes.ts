@@ -53,7 +53,6 @@ export const WORKSPACES: Workspace[] = [
     purpose: "Engage companies, vote, and track what they commit to.",
     runTypes: [],
     screens: [
-      ["#/stewardiq/cockpit", "Cockpit"],
       ["#/stewardship", "Steward Workflow"],
       ["#/engagement", "Engagement"],
       ["#/rfp", "RFP Answers"],
@@ -89,7 +88,6 @@ export const WORKSPACES: Workspace[] = [
         cadence: "Quarterly",
         outcome: "A client report showing house activity plus only where the client's policy differed.",
         steps: [
-          { tab: "stewardship", sub: "program", stage: "program", label: "Client program", does: "Calibrate the client's program on its benchmark; approve it.", handsOn: "Client stream", carried: true },
           { tab: "stewardship", sub: "client_policy", stage: "client_policy", label: "Client policy", does: "Decide each exception where the client policy differs from the house.", handsOn: "Exceptions", carried: true },
           { tab: "stewardship", sub: "reporting", stage: "reporting", label: "Reporting", does: "Client report assembled from house truth plus exceptions; export pptx.", handsOn: "Report data" },
           { tab: "reporting", label: "Presentations & Reports", does: "Restyle into the client's template if needed." },
@@ -201,13 +199,12 @@ export const WORKSPACES: Workspace[] = [
         id: "theme",
         title: "Research a theme",
         cadence: "Per theme",
-        outcome: "One dossier per theme: spotted, defined by a ratified taxonomy, researched, its exposed companies found and reviewed, and a house position with standards.",
+        outcome: "One dossier per theme: spotted, defined by a ratified taxonomy, researched, and its exposed companies found and reviewed.",
         steps: [
           { tab: "themes", label: "Spot", does: "An emerging theme with its context: promote an Emerging Themes candidate, or start a dossier from a topic." },
           { tab: "themes", label: "Define", does: "Attach the theme's taxonomy and ratify a version." },
           { tab: "themes", label: "Research", does: "Risks, opportunities and transmission channels from approved authoritative sources." },
           { tab: "themes", label: "Find companies", does: "The exposed universe, measured against the latest ratified taxonomy version and reviewed." },
-          { tab: "themes", label: "Position and standards", does: "The house position and the stewardship standards derived from it." },
         ],
       },
     ],

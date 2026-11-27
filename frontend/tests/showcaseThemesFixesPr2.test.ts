@@ -6,7 +6,6 @@ import { intervalError, NO_COMPANIES, NOVELTY_HELP, SCANNING, scanActive } from 
 import { stepLinkText } from "../src/lib/dossiers.ts";
 import { reviewHref, type PlanCall } from "../src/lib/plans.ts";
 import { companies } from "../src/lib/themeBuilder.ts";
-import { citedLabel } from "../src/lib/position.ts";
 
 test("an emerging-themes scan counts mentions, other runs companies", () => {  // AC-50, AC-98
   assert.equal(progressUnit("emerging_themes"), "mentions");
@@ -53,9 +52,4 @@ test("a step waiting for review links to where it is reviewed", () => {  // AC-6
 
 test("one company is singular", () => {  // AC-80, AC-99, AC-126
   assert.deepEqual([companies(1), companies(2)], ["1 company", "2 companies"]);
-});
-
-test("a cited item shows its title, its id only without one", () => {  // AC-87, AC-127
-  assert.equal(citedLabel("itm_0d2b55df5684", { itm_0d2b55df5684: "IEA hydrogen review" }), "IEA hydrogen review");
-  assert.equal(citedLabel("itm_aaaaaaaaaaaa", {}), "itm_aaaaaaaaaaaa");
 });

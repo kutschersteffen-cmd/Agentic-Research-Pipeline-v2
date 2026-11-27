@@ -150,35 +150,3 @@ def test_cancel_gives_feedback(page):  # AC-47
     page.get_by_role("button", name="Cancel run").click()
     page.get_by_text("Cancelling… the run stops after the item in progress.").wait_for()
     assert page.get_by_role("button", name="Cancel run").is_disabled()
-
-
-def _position(page, step4):
-    version = {"summary": "S", "paragraphs": [], "version": 1, "dossier_id": "d1", "note_version": 1, "created_by": "m",
-               "created_at": "2026-11-11T09:00:00Z", "path": "model_draft"}
-    standards = {"versions": [{"version": 1, "created_by": "m", "created_at": None, "position_version": 1,
-                               "path": "model_draft", "standards": [], "schema": None}],
-                 "activations": [], "active_version": 0, "active": None, "latest_check": None, "field_names": {}}
-    page.route("**/api/me", lambda r: r.fulfill(json={"user_id": "u", "name": "ana", "role": "approver"}))
-    page.route("**/api/dossiers/d1", lambda r: r.fulfill(json={"dossier_id": "d1", "name": "Grid", "steps": [
-        {"number": 4, "title": "Find companies", "state": step4, "detail": "", "href": None}]}))
-    page.route("**/api/dossiers/d1/research", lambda r: r.fulfill(json={"dossier_id": "d1", "approved_round": None, "rounds": []}))
-    page.route("**/api/dossiers/d1/position", lambda r: r.fulfill(json={
-        "versions": [version], "approvals": [{"version": 1, "approved_by": "a", "approved_at": "2026-11-11T09:00:00Z"}],
-        "approved_version": 1}))
-    page.route("**/api/dossiers/d1/standards", lambda r: r.fulfill(json=standards))
-    page.goto(f"{URL}/#/themes/d1/position")
-    return page.get_by_label("Standards").get_by_role("button", name="Approve", exact=True)
-
-
-def test_approve_waits_for_step_4(page):  # AC-94
-    approve = _position(page, "waiting")
-    approve.wait_for()
-    assert approve.is_disabled()
-    page.get_by_text("Find companies first: finish step 4 of the dossier.").wait_for()
-    assert page.get_by_role("link", name="Open the dossier").get_attribute("href") == "#/themes/d1"
-
-
-def test_approve_after_step_4(page):  # AC-117
-    approve = _position(page, "done")
-    page.wait_for_function("() => [...document.querySelectorAll('button')].some(b => b.textContent === 'Approve' && !b.disabled)")
-    assert approve.is_enabled()
