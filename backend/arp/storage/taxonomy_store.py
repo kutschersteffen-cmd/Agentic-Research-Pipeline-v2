@@ -5,6 +5,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
+from arp.db.json_document_repo import JsonDocumentRepo
 from arp.errors import NotConfigured
 from arp.schemas.common import now_iso
 from arp.schemas.taxonomy import DerivationMethod, Taxonomy, TaxonomyStatus
@@ -28,26 +29,21 @@ class TaxonomyVersionConflict(NotConfigured):
 
 
 class TaxonomyStore:
-    """File-based persistence for the taxonomy library.
-
-    Layout: `taxonomies/<taxonomy_id>/v<N>.json` per version, plus a small
-    `latest.json` pointer -- the same append-don't-mutate philosophy as
-    RunStore's review-decision log: editing a taxonomy creates a new
-    version rather than overwriting history, so a ratified version stays
-    exactly what was ratified even after later edits.
-
-    That immutability is enforced, not just intended: a version file is
-    created with O_EXCL (`write_text_exclusive`), so a second writer
-    landing on the same version number fails loudly instead of silently
-    overwriting the first one's edit. `new_version`'s read-then-write
-    cycle is additionally serialized per taxonomy_id by a KeyedLock, same
-    as RunStore's manifest cycle and for the same reason (sync route
-    handlers run on worker threads and genuinely race each other).
+    """Persistence for the taxonomy library: backed by Postgres `app_documents`
+    when `dsn` is provided (enforcing version immutability via `put_if_absent` /
+    `ON CONFLICT DO NOTHING`), or by local versioned JSON files under
+    `taxonomies_dir` otherwise.
     """
 
-    def __init__(self, taxonomies_dir: Path) -> None:
+    def __init__(self, taxonomies_dir: Path | None = None, *, dsn: str | None = None) -> None:
+        if taxonomies_dir is None and not dsn:
+            raise ValueError("TaxonomyStore requires either taxonomies_dir or dsn")
         self.taxonomies_dir = taxonomies_dir
-        self._locks = KeyedLock(lock_path=lambda taxonomy_id: self._dir(taxonomy_id) / ".lock")
+        self._versions_repo = JsonDocumentRepo(dsn, "taxonomy_versions") if dsn else None
+        self._latest_repo = JsonDocumentRepo(dsn, "taxonomy_latest") if dsn else None
+        self._locks = KeyedLock(
+            lock_path=(lambda taxonomy_id: self._dir(taxonomy_id) / ".lock") if taxonomies_dir is not None and not dsn else None
+        )
 
     @contextmanager
     def lock(self, taxonomy_id: str) -> Iterator[None]:
@@ -55,7 +51,12 @@ class TaxonomyStore:
         with self._locks.acquire(taxonomy_id):
             yield
 
+    @staticmethod
+    def _version_key(taxonomy_id: str, version: int) -> str:
+        return f"{safe_id(taxonomy_id, label='taxonomy_id')}:v{version}"
+
     def _dir(self, taxonomy_id: str) -> Path:
+        assert self.taxonomies_dir is not None
         d = self.taxonomies_dir / safe_id(taxonomy_id, label="taxonomy_id")
         d.mkdir(parents=True, exist_ok=True)
         return d
@@ -67,15 +68,30 @@ class TaxonomyStore:
         return self._dir(taxonomy_id) / "latest.json"
 
     def _write_new_version(self, taxonomy: Taxonomy) -> None:
-        """Writes a version file that must not exist yet, then advances
+        """Writes a version record that must not exist yet, then advances
         the pointer. This order matters: a crash between the two leaves a
-        complete version file that `get(taxonomy_id, version)` can still
+        complete version record that `get(taxonomy_id, version)` can still
         read and a pointer that merely lags, whereas the reverse order
-        would point at a file that isn't there."""
+        would point at a record that isn't there."""
+        if self._versions_repo is not None:
+            inserted = self._versions_repo.put_if_absent(
+                self._version_key(taxonomy.taxonomy_id, taxonomy.version),
+                taxonomy.model_dump(mode="json"),
+            )
+            if not inserted:
+                raise FileExistsError(f"Taxonomy version already exists: {taxonomy.taxonomy_id} v{taxonomy.version}")
+            self._write_latest_pointer(taxonomy.taxonomy_id, taxonomy.version)
+            return
         write_text_exclusive(self._version_path(taxonomy.taxonomy_id, taxonomy.version), taxonomy.model_dump_json(indent=2))
         self._write_latest_pointer(taxonomy.taxonomy_id, taxonomy.version)
 
     def _write_latest_pointer(self, taxonomy_id: str, version: int) -> None:
+        if self._latest_repo is not None:
+            self._latest_repo.update(
+                safe_id(taxonomy_id, label="taxonomy_id"),
+                lambda cur: {"latest_version": max(int((cur or {}).get("latest_version", 0)), version)},
+            )
+            return
         atomic_write_text(self._latest_pointer_path(taxonomy_id), json.dumps({"latest_version": version}))
 
     def create(
@@ -103,8 +119,7 @@ class TaxonomyStore:
         The whole read-current-then-write-next cycle is locked, so two
         concurrent edits produce v2 and v3 rather than both writing v2 and
         one edit vanishing. The retry loop covers the cross-process case
-        the in-process lock can't (an `arp taxonomy` CLI run editing the
-        same taxonomy as a live API request): the O_EXCL create fails, and
+        the in-process lock can't: the exclusive create fails, and
         we re-read and bump again instead of clobbering the other writer.
         """
         with self.lock(taxonomy_id):
@@ -132,6 +147,15 @@ class TaxonomyStore:
         )
 
     def get(self, taxonomy_id: str, version: int | None = None) -> Taxonomy | None:
+        if self._versions_repo is not None and self._latest_repo is not None:
+            tid = safe_id(taxonomy_id, label="taxonomy_id")
+            if version is None:
+                pointer = self._latest_repo.get(tid)
+                if pointer is None:
+                    return None
+                version = int(pointer["latest_version"])
+            payload = self._versions_repo.get(self._version_key(tid, version))
+            return Taxonomy.model_validate(payload) if payload is not None else None
         if version is None:
             pointer_path = self._latest_pointer_path(taxonomy_id)
             if not pointer_path.exists():
@@ -143,6 +167,18 @@ class TaxonomyStore:
         return Taxonomy.model_validate_json(read_text_utf8(path))
 
     def list_versions(self, taxonomy_id: str) -> list[Taxonomy]:
+        if self._versions_repo is not None:
+            prefix = f"{safe_id(taxonomy_id, label='taxonomy_id')}:v"
+            versions = []
+            for key, payload in self._versions_repo.list_items():
+                if not key.startswith(prefix):
+                    continue
+                try:
+                    versions.append(Taxonomy.model_validate(payload))
+                except ValueError:
+                    continue
+            return sorted(versions, key=lambda t: t.version)
+        assert self.taxonomies_dir is not None
         d = self.taxonomies_dir / safe_id(taxonomy_id, label="taxonomy_id")
         if not d.exists():
             return []
@@ -156,9 +192,17 @@ class TaxonomyStore:
 
     def list_all(self) -> list[Taxonomy]:
         """The latest version of every taxonomy in the library."""
+        if self._latest_repo is not None:
+            latest: list[Taxonomy] = []
+            for tid in self._latest_repo.list_keys():
+                taxonomy = self.get(tid)
+                if taxonomy is not None:
+                    latest.append(taxonomy)
+            return latest
+        assert self.taxonomies_dir is not None
         if not self.taxonomies_dir.exists():
             return []
-        latest: list[Taxonomy] = []
+        latest = []
         for d in sorted(self.taxonomies_dir.iterdir()):
             if not d.is_dir():
                 continue
@@ -179,11 +223,14 @@ class TaxonomyStore:
             ratified = taxonomy.model_copy(
                 update={"status": TaxonomyStatus.RATIFIED, "ratified_by": ratified_by, "ratified_at": now_iso()}
             )
-            # The one write in this store that legitimately replaces an
-            # existing version file, so it can't use O_EXCL -- atomically
-            # instead, or a crash mid-write would leave the ratified
-            # version unparseable (and silently skipped by list_versions).
-            atomic_write_text(self._version_path(taxonomy_id, version), ratified.model_dump_json(indent=2))
+            if self._versions_repo is not None:
+                self._versions_repo.put(self._version_key(taxonomy_id, version), ratified.model_dump(mode="json"))
+            else:
+                # The one write in this store that legitimately replaces an
+                # existing version file, so it can't use O_EXCL -- atomically
+                # instead, or a crash mid-write would leave the ratified
+                # version unparseable (and silently skipped by list_versions).
+                atomic_write_text(self._version_path(taxonomy_id, version), ratified.model_dump_json(indent=2))
         return ratified
 
 
