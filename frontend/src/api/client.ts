@@ -67,10 +67,6 @@ import type {
   RefineThread,
   RefineTurn,
   RefineTurnOut,
-  SignalComparison,
-  SignalExperimentDetail,
-  SignalExperimentSummary,
-  SignalMethod,
   BilateralPick,
   SelectionConfirmed,
   StewardNote,
@@ -415,21 +411,6 @@ export const api = {
   },
   pullHolder: (kind: string, holderId: string) =>
     request<IntakeResult>(`/api/holdings/holders/${kind}/${encodeURIComponent(holderId)}/pull`, { method: "POST" }),
-  // Signals workbench
-  signalExperiments: () => request<SignalExperimentSummary[]>("/api/signals/experiments"),
-  signalExperiment: (id: string) => request<SignalExperimentDetail>(`/api/signals/experiments/${encodeURIComponent(id)}`),
-  signalMethods: () => request<SignalMethod[]>("/api/signals/methods"),
-  signalCompare: (a: string, b: string) =>
-    request<SignalComparison>("/api/signals/compare", { method: "POST", body: JSON.stringify({ a, b }) }),
-  signalDecide: (id: string, decision: "graduate" | "shelve") =>
-    request<SignalExperimentDetail>(`/api/signals/experiments/${encodeURIComponent(id)}/decision`, { method: "POST", body: JSON.stringify({ decision }) }),
-  signalRun: ({ recipe, prices, panels }: { recipe: File; prices: File; panels: Record<string, File> }) => {
-    const form = new FormData();
-    form.append("recipe", recipe);
-    form.append("prices", prices);
-    for (const [name, f] of Object.entries(panels)) form.append(`panel_${name}`, f);
-    return request<SignalExperimentDetail>("/api/signals/runs", { method: "POST", body: form });
-  },
   listOutputs: (kind?: OutputKind) => request<{ outputs: OutputItem[] }>(`/api/outputs${buildQuery({ kind })}`),
   listIssues: () => request<{ issues: DataIssue[] }>("/api/issues"),
   smartSearch: (question: string) =>

@@ -1,7 +1,5 @@
 """Showcase fixes, R&D Lab screens (spec showcase-themes-fixes, PR 2), with the API stubbed by Playwright routing."""
 
-import json
-
 import pytest
 
 from arp.config import Settings
@@ -267,40 +265,6 @@ def test_metric_tilt_card_title(page):  # AC-124
     page.goto(f"{URL}/#/index")
     page.get_by_role("button", name="+ Metric tilt").click()
     page.locator(".activity-editor strong", has_text="Metric tilt").wait_for()
-
-
-EXPERIMENT = {"method": "price_momentum", "category": "c", "universe": "u", "window_start": "2016-01-31",
-              "window_end": "2019-04-30", "n_trials": 1, "model": None, "cutoff": None, "cutoff_status": "not_applicable",
-              "decision": "none"}
-
-
-def test_signals_columns_rerun_and_samples(page):  # AC-72, AC-73, AC-74, AC-123
-    rows = [dict(EXPERIMENT, experiment_id="aaaaaaaa1111", created_at="2026-11-11T09:05:00Z"),
-            dict(EXPERIMENT, experiment_id="bbbbbbbb2222", created_at="2026-11-11T09:07:00Z")]
-    detail = {**rows[0], "recipe": {"method": "price_momentum"}, "decided_by": None, "evidence": {"windows": [
-        {"window": "out_of_window", "periods": 10, "ic": {"mean": 0.0423456, "t_nw": 2.34567, "n": 10}},
-        {"window": "in_window", "periods": 10, "ic": {"mean": None, "t_nw": None, "n": 0}}]}}
-    page.route("**/api/signals/experiments", lambda r: r.fulfill(json=rows))
-    page.route("**/api/signals/experiments/*", lambda r: r.fulfill(json=detail))
-    page.route("**/api/signals/methods", lambda r: r.fulfill(json=[]))
-    page.route("**/api/signals/runs", lambda r: r.fulfill(json=detail))
-    page.goto(f"{URL}/#/signals")
-    assert page.get_by_role("link", name="Sample recipe (JSON)").get_attribute("href") == "samples/signals-recipe.json"
-    assert page.get_by_role("link", name="Sample prices (CSV)").get_attribute("href") == "samples/signals-prices.csv"
-    page.get_by_role("columnheader", name="Created").wait_for()
-    page.get_by_role("columnheader", name="ID", exact=True).wait_for()
-    texts = page.locator("tbody tr").all_inner_texts()
-    assert "aaaaaaaa" in texts[0] and "bbbbbbbb" in texts[1]
-    assert "2026-11-11 09:05" in texts[0] and "2026-11-11 09:07" in texts[1]  # the CI browser runs in UTC
-    page.locator("input[type=file][accept='.json,application/json']").set_input_files(
-        files=[{"name": "r.json", "mimeType": "application/json", "buffer": json.dumps({"method": "x"}).encode()}])
-    page.locator("input[type=file][accept='.csv']").first.set_input_files(
-        files=[{"name": "p.csv", "mimeType": "text/csv", "buffer": b"date,A\n"}])
-    page.get_by_role("button", name="Submit").click()
-    page.get_by_text("This recipe was already run on this data. Showing the existing result (aaaaaaaa1111).").wait_for()
-    page.get_by_role("cell", name="0.042", exact=True).wait_for()
-    assert page.get_by_role("cell", name="2.346", exact=True).count() == 1
-    assert page.get_by_role("cell", name="—", exact=True).count() >= 2
 
 
 TAXONOMY = {"taxonomy_id": "tax1", "name": "Grid", "version": 1, "status": "ratified", "derivation_method": "manual",

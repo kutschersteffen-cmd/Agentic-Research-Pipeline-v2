@@ -199,14 +199,13 @@ export const WORKSPACES: Workspace[] = [
       ["#/taxonomy", "Taxonomy Library"],
       ["#/theme", "Thematic Universe"],
       ["#/strategyReplication", "Strategy Replication"],
-      ["#/signals", "Signals workbench"],
       ["#/valueChain", "Value Chain Explorer"],
       ["#/decision", "Decision Studio"],
       ["#/index", "Portfolio Builder"],
     ],
     // Emerging Themes is the second tab of Themes (the Themes hub).
     row: ["#/designStrategy", "#/themes", "#/decision", "#/index"],
-    more: ["#/taxonomy", "#/theme", "#/strategyReplication", "#/signals", "#/valueChain"],
+    more: ["#/taxonomy", "#/theme", "#/strategyReplication", "#/valueChain"],
     processes: [
       {
         id: "thematic",
@@ -246,18 +245,6 @@ export const WORKSPACES: Workspace[] = [
           { tab: "decision", label: "Compare", does: "Compare strategies side by side in Decision Studio.", handsOn: "Chosen strategy" },
           { tab: "index", label: "Construct", does: "Implement it as rules with capping and a calibration.", handsOn: "Index composition", runTypes: ["calibration"] },
           { tab: "reporting", label: "Report", does: "Investment committee deck." },
-        ],
-      },
-      {
-        id: "signal",
-        title: "Research a signal",
-        cadence: "Per signal idea",
-        outcome: "A signal with post-cutoff evidence, compared honestly, graduated or shelved.",
-        steps: [
-          { tab: "signals", label: "Run", does: "Upload a recipe and a price file; the app runs the methods that need no model." },
-          { tab: "signals", label: "Evidence", does: "IC per window, with in-window evidence labelled contaminated." },
-          { tab: "signals", label: "Compare", does: "Compare two signals; insufficient data is never ranked." },
-          { tab: "signals", label: "Decide", does: "An approver graduates or shelves the signal." },
         ],
       },
     ],

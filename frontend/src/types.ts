@@ -2961,41 +2961,6 @@ export type TransitionComparison = Served<S["ComparisonOut"]>;
 export type TransitionAssumption = Served<S["AssumptionOut"]>;
 export type TransitionScenario = Served<S["ScenarioOut"]>;
 
-export type CutoffStatus = "none" | "recorded" | "unknown";
-export interface SignalWindow {
-  window: "in_window" | "post_cutoff";
-  periods: number;
-  ic: { n: number; mean: number | null; t_nw: number | null; hit_rate: number | null };
-}
-export interface SignalExperimentSummary {
-  experiment_id: string;
-  method: string;
-  category: string;
-  universe: string;
-  window_start: string;
-  window_end: string;
-  n_trials: number;
-  model: string | null;
-  cutoff: string | null;
-  cutoff_status: CutoffStatus;
-  decision: "none" | "graduate" | "shelve";
-  created_at: string;
-}
-export interface SignalExperimentDetail {
-  experiment_id: string;
-  model: string | null;
-  cutoff: string | null;
-  cutoff_status: CutoffStatus;
-  decision: "none" | "graduate" | "shelve";
-  decided_by: string | null;
-  decided_at: string | null;
-  created_at: string;
-  recipe: { method: string; category: string; universe: string; window_start: string; window_end: string; cost_bps: number };
-  evidence: { n_trials: number; contamination_gap_ic: number | null; windows: SignalWindow[] };
-}
-export type SignalMethod = Served<S["MethodInfo"]>;
-export type SignalComparison = Served<S["Comparison"]>;
-
 /** GET /api/themes/runs/{run_id}/layers: theme exposure layers, computed on read. */
 export type ThemeLayerRow = Served<S["ThemeLayerRow"]>;
 

@@ -21,13 +21,9 @@ class _TooLarge(Exception):
     pass
 
 
-# Routes that read their multipart form by hand (`request.form()`), so OpenAPI does not show it.
-HAND_READ_FORMS = [("POST", "/api/signals/runs")]
-
-
 def _file_routes(app) -> list[tuple[str, re.Pattern[str]]]:
-    """(method, path pattern) of every route that takes a multipart body: OpenAPI's, plus HAND_READ_FORMS."""
-    routes = [(method, re.compile("^" + re.escape(path) + "$")) for method, path in HAND_READ_FORMS]
+    """(method, path pattern) of every route that takes a multipart body."""
+    routes: list[tuple[str, re.Pattern[str]]] = []
     for path, operations in app.openapi()["paths"].items():
         pattern = re.compile("^" + re.sub(r"\\\{[^/]+?\\\}", "[^/]+", re.escape(path)) + "$")
         for method, op in operations.items():

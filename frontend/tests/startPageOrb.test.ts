@@ -37,7 +37,7 @@ test("eo_ac38_caption", () => {
 
 test("eo_ac39_40_running_rd_lab", () => {
   const v = cardView(ws("rdLab"), R1, null, NOW);
-  assert.deepEqual(v.dots, ["now", "idle", "idle", "idle"]);
+  assert.deepEqual(v.dots, ["now", "idle", "idle"]);
   assert.equal(v.status.word, "Running");
   assert.equal(runningDetail(ws("rdLab"), R1, null), "Spot · step 1 of 7");
   assert.equal(runningDetail(ws("rdLab"), null, null), null);
@@ -53,7 +53,7 @@ test("eo_ac41_waiting_argus", () => {
 test("eo_ac85_label_unchanged", () =>
   assert.equal(
     cardView(ws("rdLab"), R1, null, NOW).label,
-    "R&D Lab. Build a thematic portfolio: running; Research a theme: no activity yet; Research a strategy: no activity yet; Research a signal: no activity yet",
+    "R&D Lab. Build a thematic portfolio: running; Research a theme: no activity yet; Research a strategy: no activity yet",
   ));
 
 test("eo_ac73_one_accent_on_the_top_face", () => {

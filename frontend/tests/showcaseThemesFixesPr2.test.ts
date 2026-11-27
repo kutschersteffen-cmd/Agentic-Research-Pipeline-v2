@@ -6,7 +6,6 @@ import { intervalError, NO_COMPANIES, NOVELTY_HELP, SCANNING, scanActive } from 
 import { stepLinkText } from "../src/lib/dossiers.ts";
 import { reviewHref, type PlanCall } from "../src/lib/plans.ts";
 import { DEMO_BANNER, exceptionText, indexErrorText, ruleTitle, SOLVER_MISSING } from "../src/lib/indexBuilder.ts";
-import { alreadyRunLine, createdLabel, ic, SAMPLE_PRICES, SAMPLE_RECIPE, shortId } from "../src/lib/signals.ts";
 import { companies } from "../src/lib/themeBuilder.ts";
 import { citedLabel } from "../src/lib/position.ts";
 
@@ -93,16 +92,6 @@ test("rule cards and errors use the catalogue's labels", () => {  // AC-70, AC-7
   assert.equal(indexErrorText("422: spec › tilts › 2 › x_tilt: bad; spec › screens › 1 › metric_threshold: worse", CATALOGUE),
     "Tilt 3 (x_tilt): bad; Screen 2 (Metric threshold): worse");
   assert.equal(indexErrorText("500: boom", null), "boom");
-});
-
-test("Signals evidence, experiments and samples", () => {  // AC-72, AC-73, AC-74, AC-123
-  assert.deepEqual([ic(0.0423456), ic(2.34567), ic(null)], ["0.042", "2.346", "—"]);
-  const local = new Date(2026, 10, 11, 9, 5).toISOString();
-  assert.equal(createdLabel(local), "2026-11-11 09:05");
-  assert.equal(shortId("aaaaaaaa1111"), "aaaaaaaa");
-  assert.equal(alreadyRunLine("aaaaaaaa1111"),
-    "This recipe was already run on this data. Showing the existing result (aaaaaaaa1111).");
-  assert.deepEqual([SAMPLE_RECIPE, SAMPLE_PRICES], ["samples/signals-recipe.json", "samples/signals-prices.csv"]);
 });
 
 test("one company is singular", () => {  // AC-80, AC-99, AC-126
