@@ -60,7 +60,6 @@ from arp.api.routers import (
     projects,
     publish,
     refine,
-    replication,
     reporting,
     revenue_catalogue,
     review,
@@ -242,7 +241,6 @@ app.include_router(dossier_position.router, dependencies=[Depends(authorize)])
 app.include_router(taxonomy_researcher.router, dependencies=[Depends(authorize)])
 app.include_router(calibration.router, dependencies=[Depends(authorize)])
 app.include_router(reporting.router, dependencies=[Depends(authorize)])
-app.include_router(replication.router, dependencies=[Depends(authorize)])
 app.include_router(index.router, dependencies=[Depends(authorize)])
 app.include_router(review.router, dependencies=[Depends(authorize)])
 app.include_router(waiting.router, dependencies=[Depends(authorize)])

@@ -14,5 +14,5 @@ test("AC-6: the palette offers Ask ARP only when the user can ask", () => {
 test("R&D Lab row and its More menu", () => {
   const s = WORKSPACES.find((w) => w.id === "rdLab")!;
   assert.deepEqual(rowLinks(s).map(([, l]) => l), ["R&D Lab", "Build a thematic portfolio", "Themes", "Decision Studio", "Portfolio Builder"]);
-  assert.deepEqual(moreLinks(s).map(([, l]) => l), ["Taxonomy Library", "Thematic Universe", "Strategy Replication", "Value Chain Explorer"]);
+  assert.deepEqual(moreLinks(s).map(([, l]) => l), ["Taxonomy Library", "Thematic Universe", "Value Chain Explorer"]);
 });

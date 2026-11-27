@@ -1,6 +1,6 @@
 import pytest
 
-from arp.replication.price_data import CsvPriceSource
+from arp.research.price_data import CsvPriceSource
 
 
 def test_csv_price_source_derives_returns_from_prices(tmp_path):

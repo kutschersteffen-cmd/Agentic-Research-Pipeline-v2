@@ -84,7 +84,7 @@ def infer_comove_cmd(
 ) -> None:
     from datetime import date
 
-    from arp.replication.price_data import CsvPriceSource, YFinancePriceSource
+    from arp.research.price_data import CsvPriceSource, YFinancePriceSource
 
     try:
         source = CsvPriceSource(prices) if prices else YFinancePriceSource()

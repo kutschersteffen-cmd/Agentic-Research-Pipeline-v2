@@ -128,9 +128,8 @@ emerging_themes = [
     "networkx>=3.2,<4.0",
     "feedparser>=6.0,<7.0",
 ]
-# Strategy Replication's free real-market PriceDataSource (arp/replication/
-# price_data.py::YFinancePriceSource). Not required for the default,
-# no-network CsvPriceSource -- see docs/STRATEGY_REPLICATION_METHODOLOGY.md.
+# Free real-market PriceDataSource (arp/research/price_data.py::YFinancePriceSource).
+# Not required for the default, no-network CsvPriceSource.
 replication = [
     "yfinance>=0.2,<1.0",
 ]
@@ -161,10 +160,7 @@ include = ["arp*"]
 "arp.holdings" = ["mappings/*.json"]
 "arp.transition_barrier" = ["data/*.json"]
 "arp.transition_alignment" = ["data/*.json"]
-# These two were missing: their bundled data only resolves because CI and dev
-# both use `pip install -e .`, so a non-editable wheel would drop it silently.
 "arp.transition_plan" = ["data/*.json"]
-"arp.replication" = ["data/*.json"]
 "arp.presets" = ["data/*.json"]
 "arp.decision" = ["data/*.json", "sample_data/*.csv"]
 "arp.reporting" = ["style/*.json", "style/*.md", "style/templates/*.j2", "style/fonts/*/*.ttf", "style/fonts/*/*.txt", "vendor/elkjs/*"]
@@ -210,7 +206,6 @@ max-complexity = 15
 "arp/orchestration/plan_steps.py" = ["C901"]
 "arp/publish/candidates.py" = ["C901"]
 "arp/refine/deck_ops.py" = ["C901"]
-"arp/replication/backtest_engine.py" = ["C901"]
 "arp/reporting/chart_builder.py" = ["C901"]
 "arp/reporting/mermaid_flow.py" = ["C901"]
 "arp/reporting/pptx_writer.py" = ["C901"]

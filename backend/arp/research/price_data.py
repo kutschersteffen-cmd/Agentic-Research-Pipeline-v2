@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 
-from arp.replication._wide_csv import read_wide_csv
+from arp.research._wide_csv import read_wide_csv
 
 
 @dataclass

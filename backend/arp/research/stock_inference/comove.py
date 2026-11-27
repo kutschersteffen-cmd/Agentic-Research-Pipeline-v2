@@ -10,7 +10,7 @@ from pathlib import Path
 
 import numpy as np
 
-from arp.replication.price_data import PriceDataSource
+from arp.research.price_data import PriceDataSource
 from arp.research.stock_inference.run import _save, load_run
 
 ACWI = "ACWI"
