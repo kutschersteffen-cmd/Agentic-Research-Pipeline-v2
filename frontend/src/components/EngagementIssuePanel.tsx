@@ -64,6 +64,7 @@ export function EngagementIssuePanel({
   // The commitment whose "Verify" was clicked: verifying asks for evidence first.
   const [verifying, setVerifying] = useState<string | null>(null);
   const [evidence, setEvidence] = useState("");
+  const closed = issue.status === "resolved" || issue.status === "closed";
 
   useEffect(() => {
     setDossier(null);
@@ -233,7 +234,7 @@ export function EngagementIssuePanel({
       )}
 
       <SignedInAs compact />
-      {!actor && <p className="help-text">Sign in to record results, proof statements and watch topics.</p>}
+      {!actor && <p className="help-text">Sign in to escalate issues, verify commitments, and log correspondence.</p>}
       {error && <p className="error-text" role="alert">{error}</p>}
 
       <div className="panel-section">
