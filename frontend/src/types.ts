@@ -2142,9 +2142,6 @@ export type SelectionConfirmed = Served<S["SelectionConfirmed"]>;
 export type StewardNote = Served<S["Note"]>;
 export type StewardNoteList = Served<S["NoteList"]>;
 export type VoteList = Served<S["VoteList"]>;
-// The fund overlap tab (backend/arp/schemas/overlap.py)
-export type FundOverlap = Served<S["FundOverlap"]>;
-export type OverlapMatrix = Served<S["OverlapMatrix"]>;
 
 export interface PolicyVersionMeta {
   version: number;
