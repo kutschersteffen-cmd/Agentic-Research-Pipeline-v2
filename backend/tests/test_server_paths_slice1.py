@@ -20,7 +20,6 @@ from arp.api.routers import (
     taxonomies,
     tnfd,
     voting,
-    xbrl,
 )
 from arp.config import Settings
 from arp.discovery.scheduler import DiscoveryScheduler
@@ -32,7 +31,7 @@ from tests.conftest import PRINCIPAL
 SAVED_ONLY = {"detail": "Universe file must be a saved universe."}
 UNIVERSE = "company_id,name\nc1,Acme\n"
 
-ROUTES = [  # (route, body) as in the spec's table, routes 1 to 12
+ROUTES = [  # (route, body) as in the spec's table
     ("/api/themes/runs", {"taxonomy_id": "none"}),
     ("/api/voting/runs", {}),
     ("/api/tnfd/runs", {"as_of": "FY2025"}),
@@ -43,7 +42,6 @@ ROUTES = [  # (route, body) as in the spec's table, routes 1 to 12
     ("/api/identity/runs", {}),
     ("/api/financials/runs", {}),
     ("/api/taxonomies", {"name": "x"}),
-    ("/api/xbrl/runs", {}),
     ("/api/documents/readiness", {}),
 ]
 
@@ -74,7 +72,6 @@ def env(pg, tmp_path, monkeypatch):
     monkeypatch.setattr(discovery, "create_discovery_run", record)
     monkeypatch.setattr(emerging_themes, "create_emerging_themes_run", record)
     monkeypatch.setattr(taxonomies, "get_llm_client", record)
-    monkeypatch.setattr(xbrl, "create_xbrl_run", record)
 
     rs = RunStore(pg, tmp_path / "runs")
     app.dependency_overrides[current_user] = lambda: PRINCIPAL
@@ -98,12 +95,12 @@ def test_ac7_a_symlink_leaving_the_universes_folder_is_refused(env):
 
 def test_ac12_a_saved_universe_still_starts_each_run(env):
     client, u, _outside, recorded = env
-    for route, body in ROUTES[:11]:
+    for route, body in ROUTES[:10]:
         r = client.post(route, json={**body, "universe_path": str(u)})
         assert r.status_code < 500, (route, r.status_code, r.text)
         assert r.json() != SAVED_ONLY, route
-    # route 1 stops at the unknown taxonomy after the universe step; the other ten reach the recorder
-    assert len(recorded) == 10
+    # route 1 stops at the unknown taxonomy after the universe step; the other nine reach the recorder
+    assert len(recorded) == 9
 
 
 def _put(router, scheduler_dep, scheduler, settings, path):

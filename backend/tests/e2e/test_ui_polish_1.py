@@ -149,7 +149,7 @@ def test_ac2_argus_head_has_no_duplicate_links(page):
     assert head.get_by_role("link", name="XBRL Facts").count() == 0
     assert head.get_by_role("button", name="Start new extraction").count() == 1
     row = page.get_by_role("navigation", name="Argus screens")
-    assert row.get_by_role("link", name="XBRL Facts").count() == 1
+    assert row.get_by_role("link", name="XBRL Facts").count() == 0
     # ui-trim-workspaces: Walkthrough left the row for "How it works" under the intro.
     assert row.get_by_role("link", name="Walkthrough").count() == 0
     assert page.get_by_role("link", name="How it works").count() == 1

@@ -12,7 +12,6 @@ from arp.extraction.steps import StepSettings
 from arp.llm.batching_client import BatchingLLMClient
 from arp.schemas.datapoints import DataPointSchema
 from arp.storage.run_store import RunStore
-from arp.xbrl_pipeline.verify import CircularRunError, assert_xbrl_off
 from tests.postgres_helpers import pg_dsn
 
 pytestmark = pytest.mark.usefixtures("pg")  # pg_dsn() helpers below
@@ -50,18 +49,6 @@ def test_cli_run_records_the_step_settings_the_api_records(tmp_path, monkeypatch
     saved = store.run_dir(RUN_ID) / "step_settings.json"
     assert saved.read_text() == StepSettings.effective(settings).model_dump_json()
     assert json.loads(saved.read_text())["xbrl_facts_enabled"] is False
-
-
-def test_cli_run_with_xbrl_off_can_be_verified(tmp_path, monkeypatch):
-    _, _, store = _run_cli(tmp_path, monkeypatch, xbrl_facts_enabled=False)
-    assert_xbrl_off(RUN_ID, run_store=store)  # raises CircularRunError when it cannot prove XBRL was off
-
-
-def test_cli_run_with_xbrl_on_is_recorded_and_refused(tmp_path, monkeypatch):
-    _, _, store = _run_cli(tmp_path, monkeypatch, xbrl_facts_enabled=True)
-    assert json.loads((store.run_dir(RUN_ID) / "step_settings.json").read_text())["xbrl_facts_enabled"] is True
-    with pytest.raises(CircularRunError, match="xbrl_facts_enabled"):
-        assert_xbrl_off(RUN_ID, run_store=store)
 
 
 def test_cli_run_batch_marks_the_run_and_batches_the_clients(tmp_path, monkeypatch):

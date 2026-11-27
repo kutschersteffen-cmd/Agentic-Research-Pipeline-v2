@@ -3,10 +3,29 @@ import { publishedEntityId } from "../lib/lineage";
 import { EntityLineage } from "./LineagePanel";
 import { LevelOverrides } from "./LevelOverrides";
 import { activatable } from "../lib/activatable";
-import { Pager } from "./XbrlFactsTable";
 import type { DecisionResult, EntityDecision, LevelOverride, MechanismConfig, PublishedDecision } from "../types";
 
 const PAGE = 100;
+
+function Pager(p: { offset: number; count: number; total: number; limit: number; noun: string; onPage: (offset: number) => void }) {
+  const n = (x: number) => x.toLocaleString("en-US");
+  const range = p.count ? `${n(p.offset + 1)}–${n(p.offset + p.count)} of ${n(p.total)}` : `0 of ${n(p.total)}`;
+  return (
+    <div className="toolbar table-pager">
+      <span className="mono" aria-label={`Showing ${range} ${p.noun}`}>{range}</span>
+      {p.total > p.limit && (
+        <>
+          <button type="button" className="secondary" disabled={p.offset === 0} onClick={() => p.onPage(Math.max(0, p.offset - p.limit))}>
+            Previous
+          </button>
+          <button type="button" className="secondary" disabled={p.offset + p.count >= p.total} onClick={() => p.onPage(p.offset + p.limit)}>
+            Next
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
 
 function tierClass(tier?: number | null): string {
   if (tier === 1) return "badge badge-high";

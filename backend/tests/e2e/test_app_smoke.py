@@ -119,7 +119,7 @@ def test_workspace_row_on_argus(page):
     links = row.get_by_role("link")
     got = [(links.nth(i).inner_text().strip(), links.nth(i).get_attribute("href")) for i in range(links.count())]
     # ui-trim-workspaces: Walkthrough is the page's "How it works" link, Review Queue is "Needs you" in the top bar.
-    assert got == [("Argus", "#/argus"), ("New extraction", "#/argus/new"), ("XBRL Facts", "#/xbrl")]
+    assert got == [("Argus", "#/argus"), ("New extraction", "#/argus/new")]
     assert links.nth(0).get_attribute("aria-current") == "page"
 
 

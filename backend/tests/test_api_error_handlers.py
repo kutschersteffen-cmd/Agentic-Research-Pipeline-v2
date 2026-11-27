@@ -199,8 +199,6 @@ _EXTRA = [
     ("arp.storage.postgres", "PostgresExtraNotInstalled", 503),
     ("arp.storage.document_blob_store", "CaptureStoreError", 503),
     ("arp.storage.object_store_client", "ObjectStoreExtraNotInstalled", 503),
-    ("arp.xbrl_pipeline.verify", "CircularRunError", 400),
-    ("arp.xbrl_pipeline.verify", "UnsupportedRunError", 400),
     ("arp.argus.start", "StartError", 400),
     ("arp.rfp.fill", "FillRefused", 400),
     ("arp.db.importer", "ImportFailed", 503),

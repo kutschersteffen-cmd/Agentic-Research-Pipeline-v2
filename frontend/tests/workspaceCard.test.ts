@@ -48,9 +48,9 @@ test("AC-13: down cards have an empty now line and unknown dots", () => {
 });
 
 test("AC-14: busy Argus label lists process states, no count", () =>
-  assert.equal(view("Argus", busy).label, "Argus. Extract and score: waiting on a person; XBRL facts: no activity yet"));
+  assert.equal(view("Argus", busy).label, "Argus. Extract and score: waiting on a person"));
 test("AC-21: down Argus label", () =>
-  assert.equal(view("Argus", down).label, "Argus. Extract and score: status unknown; XBRL facts: status unknown"));
+  assert.equal(view("Argus", down).label, "Argus. Extract and score: status unknown"));
 
 test("AC-20: DESIGN.md no longer promises a status line on the card", () => {
   // Walk up to the repo root: Stryker runs this file from a sandbox copy one or two folders deeper.

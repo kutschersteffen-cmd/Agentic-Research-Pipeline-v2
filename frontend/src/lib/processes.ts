@@ -109,10 +109,9 @@ export const WORKSPACES: Workspace[] = [
     screens: [
       ["#/argus/new", "New extraction"],
       ["#/argusWalkthrough", "Walkthrough"],
-      ["#/xbrl", "XBRL Facts"],
     ],
     // Walkthrough is the Argus page's "How it works" link; Needs you is in the top bar.
-    row: ["#/argus/new", "#/xbrl"],
+    row: ["#/argus/new"],
     processes: [
       {
         id: "extract",
@@ -130,18 +129,6 @@ export const WORKSPACES: Workspace[] = [
           { tab: "review", label: "Review", does: "Approve, edit or reject every flagged figure.", handsOn: "Reviewed figures", carried: true, runTypes: REVIEWABLE },
           { tab: "argus", label: "Score", optional: true, does: "Attach a ratified Decision Studio template at setup (or after the run); publish the tiers from the run's Scoring panel.", handsOn: "Published tiers", carried: true },
           { tab: "decision", label: "Template", optional: true, does: "Build and ratify scoring templates in Decision Studio (R&D Lab); only ratified versions reach Argus." },
-        ],
-      },
-      {
-        id: "xbrl",
-        title: "XBRL facts",
-        cadence: "Per universe, refreshed when filings change",
-        outcome: "Every company routed to its filing market, its tagged facts stored with the original filing, revenue and capex resolved, and an extraction run verified against them.",
-        steps: [
-          { tab: "xbrl", label: "Companies", does: "Upload, pick a saved universe or add one company: the same picker as Argus step 1.", handsOn: "Companies", carried: true },
-          { tab: "xbrl", label: "Fetch", does: "Route each company to its filing market and fetch its tagged facts with the original filing.", handsOn: "Stored facts", carried: true, runTypes: ["xbrl_fetch"] },
-          { tab: "xbrl", label: "Facts", does: "Browse the stored facts per company, see revenue and capex resolved, and choose the tags to keep.", handsOn: "Resolved facts", carried: false },
-          { tab: "xbrl", label: "Verify", does: "Compare an extraction run's revenue and capex with the stored facts. The run must have been made with XBRL facts off, or the check is refused." },
         ],
       },
     ],

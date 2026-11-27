@@ -86,7 +86,6 @@ from arp.api.routers import (
     voting,
     waiting,
     walkthrough,
-    xbrl,
 )
 from arp.db.session import require_cutover, require_postgres
 from arp.errors import ClientInputError, NotConfigured
@@ -210,7 +209,6 @@ app.include_router(overlap.router, dependencies=[Depends(authorize)])
 app.include_router(revenue_catalogue.router, dependencies=[Depends(authorize)])
 app.include_router(engagement.router, dependencies=[Depends(authorize)])
 app.include_router(voting.router, dependencies=[Depends(authorize)])
-app.include_router(xbrl.router, dependencies=[Depends(authorize)])
 app.include_router(stewardship.router, dependencies=[Depends(authorize)])
 app.include_router(stewardship_cockpit.router, dependencies=[Depends(authorize)])
 app.include_router(stewardship_intake.router, dependencies=[Depends(authorize)])
