@@ -118,6 +118,22 @@ def _cell(v, k: str, reject, keep_raw: bool = False):
     return None if v in ("", None) else v
 
 
+def _clean_engagement_fields(row: dict, reject) -> None:
+    if row["planned_meeting_date"] is not None:
+        try:
+            row["planned_meeting_date"] = date.fromisoformat(str(row["planned_meeting_date"]))
+        except ValueError:
+            reject("planned_meeting_date", "not a date")
+    pillars = row["esg_pillars"] or []
+    if not isinstance(pillars, (str, list)):
+        reject("esg_pillars", "not a list")
+        pillars = []
+    pillars = [p.strip() for p in pillars.split(";")] if isinstance(pillars, str) else [str(p) for p in pillars]
+    if any(p not in {e.value for e in EsgPillar} for p in pillars):
+        reject("esg_pillars", "not one of " + ", ".join(e.value for e in EsgPillar))
+    row["esg_pillars"] = pillars
+
+
 def _clean(sheet: str, n: int, raw: dict, bad: list[Rejection]) -> dict:
     """The row with empties as None, enums, timestamps, booleans and pillars checked and normalised."""
 
@@ -140,25 +156,13 @@ def _clean(sheet: str, n: int, raw: dict, bad: list[Rejection]) -> dict:
             row[k] = _ts(None if row[k] is None else str(row[k]), k)
         except ClientInputError:
             reject(k, "not an ISO 8601 timestamp")
-    if sheet == "engagements" and row["planned_meeting_date"] is not None:
-        try:
-            row["planned_meeting_date"] = date.fromisoformat(str(row["planned_meeting_date"]))
-        except ValueError:
-            reject("planned_meeting_date", "not a date")
     for k in _BOOLS & row.keys():
         flag = str(row[k]).lower() if row[k] is not None else "false"
         if flag not in _TRUE | _FALSE:
             reject(k, "not true or false")
         row[k] = flag in _TRUE
     if sheet == "engagements":
-        pillars = row["esg_pillars"] or []
-        if not isinstance(pillars, (str, list)):
-            reject("esg_pillars", "not a list")
-            pillars = []
-        pillars = [p.strip() for p in pillars.split(";")] if isinstance(pillars, str) else [str(p) for p in pillars]
-        if any(p not in {e.value for e in EsgPillar} for p in pillars):
-            reject("esg_pillars", "not one of " + ", ".join(e.value for e in EsgPillar))
-        row["esg_pillars"] = pillars
+        _clean_engagement_fields(row, reject)
     return {**row, **{k: v for k, v in _DEFAULTS[sheet].items() if row.get(k) is None}}
 
 
@@ -181,6 +185,104 @@ def _safe(key: str) -> bool:
     except UnsafeIdentifierError:
         return False
     return True
+
+
+def _order_objectives(plan: list[tuple], ids: dict[str, dict[str, str]], bad: list[Rejection]) -> list[tuple]:
+    # an objective is written after the one it follows (a self-referencing foreign key)
+    in_batch = {ids["objectives"][p[2]["external_id"]] for p in plan if p[0] == "objectives"}
+    first, objectives, last, placed = [p for p in plan if p[0] == "engagements"], [p for p in plan if p[0] == "objectives"], [p for p in plan if p[0] == "activities"], set()
+    ordered = []
+    while objectives:
+        ready = [p for p in objectives if p[3]["follows_objective_id"] not in in_batch or p[3]["follows_objective_id"] in placed]
+        if not ready:
+            bad.extend(Rejection(sheet="objectives", row=p[1], field="follows_external_id", reason="circular") for p in objectives)
+            break
+        ordered += ready
+        placed |= {ids["objectives"][p[2]["external_id"]] for p in ready}
+        objectives = [p for p in objectives if p not in ready]
+    return first + ordered + last
+
+
+def _build_engagement_plan(
+    s: Session, num: dict[str, list[int]], rows: dict[str, list[dict]], resolved: list[str | None], ids: dict[str, dict[str, str]], bad: list[Rejection],
+) -> tuple[dict[str, str], dict[str, str], list[tuple]]:
+    company_of = dict(s.execute(select(StwEngagementModel.engagement_id, StwEngagementModel.company_id)).all())
+    names = {}  # company key -> name for a stw_companies row that has to be created
+    plan = []  # (sheet, row number, external_id, values)
+
+    def ref(sheet: str, n: int, row: dict, field: str, target: str) -> str | None:
+        if row[field] is None:
+            return None
+        if row[field] not in ids[target]:
+            bad.append(Rejection(sheet=sheet, row=n, field=field, reason=f"unknown {field}"))
+        return ids[target].get(row[field])
+
+    for n, row, company in zip(num["engagements"], rows["engagements"], resolved, strict=True):
+        if company is None:
+            bad.append(Rejection(sheet="engagements", row=n, field="company_id", reason="unknown company"))
+            continue
+        names.setdefault(company, row["company_name"] or company)
+        if row["external_id"]:
+            company_of[ids["engagements"][row["external_id"]]] = company
+            plan.append(("engagements", n, row, {"company_id": company}))
+    for sheet, links in (("objectives", {"engagement_external_id": ("engagement_id", "engagements"), "follows_external_id": ("follows_objective_id", "objectives")}),
+                         ("activities", {"engagement_external_id": ("engagement_id", "engagements"), "objective_external_id": ("objective_id", "objectives")})):  # fmt: skip
+        for n, row in zip(num[sheet], rows[sheet], strict=True):
+            if row["external_id"]:
+                plan.append((sheet, n, row, {col: ref(sheet, n, row, f, t) for f, (col, t) in links.items()}))
+    obj_engagement = dict(s.execute(select(StwObjectiveModel.objective_id, StwObjectiveModel.engagement_id)).all())
+    obj_engagement.update({ids["objectives"][p[2]["external_id"]]: p[3]["engagement_id"] for p in plan if p[0] == "objectives"})
+    for p in plan:
+        v = p[3]
+        if p[0] == "activities" and v["objective_id"] and v["engagement_id"] and obj_engagement.get(v["objective_id"]) != v["engagement_id"]:
+            bad.append(Rejection(sheet="activities", row=p[1], field="objective_external_id", reason="objective belongs to another engagement"))
+    return company_of, names, _order_objectives(plan, ids, bad)
+
+
+def _apply_engagement_plan(
+    s: Session, source: str, names: dict[str, str], ordered_plan: list[tuple], ids: dict[str, dict[str, str]], company_of: dict[str, str], report: IntakeReport,
+) -> None:
+    touched = set()
+
+    def log(company: str, table: str, key: str, changed: list[str]) -> None:
+        detail = {"table": table, "key": key, "changed": changed}
+        s.add(StwEventModel(source=source, company_id=company, event_type="intake_upserted", detail=detail, at=_ts(now_iso())))
+        touched.add(company)
+
+    for company, name in names.items():
+        if s.get(StwCompanyModel, company) is None:
+            s.add(StwCompanyModel(company_id=company, source=source, name=name, created_at=_ts(now_iso()), updated_at=_ts(now_iso())))
+            report.created += 1
+            log(company, "stw_companies", company, ["name"])
+    s.flush()
+
+    for sheet, _, row, extra in ordered_plan:
+        model, pk, _, skip = _TABLES[sheet]
+        values = {k: v for k, v in row.items() if k not in skip} | extra
+        if sheet == "activities":  # `type` is today's CorrespondenceType, which has no agm_intervention
+            values["type"] = values["activity_type"] if values["activity_type"] in {e.value for e in CorrespondenceType} else "other"
+        ext = row["external_id"]
+        stored = s.get(model, ids[sheet][ext])
+        if stored is None:
+            extras = {"tags": [row["theme"]], "trigger_source": "manual", "milestone_stage": "identified", "escalation_stage": "private_engagement"} if sheet == "engagements" else {}
+            s.add(model(**{pk: ids[sheet][ext], "source": source, "external_id": ext, **extras, **values}))
+            report.created += 1
+            changed = sorted(values)
+        else:
+            changed = sorted(k for k, v in values.items() if getattr(stored, k) != v)
+            if not changed:
+                report.unchanged += 1
+                continue
+            for k in changed:
+                setattr(stored, k, values[k])
+            report.updated += 1
+        company = values["company_id"] if sheet == "engagements" else company_of[values["engagement_id"]]
+        log(company, model.__tablename__, ext, changed)
+        if stored is None:
+            s.flush()
+    now = _ts(now_iso())
+    for company in touched:
+        s.get(StwCompanyModel, company).updated_at = now
 
 
 def intake_engagements(batch: dict[str, list[dict]], dsn: str, source: str, excel_rows: bool = False, session: Session | None = None) -> IntakeReport:
@@ -216,92 +318,10 @@ def intake_engagements(batch: dict[str, list[dict]], dsn: str, source: str, exce
                 seen.add(ext)
                 if ext is not None:
                     ids[sheet].setdefault(ext, new_id(prefix))
-        company_of = dict(s.execute(select(StwEngagementModel.engagement_id, StwEngagementModel.company_id)).all())
-        names = {}  # company key -> name for a stw_companies row that has to be created
-        plan = []  # (sheet, row number, external_id, values)
-
-        def ref(sheet: str, n: int, row: dict, field: str, target: str) -> str | None:
-            if row[field] is None:
-                return None
-            if row[field] not in ids[target]:
-                bad.append(Rejection(sheet=sheet, row=n, field=field, reason=f"unknown {field}"))
-            return ids[target].get(row[field])
-
-        for n, row, company in zip(num["engagements"], rows["engagements"], resolved, strict=True):
-            if company is None:
-                bad.append(Rejection(sheet="engagements", row=n, field="company_id", reason="unknown company"))
-                continue
-            names.setdefault(company, row["company_name"] or company)
-            if row["external_id"]:
-                company_of[ids["engagements"][row["external_id"]]] = company
-                plan.append(("engagements", n, row, {"company_id": company}))
-        for sheet, links in (("objectives", {"engagement_external_id": ("engagement_id", "engagements"), "follows_external_id": ("follows_objective_id", "objectives")}),
-                             ("activities", {"engagement_external_id": ("engagement_id", "engagements"), "objective_external_id": ("objective_id", "objectives")})):  # fmt: skip
-            for n, row in zip(num[sheet], rows[sheet], strict=True):
-                if row["external_id"]:
-                    plan.append((sheet, n, row, {col: ref(sheet, n, row, f, t) for f, (col, t) in links.items()}))
-        obj_engagement = dict(s.execute(select(StwObjectiveModel.objective_id, StwObjectiveModel.engagement_id)).all())
-        obj_engagement.update({ids["objectives"][p[2]["external_id"]]: p[3]["engagement_id"] for p in plan if p[0] == "objectives"})
-        for p in plan:
-            v = p[3]
-            if p[0] == "activities" and v["objective_id"] and v["engagement_id"] and obj_engagement.get(v["objective_id"]) != v["engagement_id"]:
-                bad.append(Rejection(sheet="activities", row=p[1], field="objective_external_id", reason="objective belongs to another engagement"))
-        # an objective is written after the one it follows (a self-referencing foreign key)
-        in_batch = {ids["objectives"][p[2]["external_id"]] for p in plan if p[0] == "objectives"}
-        first, objectives, last, placed = [p for p in plan if p[0] == "engagements"], [p for p in plan if p[0] == "objectives"], [p for p in plan if p[0] == "activities"], set()
-        ordered = []
-        while objectives:
-            ready = [p for p in objectives if p[3]["follows_objective_id"] not in in_batch or p[3]["follows_objective_id"] in placed]
-            if not ready:
-                bad.extend(Rejection(sheet="objectives", row=p[1], field="follows_external_id", reason="circular") for p in objectives)
-                break
-            ordered += ready
-            placed |= {ids["objectives"][p[2]["external_id"]] for p in ready}
-            objectives = [p for p in objectives if p not in ready]
+        company_of, names, ordered_plan = _build_engagement_plan(s, num, rows, resolved, ids, bad)
         if bad:
             return report
-
-        touched = set()
-
-        def log(company: str, table: str, key: str, changed: list[str]) -> None:
-            detail = {"table": table, "key": key, "changed": changed}
-            s.add(StwEventModel(source=source, company_id=company, event_type="intake_upserted", detail=detail, at=_ts(now_iso())))
-            touched.add(company)
-
-        for company, name in names.items():
-            if s.get(StwCompanyModel, company) is None:
-                s.add(StwCompanyModel(company_id=company, source=source, name=name, created_at=_ts(now_iso()), updated_at=_ts(now_iso())))
-                report.created += 1
-                log(company, "stw_companies", company, ["name"])
-        s.flush()
-
-        for sheet, _, row, extra in first + ordered + last:
-            model, pk, _, skip = _TABLES[sheet]
-            values = {k: v for k, v in row.items() if k not in skip} | extra
-            if sheet == "activities":  # `type` is today's CorrespondenceType, which has no agm_intervention
-                values["type"] = values["activity_type"] if values["activity_type"] in {e.value for e in CorrespondenceType} else "other"
-            ext = row["external_id"]
-            stored = s.get(model, ids[sheet][ext])
-            if stored is None:
-                extras = {"tags": [row["theme"]], "trigger_source": "manual", "milestone_stage": "identified", "escalation_stage": "private_engagement"} if sheet == "engagements" else {}
-                s.add(model(**{pk: ids[sheet][ext], "source": source, "external_id": ext, **extras, **values}))
-                report.created += 1
-                changed = sorted(values)
-            else:
-                changed = sorted(k for k, v in values.items() if getattr(stored, k) != v)
-                if not changed:
-                    report.unchanged += 1
-                    continue
-                for k in changed:
-                    setattr(stored, k, values[k])
-                report.updated += 1
-            company = values["company_id"] if sheet == "engagements" else company_of[values["engagement_id"]]
-            log(company, model.__tablename__, ext, changed)
-            if stored is None:
-                s.flush()
-        now = _ts(now_iso())
-        for company in touched:
-            s.get(StwCompanyModel, company).updated_at = now
+        _apply_engagement_plan(s, source, names, ordered_plan, ids, company_of, report)
     return report
 
 
@@ -319,6 +339,28 @@ def meeting_key(company_id: str | None, isin: str | None, cusip: str | None) -> 
     if not isin and company_id and company_id.startswith("isin_"):
         isin = company_id[5:].upper()
     return next(f"{ns}:{v}" for ns, v in (("isin", isin), ("cusip", cusip), ("cid", company_id)) if v)
+
+
+def _normalise_vote_fields(row: dict, source: str, reject) -> None:
+    try:
+        row["shares_voted"] = None if row["shares_voted"] is None else float(row["shares_voted"])
+    except (TypeError, ValueError):
+        reject("shares_voted", "not a number")
+    cats = row["categories"] or []
+    if not isinstance(cats, (str, list)):
+        reject("categories", "not a list")
+        cats = []
+    row["categories"] = [c.strip() for c in cats.split(";") if c.strip()] if isinstance(cats, str) else [str(c) for c in cats]
+    row["isin"] = "".join(row["isin"].split()).upper() if row["isin"] else None
+    row["cusip"] = row["cusip"].upper() if row["cusip"] else None
+    if row["cusip"] and row["cusip"].isdigit() and len(row["cusip"]) < 9:  # Excel drops leading zeros
+        row["cusip"] = row["cusip"].zfill(9)
+    row["vote_label"] = row["vote"]
+    row["against_management"] = None
+    if row["vote"] in {e.value for e in VoteValue}:
+        row["against_management"] = against_management(VoteValue(row["vote"]), row["management_recommendation"])
+        if row["against_management"] and not row["rationale"] and source != "npx_urth_demo":
+            reject("rationale", "rationale required when voting against management")
 
 
 def _clean_vote(n: int, raw: dict, source: str, bad: list[Rejection]) -> dict:
@@ -346,26 +388,24 @@ def _clean_vote(n: int, raw: dict, source: str, bad: list[Rejection]) -> dict:
             row[k] = _ts(row[k], k)
         except ClientInputError:
             reject(k, "not an ISO 8601 timestamp")
-    try:
-        row["shares_voted"] = None if row["shares_voted"] is None else float(row["shares_voted"])
-    except (TypeError, ValueError):
-        reject("shares_voted", "not a number")
-    cats = row["categories"] or []
-    if not isinstance(cats, (str, list)):
-        reject("categories", "not a list")
-        cats = []
-    row["categories"] = [c.strip() for c in cats.split(";") if c.strip()] if isinstance(cats, str) else [str(c) for c in cats]
-    row["isin"] = "".join(row["isin"].split()).upper() if row["isin"] else None
-    row["cusip"] = row["cusip"].upper() if row["cusip"] else None
-    if row["cusip"] and row["cusip"].isdigit() and len(row["cusip"]) < 9:  # Excel drops leading zeros
-        row["cusip"] = row["cusip"].zfill(9)
-    row["vote_label"] = row["vote"]
-    row["against_management"] = None
-    if row["vote"] in {e.value for e in VoteValue}:
-        row["against_management"] = against_management(VoteValue(row["vote"]), row["management_recommendation"])
-        if row["against_management"] and not row["rationale"] and source != "npx_urth_demo":
-            reject("rationale", "rationale required when voting against management")
+    _normalise_vote_fields(row, source, reject)
     return row
+
+
+def _check_vote_meetings(s: Session, plan: list[tuple], meeting_ids: dict[str, str], bad: list[Rejection]) -> dict[str, dict]:
+    # a meeting's company ids, once set (stored, or by an earlier row in this batch), must agree with every row
+    held: dict[str, dict] = {}
+    for n, m_ext, m_vals, *_ in plan:
+        if m_ext not in held:
+            stored = s.get(VoteMeetingModel, meeting_ids[m_ext]) if m_ext in meeting_ids else None
+            held[m_ext] = {k: getattr(stored, k) for k in _KEEP} if stored else {}
+        for k in sorted(_KEEP):
+            mine, theirs = m_vals[k], held[m_ext].get(k)
+            if mine is not None and theirs is not None and mine != theirs:
+                bad.append(Rejection(sheet="votes", row=n, field=k, reason=f"{k} differs from the meeting's {theirs}"))
+            elif theirs is None:
+                held[m_ext][k] = mine
+    return held
 
 
 def intake_votes(rows: list[dict], dsn: str, source: str, excel_rows: bool = False) -> IntakeReport:
@@ -404,18 +444,7 @@ def intake_votes(rows: list[dict], dsn: str, source: str, excel_rows: bool = Fal
         s.execute(_VOTE_LOCK)
         tables = {"meeting": (VoteMeetingModel, "meeting_id", "mtg"), "item": (VoteItemModel, "item_id", "vitem"), "decision": (VoteDecisionModel, "decision_id", "vote")}
         ids = {k: {e: i for e, i in s.execute(select(m.external_id, getattr(m, pk)).where(m.source == source, m.external_id.is_not(None)))} for k, (m, pk, _) in tables.items()}  # fmt: skip
-        # a meeting's company ids, once set (stored, or by an earlier row in this batch), must agree with every row
-        held: dict[str, dict] = {}
-        for n, m_ext, m_vals, *_ in plan:
-            if m_ext not in held:
-                stored = s.get(VoteMeetingModel, ids["meeting"][m_ext]) if m_ext in ids["meeting"] else None
-                held[m_ext] = {k: getattr(stored, k) for k in _KEEP} if stored else {}
-            for k in sorted(_KEEP):
-                mine, theirs = m_vals[k], held[m_ext].get(k)
-                if mine is not None and theirs is not None and mine != theirs:
-                    bad.append(Rejection(sheet="votes", row=n, field=k, reason=f"{k} differs from the meeting's {theirs}"))
-                elif theirs is None:
-                    held[m_ext][k] = mine
+        held = _check_vote_meetings(s, plan, ids["meeting"], bad)
         if bad:
             return report
 
