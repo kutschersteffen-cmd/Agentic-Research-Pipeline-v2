@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import replace
+from dataclasses import dataclass, replace
 
 from arp.extraction.adjudicator import AdjudicatorOutput
 from arp.extraction.extractor_agent import ExtractionDraft, PeriodValue
 from arp.extraction.verifier_agent import VerifierOutput
 from arp.grounding import ground_citations
 from arp.normalise.locale import Decimal, citation_decimal
-from arp.normalise.value import NUMERIC, typed_value
-from arp.schemas.common import DocumentChunk, SourceDocument
+from arp.normalise.value import NUMERIC, TypedValue, typed_value
+from arp.schemas.common import Citation, DocumentChunk, SourceDocument
 from arp.schemas.datapoints import Alternative, ExtractedField, FieldDefinition, ValueState
 from arp.schemas.review import ReasonCode
 
@@ -34,6 +34,147 @@ def _taken(tv, v, what: str):
         fx_rate=None, fx_rate_ref=None, reasons=[],
         notes=[f"No canonical value is computed for the {what}."] if v is not None else [],
     )
+
+
+@dataclass(frozen=True)
+class _ResolvedPeriod:
+    pv: PeriodValue
+    tv: TypedValue
+    citations: list[Citation]
+    alternatives: list[Alternative]
+    adj: AdjudicatorOutput | None
+    settled: bool
+    adj_unresolved: bool
+    uncited: bool
+
+
+def _group_by_period(
+    values: list[PeriodValue], type_fn,
+) -> tuple[dict[str, list], dict[str, list[PeriodValue]], bool]:
+    typed = [(pv, type_fn(pv)) for pv in values]
+    typed.sort(key=lambda t: t[1].period_end or "", reverse=True)  # ISO dates sort as text; None ("") last
+
+    kept: dict[str, list] = {}
+    dupes: dict[str, list[PeriodValue]] = {}
+    for pv, tv in typed:
+        # Unresolved periods with different labels are different periods we can't place, not duplicates.
+        key = tv.period_end or f"unspecified:{tv.period_text or ''}"
+        if key in kept:
+            kept[key][2] = True  # a second value for the same period
+            dupes.setdefault(key, []).append(pv)
+        else:
+            kept[key] = [pv, tv, False]
+
+    unresolved = sum(1 for _, tv, _ in kept.values() if tv.period_end is None) > 1
+    return kept, dupes, unresolved
+
+
+def _place_period(tv: TypedValue, unresolved: bool) -> TypedValue:
+    if unresolved and tv.period_end is None:
+        return replace(
+            tv,
+            reasons=[*tv.reasons, ReasonCode.CHECK_FAILED],
+            notes=[*tv.notes, f"period not resolved: {tv.period_text or '(none)'}"],
+        )
+    return tv
+
+
+def _resolve_period_value(
+    pv: PeriodValue,
+    tv: TypedValue,
+    *,
+    first: bool,
+    claimed: bool,
+    unresolved: bool,
+    verifier: VerifierOutput,
+    adjudicator: AdjudicatorOutput | None,
+    dupes: list[PeriodValue],
+    type_fn,
+    ground_fn,
+) -> _ResolvedPeriod:
+    alternatives: list[Alternative] = []
+    # The verifier's corrected_value is for values[0] as it saw them (draft
+    # order); the stable sort keeps that entry first in its period group.
+    # A disagreement with nothing offered (no value, no citation) is no correction.
+    correction = first and not verifier.agrees and (verifier.corrected_value is not None or bool(verifier.citations))
+    cited = ground_fn(verifier.citations) if correction else []
+    cited_correction = correction and any(c.grounded for c in cited)
+    # E40: the adjudicator's value is kept only with a grounded citation.
+    adj = adjudicator if first else None
+    adj_cited = ground_fn(adj.citations) if adj else []
+    settled = adj is not None and adj.settled and any(c.grounded for c in adj_cited)
+    adj_unresolved = adj is not None and not settled
+    # E38: a correction with no grounded citation never becomes the value;
+    # the extractor's value stays and the correction waits for review.
+    uncited = correction and not cited_correction and not settled
+    extractor_citations = ground_fn(pv.citations)
+    if claimed and (settled or adj_unresolved or cited_correction):
+        alternatives.append(Alternative(
+            value=tv.value, raw_value_text=pv.raw_value_text, source="extractor", citations=extractor_citations,
+        ))
+    if correction and (settled or adj_unresolved or uncited):
+        alternatives.append(Alternative(value=verifier.corrected_value, source="verifier", citations=cited))
+    if adj_unresolved and adj.value is not None:  # its figure, uncited or ungrounded, is a reviewer's suggestion
+        alternatives.append(Alternative(
+            value=adj.value, raw_value_text=adj.raw_value_text, source="adjudicator", citations=adj_cited,
+        ))
+    if settled:
+        # Typed like an extracted value (same period, the adjudicator's figure,
+        # unit and citations), so its canonical value is computed and checked.
+        final_citations = [c for c in adj_cited if c.grounded]
+        pv = pv.model_copy(update={
+            "value": adj.value, "state": ValueState.NOT_FOUND if adj.value is None else ValueState.FOUND,
+            "raw_value_text": adj.raw_value_text, "unit_text": adj.unit_text, "citations": final_citations,
+        })
+        tv = _place_period(type_fn(pv), unresolved)
+    elif cited_correction:
+        # pv.citations supported the value the verifier just rejected, so
+        # the verifier's own grounded citations back the correction.
+        tv = _taken(tv, verifier.corrected_value, "verifier's correction")
+        final_citations = cited
+    else:
+        final_citations = extractor_citations
+    for d in dupes:
+        dtv = type_fn(d)
+        if dtv.value_state != ValueState.NOT_FOUND:
+            alternatives.append(Alternative(
+                value=dtv.value, raw_value_text=d.raw_value_text, source="duplicate",
+                citations=ground_fn(d.citations),
+            ))
+    return _ResolvedPeriod(
+        pv=pv, tv=tv, citations=final_citations, alternatives=alternatives,
+        adj=adj, settled=settled, adj_unresolved=adj_unresolved, uncited=uncited,
+    )
+
+
+def _verifier_notes(
+    verifier: VerifierOutput,
+    resolved: _ResolvedPeriod,
+    *,
+    has_value: bool,
+    all_grounded: bool,
+    duplicated: bool,
+) -> str | None:
+    notes_parts: list[str] = []
+    if not verifier.agrees:
+        notes_parts.append(f"Verifier disagreed with the extractor: {verifier.notes}")
+    elif verifier.notes:
+        notes_parts.append(verifier.notes)
+    if resolved.settled:
+        notes_parts.append(f"The adjudicator settled the disagreement: {resolved.adj.notes}")
+    elif resolved.adj_unresolved:
+        notes_parts.append(f"The adjudicator did not settle the disagreement with a grounded citation: {resolved.adj.notes}")
+    if resolved.uncited:
+        notes_parts.append("The verifier's correction has no grounded citation; the extractor's value is kept.")
+    if has_value and not all_grounded:
+        if resolved.citations:
+            notes_parts.append("One or more citations failed the programmatic grounding check.")
+        else:
+            notes_parts.append("No grounded citation supports this value.")
+    if duplicated:
+        notes_parts.append("The extractor reported more than one value for this period; the first is kept.")
+    notes_parts.extend(resolved.tv.notes)
+    return " ".join(notes_parts).strip() or None
 
 
 def build_extracted_fields(
@@ -75,108 +216,28 @@ def build_extracted_fields(
         dec = _decimal(pv, documents_by_id, fuzzy_threshold, passages)  # disagreeing or unknown -> flag ambiguity
         return typed_value(field, pv, fiscal_year_end=fiscal_year_end, planned=planned, decimal=dec)
 
-    typed = [(pv, _typed(pv)) for pv in values]
-    typed.sort(key=lambda t: t[1].period_end or "", reverse=True)  # ISO dates sort as text; None ("") last
+    def _ground(citations):
+        return ground_citations(citations, documents_by_id, fuzzy_threshold, passages=passages)
 
-    kept: dict[str, list] = {}
-    dupes: dict[str, list[PeriodValue]] = {}
-    for pv, tv in typed:
-        # Unresolved periods with different labels are different periods we can't place, not duplicates.
-        key = tv.period_end or f"unspecified:{tv.period_text or ''}"
-        if key in kept:
-            kept[key][2] = True  # a second value for the same period
-            dupes.setdefault(key, []).append(pv)
-        else:
-            kept[key] = [pv, tv, False]
-
-    unresolved = sum(1 for _, tv, _ in kept.values() if tv.period_end is None) > 1
+    kept, dupes, unresolved = _group_by_period(values, _typed)
     out: list[ExtractedField] = []
     for key, (pv, tv, duplicated) in kept.items():
-        alternatives: list[Alternative] = []
-        def _placed(tv):
-            if unresolved and tv.period_end is None:
-                return replace(tv, reasons=[*tv.reasons, ReasonCode.CHECK_FAILED],
-                               notes=[*tv.notes, f"period not resolved: {tv.period_text or '(none)'}"])
-            return tv
-
-        tv = _placed(tv)
+        tv = _place_period(tv, unresolved)
         claimed = tv.value_state != ValueState.NOT_FOUND
-        first = pv is values[0]
-        # The verifier's corrected_value is for values[0] as it saw them (draft
-        # order); the stable sort keeps that entry first in its period group.
-        # A disagreement with nothing offered (no value, no citation) is no correction.
-        correction = first and not verifier.agrees and (verifier.corrected_value is not None or bool(verifier.citations))
-        cited = (
-            ground_citations(verifier.citations, documents_by_id, fuzzy_threshold, passages=passages)
-            if correction else []
+        resolved = _resolve_period_value(
+            pv, tv,
+            first=pv is values[0], claimed=claimed, unresolved=unresolved,
+            verifier=verifier, adjudicator=adjudicator, dupes=dupes.get(key, []),
+            type_fn=_typed, ground_fn=_ground,
         )
-        cited_correction = correction and any(c.grounded for c in cited)
-        # E40: the adjudicator's value is kept only with a grounded citation.
-        adj = adjudicator if first else None
-        adj_cited = ground_citations(adj.citations, documents_by_id, fuzzy_threshold, passages=passages) if adj else []
-        settled = adj is not None and adj.settled and any(c.grounded for c in adj_cited)
-        adj_unresolved = adj is not None and not settled
-        # E38: a correction with no grounded citation never becomes the value;
-        # the extractor's value stays and the correction waits for review.
-        uncited = correction and not cited_correction and not settled
-        extractor_citations = ground_citations(pv.citations, documents_by_id, fuzzy_threshold, passages=passages)
-        if claimed and (settled or adj_unresolved or cited_correction):
-            alternatives.append(Alternative(
-                value=tv.value, raw_value_text=pv.raw_value_text, source="extractor", citations=extractor_citations,
-            ))
-        if correction and (settled or adj_unresolved or uncited):
-            alternatives.append(Alternative(value=verifier.corrected_value, source="verifier", citations=cited))
-        if adj_unresolved and adj.value is not None:  # its figure, uncited or ungrounded, is a reviewer's suggestion
-            alternatives.append(Alternative(
-                value=adj.value, raw_value_text=adj.raw_value_text, source="adjudicator", citations=adj_cited,
-            ))
-        if settled:
-            # Typed like an extracted value (same period, the adjudicator's figure,
-            # unit and citations), so its canonical value is computed and checked.
-            final_citations = [c for c in adj_cited if c.grounded]
-            pv = pv.model_copy(update={
-                "value": adj.value, "state": ValueState.NOT_FOUND if adj.value is None else ValueState.FOUND,
-                "raw_value_text": adj.raw_value_text, "unit_text": adj.unit_text, "citations": final_citations,
-            })
-            tv = _placed(_typed(pv))
-        elif cited_correction:
-            # pv.citations supported the value the verifier just rejected, so
-            # the verifier's own grounded citations back the correction.
-            tv = _taken(tv, verifier.corrected_value, "verifier's correction")
-            final_citations = cited
-        else:
-            final_citations = extractor_citations
-        for d in dupes.get(key, []):
-            dtv = _typed(d)
-            if dtv.value_state != ValueState.NOT_FOUND:
-                alternatives.append(Alternative(
-                    value=dtv.value, raw_value_text=d.raw_value_text, source="duplicate",
-                    citations=ground_citations(d.citations, documents_by_id, fuzzy_threshold, passages=passages),
-                ))
+        pv, tv, final_citations = resolved.pv, resolved.tv, resolved.citations
         has_value = tv.value_state != ValueState.NOT_FOUND
         all_grounded = all(c.grounded for c in final_citations) if final_citations else not has_value
 
         final_confidence = min(draft.confidence, verifier.confidence) if claimed else 0.0
-
-        notes_parts: list[str] = []
-        if not verifier.agrees:
-            notes_parts.append(f"Verifier disagreed with the extractor: {verifier.notes}")
-        elif verifier.notes:
-            notes_parts.append(verifier.notes)
-        if settled:
-            notes_parts.append(f"The adjudicator settled the disagreement: {adj.notes}")
-        elif adj_unresolved:
-            notes_parts.append(f"The adjudicator did not settle the disagreement with a grounded citation: {adj.notes}")
-        if uncited:
-            notes_parts.append("The verifier's correction has no grounded citation; the extractor's value is kept.")
-        if has_value and not all_grounded:
-            if final_citations:
-                notes_parts.append("One or more citations failed the programmatic grounding check.")
-            else:
-                notes_parts.append("No grounded citation supports this value.")
-        if duplicated:
-            notes_parts.append("The extractor reported more than one value for this period; the first is kept.")
-        notes_parts.extend(tv.notes)
+        verifier_notes = _verifier_notes(
+            verifier, resolved, has_value=has_value, all_grounded=all_grounded, duplicated=duplicated,
+        )
 
         conflict = bool(draft.conflicting_sources) or duplicated
         # A settled disagreement leaves review only on a low-risk field whose value
@@ -186,9 +247,9 @@ def build_extracted_fields(
             code
             for code, applies in (
                 (ReasonCode.NOT_GROUNDED, has_value and not all_grounded),
-                (ReasonCode.VERIFIER_DISAGREES, not verifier.agrees and not (settled and auto_accept)),
-                (ReasonCode.VERIFIER_CORRECTION_UNCITED, uncited),
-                (ReasonCode.ADJUDICATOR_UNRESOLVED, adj_unresolved),
+                (ReasonCode.VERIFIER_DISAGREES, not verifier.agrees and not (resolved.settled and auto_accept)),
+                (ReasonCode.VERIFIER_CORRECTION_UNCITED, resolved.uncited),
+                (ReasonCode.ADJUDICATOR_UNRESOLVED, resolved.adj_unresolved),
                 (ReasonCode.CONFLICT, conflict),
                 (ReasonCode.LOW_CONFIDENCE, claimed and final_confidence < confidence_review_threshold),
             )
@@ -206,9 +267,9 @@ def build_extracted_fields(
                 confidence=final_confidence,
                 extractor_confidence=draft.confidence,
                 verifier_confidence=verifier.confidence,
-                alternatives=alternatives,
+                alternatives=resolved.alternatives,
                 grounded=all_grounded,
-                verifier_notes=" ".join(notes_parts).strip() or None,
+                verifier_notes=verifier_notes,
                 conflicting_sources=conflict,
                 review_reasons=reasons,
                 value_state=tv.value_state,
@@ -224,7 +285,7 @@ def build_extracted_fields(
                 reported_precision=tv.reported_precision,
                 fx_rate=tv.fx_rate,
                 fx_rate_ref=tv.fx_rate_ref,
-                method="adjudicated" if settled else "extracted",
+                method="adjudicated" if resolved.settled else "extracted",
             )
         )
     return out
