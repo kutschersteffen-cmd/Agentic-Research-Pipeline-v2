@@ -4,10 +4,7 @@ import asyncio
 import hashlib
 import json
 import logging
-from collections.abc import Awaitable, Callable
-from typing import TYPE_CHECKING, Literal, Protocol, TypeVar
-
-import httpx
+from typing import TYPE_CHECKING, Literal, Protocol
 
 from arp.config import Settings
 from arp.ingestion.edgar import AnnualOriginal, EdgarDocumentSource
@@ -19,6 +16,7 @@ from arp.schemas.common import CompanyRef
 from arp.storage.atomic_io import atomic_write_text
 from arp.storage.run_store import RunStore
 from arp.storage.safe_path import safe_id
+from arp.xbrl_pipeline._common import FETCH_DELAY_SECONDS, _retryable, _status, with_retry  # noqa: F401
 from arp.xbrl_pipeline.flatten import build_catalog, flatten_company_facts
 from arp.xbrl_pipeline.models import CompanyStatus, Market, ReportMeta  # noqa: F401 -- Market stays importable from here
 from arp.xbrl_pipeline.required import resolve_required
@@ -31,10 +29,8 @@ if TYPE_CHECKING:
     from arp.xbrl_pipeline.fetch_esef import EsefSource
 
 RunMarket = Literal["auto", "sec", "esef"]
-T = TypeVar("T")
 logger = logging.getLogger(__name__)
 
-FETCH_DELAY_SECONDS = 0.15
 _INLINE_MARKER = b"http://www.xbrl.org/2013/inlineXBRL"
 
 
@@ -65,26 +61,6 @@ def build_source(settings: Settings, *, refresh: bool = False) -> SecSource:
     return _SecSource(edgar, facts)
 
 
-def _retryable(exc: Exception) -> bool:
-    if isinstance(exc, httpx.HTTPStatusError):
-        code = exc.response.status_code
-        return code == 429 or code >= 500
-    return isinstance(exc, httpx.TransportError)
-
-
-async def with_retry(
-    call: Callable[[], Awaitable[T]], *, attempts: int = 3, base_delay: float = 1.0, sleep=asyncio.sleep
-) -> T:
-    for attempt in range(attempts):
-        try:
-            return await call()
-        except Exception as exc:  # noqa: BLE001 -- re-raised unless retryable
-            if not _retryable(exc) or attempt == attempts - 1:
-                raise
-            await sleep(base_delay * 2**attempt)
-    raise AssertionError("unreachable")
-
-
 async def _fetch_report(cik10: str, cik: str, *, source: SecSource, store: XbrlStore, sleep) -> str:
     try:
         annual = await with_retry(lambda: source.fetch_latest_annual_original(cik), sleep=sleep)
@@ -107,12 +83,6 @@ async def _fetch_report(cik10: str, cik: str, *, source: SecSource, store: XbrlS
     except Exception as exc:  # noqa: BLE001 -- a report problem never changes the company's status
         logger.warning("annual report for %s not stored: %s", cik10, exc, exc_info=True)
         return "error"
-
-
-def _status(company_id: str, st: str, key: str | None = None, sha: str | None = None, n: int = 0,
-            report: str = "none", market: str = "sec") -> CompanyStatus:
-    return CompanyStatus(company_id=company_id, cik=key, status=st, source_sha=sha, fact_count=n,
-                         report=report, market=market)
 
 
 async def fetch_company(

@@ -214,13 +214,13 @@ class Flow(BaseModel):
     @classmethod
     def _parse_mermaid(cls, data):
         if isinstance(data, dict) and isinstance(data.get("mermaid"), str) and data["mermaid"].strip():
-            from arp.reporting.mermaid_flow import MermaidError, parse_mermaid
+            from arp.schemas.mermaid_parser import MermaidError, parse_mermaid_dict
 
             try:
-                parsed = parse_mermaid(data["mermaid"])
+                parsed = parse_mermaid_dict(data["mermaid"])
             except MermaidError as e:
                 raise ValueError(str(e)) from None
-            data = {**data, **parsed.model_dump(include={"direction", "steps", "actors", "arrows", "emphasis"})}
+            data = {**data, **parsed}
         return data
 
     @model_validator(mode="after")

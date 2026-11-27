@@ -24,7 +24,7 @@ from lxml import etree
 
 from arp.ingestion.base import DocumentSource
 from arp.ingestion.indexing_config import IndexingConfig
-from arp.ingestion.xbrl import XbrlFact, _full_year
+from arp.ingestion.xbrl_models import XbrlFact, _full_year
 from arp.net_safety import UnsafeURLError, ssrf_guard_request_hook
 from arp.normalise.locale import context_decimal, decimal_for, detect_language
 from arp.schemas.common import Citation, CompanyRef, DocType, SourceDocument

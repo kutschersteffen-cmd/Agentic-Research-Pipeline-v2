@@ -19,8 +19,8 @@ import httpx
 from arp.ingestion.esef import MAX_PACKAGE_BYTES, download_capped, latest_package_filing, list_esef_filings
 from arp.net_safety import ssrf_guard_request_hook
 from arp.schemas.common import CompanyRef
+from arp.xbrl_pipeline._common import FETCH_DELAY_SECONDS, _status, with_retry
 from arp.xbrl_pipeline.esef_json import catalog_from_rows, dimensional_facts, flatten_xbrl_json
-from arp.xbrl_pipeline.fetch import FETCH_DELAY_SECONDS, _status, with_retry
 from arp.xbrl_pipeline.models import CompanyStatus, ReportMeta
 from arp.xbrl_pipeline.required import resolve_required_esef
 from arp.xbrl_pipeline.segments import NOTE_CONCEPTS, build_segments, store_segments
