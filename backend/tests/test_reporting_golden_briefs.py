@@ -5,7 +5,6 @@ scripted text is written clean on purpose: if a rule starts firing here, the rul
 """
 
 import asyncio
-import json
 
 import pytest
 from pypdf import PdfReader
@@ -90,22 +89,16 @@ async def test_periodic_brief_reruns_on_fresh_run_data(tmp_path, fake_llm, pg):
 
 
 def test_client_brief_renders_without_an_llm(tmp_path, fake_llm, monkeypatch, pg):  # vote_items reads runs
-    pytest.importorskip("zen")
     pytest.importorskip("pptx")
-    from arp.api.routers.stewardship import CreateStreamRequest, create_stream
     from arp.stewardship import client_report as cr
-    from arp.stewardship.policy_review import DATA
-    from arp.stewardship.process import StreamStore, build_stream_policy
+    from arp.stewardship.config_store import StreamStore
 
     streams = StreamStore(tmp_path)
-    stream = streams.get(create_stream(CreateStreamRequest(name="Example Pension Fund"), streams)["stream_id"])
-    decisions = json.loads((DATA / "examples" / "client_policy_example_decisions.json").read_text())
-    stream = streams.save(build_stream_policy({**stream, "decisions": decisions}))
     seen = {}
     real = cr.build_house_pptx
     monkeypatch.setattr(cr, "build_house_pptx", lambda deck, datasets, *a, **k: seen.update(deck=deck, datasets=datasets) or real(deck, datasets, *a, **k))
 
-    out = cr.build_pptx(cr.client_report(streams.root, stream, [], sla_days=45), tmp_path / "r.pptx")
+    out = cr.build_pptx(cr.client_report(streams.root, "House programme", []), tmp_path / "r.pptx")
 
     deck = seen["deck"]
     assert out.exists() and len(PdfReader(out.with_suffix(".pdf")).pages) == len(deck.slides)

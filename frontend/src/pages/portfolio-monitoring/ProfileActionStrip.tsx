@@ -21,7 +21,26 @@ export function ProfileActionStrip({ companyId, onCompany }: { companyId: string
 
   const load = () =>
     Promise.all([
-      api.getTracking().then((r) => setEngagements(r.engagements)),
+      api.listEngagementRecords().then((r) => {
+        const recs = r.records as Array<{
+          company_id: string;
+          name: string;
+          issues: Array<{ issue_id: string; theme: string; status: string; escalation_stage: string; milestone_stage: string }>;
+        }>;
+        setEngagements(
+          recs.flatMap((rec) =>
+            rec.issues.map((i) => ({
+              company_id: rec.company_id,
+              company: rec.name,
+              issue_id: i.issue_id,
+              theme: i.theme,
+              status: i.status,
+              step: i.escalation_stage,
+              milestone: i.milestone_stage,
+            })),
+          ),
+        );
+      }),
       api.listTriggers().then((r) => setTriggers(r.triggers)),
       api.listAlerts().then(setAlerts),
     ]).catch((e) => setError(String(e)));

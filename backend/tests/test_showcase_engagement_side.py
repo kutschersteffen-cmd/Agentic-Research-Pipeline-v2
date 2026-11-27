@@ -17,6 +17,7 @@ from arp.engagement.tracking_agent import log_meeting_summary_validated, log_out
 from arp.ingestion.registry import DocumentSourceRegistry
 from arp.schemas.common import CompanyRef, DocType, SourceDocument
 from arp.schemas.engagement import (
+    Commitment,
     Contact,
     EngagementIssue,
     EngagementRecord,
@@ -24,7 +25,7 @@ from arp.schemas.engagement import (
     OutreachLetterDraft,
     TriggerSource,
 )
-from arp.stewardship.process import StreamStore
+from arp.stewardship.config_store import StreamStore
 from arp.storage.engagement_store import EngagementStore
 from tests.conftest import PRINCIPAL, FakeLLMClient
 from tests.test_engagement_research_agent import _FixedDocSource
@@ -52,14 +53,12 @@ def _client(store: EngagementStore, settings: Settings | None = None, registry=N
     return TestClient(app)
 
 
-def _issue_with_commitment(client: TestClient, company: str, target_date: str | None = None) -> tuple[str, str]:
+def _issue_with_commitment(client: TestClient, store: EngagementStore, company: str, target_date: str | None = None) -> tuple[str, str]:
     client.post("/api/engagement/records", json={"company_id": company, "name": company})
     issue_id = client.post(f"/api/engagement/records/{company}/issues?name={company}", json={"theme": "climate"}).json()["issue_id"]
-    body = {"company_id": company, "issue_id": issue_id, "text": "Cut emissions"}
-    if target_date:
-        body["target_date"] = target_date
-    commitment_id = client.post("/api/stewardship/tracking/commitments", json=body).json()["commitment_id"]
-    return issue_id, commitment_id
+    c = Commitment(text="Cut emissions", target_date=target_date, recorded_by=PRINCIPAL.name)
+    store.add_commitment(company, issue_id, c)
+    return issue_id, c.commitment_id
 
 
 def _record(client, company):
@@ -74,18 +73,13 @@ def _verify(client, company, issue_id, body):
     return client.post(f"/api/engagement/records/{company}/issues/{issue_id}/verify-commitment", json=body)
 
 
-def _track_verify(client, company, issue_id, commitment_id, **extra):
-    body = {"company_id": company, "issue_id": issue_id, "status": "verified", **extra}
-    return client.post(f"/api/stewardship/tracking/commitments/{commitment_id}", json=body)
-
-
-# --- G5: evidence on verify (AC-72..84) ---
+# --- G5: evidence on verify (AC-72..79) ---
 
 
 @pytest.mark.parametrize("evidence", ["  ", ""])
 def test_blank_evidence_is_refused_and_nothing_changes(store, evidence):  # AC-72, 73, 74
     client = _client(store)
-    issue_id, cid = _issue_with_commitment(client, "C72")
+    issue_id, cid = _issue_with_commitment(client, store, "C72")
     res = _verify(client, "C72", issue_id, {"commitment_id": cid, "evidence": evidence})
     assert (res.status_code, res.json()["detail"]) == (422, EVIDENCE_MSG)
     issue = _issue(client, "C72", issue_id)
@@ -95,14 +89,14 @@ def test_blank_evidence_is_refused_and_nothing_changes(store, evidence):  # AC-7
 @pytest.mark.parametrize("body", [{}, {"evidence": None}])
 def test_missing_evidence_is_refused_before_the_target_date(store, body):  # AC-75, 76
     client = _client(store)
-    issue_id, cid = _issue_with_commitment(client, "C75", FUTURE)
+    issue_id, cid = _issue_with_commitment(client, store, "C75", FUTURE)
     res = _verify(client, "C75", issue_id, {"commitment_id": cid, **body})
     assert (res.status_code, res.json()["detail"]) == (422, EVIDENCE_MSG)
 
 
 def test_evidence_is_stored_on_verify(store):  # AC-77
     client = _client(store)
-    issue_id, cid = _issue_with_commitment(client, "C77", FUTURE)
+    issue_id, cid = _issue_with_commitment(client, store, "C77", FUTURE)
     res = _verify(client, "C77", issue_id, {"commitment_id": cid, "evidence": "Board minutes 2026-11-01, p. 3"})
     assert res.status_code == 200
     [c] = _issue(client, "C77", issue_id)["commitments"]
@@ -112,33 +106,9 @@ def test_evidence_is_stored_on_verify(store):  # AC-77
 @pytest.mark.parametrize("target_date", [None, YESTERDAY])
 def test_missing_evidence_passes_when_due_or_undated(store, target_date):  # AC-78, 79 (must not change)
     client = _client(store)
-    issue_id, cid = _issue_with_commitment(client, "C78", target_date)
+    issue_id, cid = _issue_with_commitment(client, store, "C78", target_date)
     assert _verify(client, "C78", issue_id, {"commitment_id": cid}).status_code == 200
     assert _issue(client, "C78", issue_id)["commitments"][0]["status"] == "verified"
-
-
-def test_tracking_verify_asks_for_evidence(store):  # AC-80, 81, 82
-    client = _client(store)
-    issue_id, cid = _issue_with_commitment(client, "C80", FUTURE)
-    res = _track_verify(client, "C80", issue_id, cid)
-    assert (res.status_code, res.json()["detail"]) == (422, EVIDENCE_MSG)
-    issue_id2, cid2 = _issue_with_commitment(client, "C81")
-    res = _track_verify(client, "C81", issue_id2, cid2, evidence="  ")
-    assert (res.status_code, res.json()["detail"]) == (422, EVIDENCE_MSG)
-    assert _track_verify(client, "C80", issue_id, cid, evidence="Annual report 2026, p. 41").status_code == 200
-    [c] = _issue(client, "C80", issue_id)["commitments"]
-    assert (c["status"], c["evidence"]) == ("verified", "Annual report 2026, p. 41")
-
-
-def test_tracking_verify_and_missed_without_evidence_still_pass(store):  # AC-83, 84 (must not change)
-    client = _client(store)
-    issue_id, cid = _issue_with_commitment(client, "C83")
-    assert _track_verify(client, "C83", issue_id, cid).status_code == 200
-    assert _issue(client, "C83", issue_id)["commitments"][0]["status"] == "verified"
-    issue_id, cid = _issue_with_commitment(client, "C84", FUTURE)
-    body = {"company_id": "C84", "issue_id": issue_id, "status": "missed"}
-    assert client.post(f"/api/stewardship/tracking/commitments/{cid}", json=body).status_code == 200
-    assert _issue(client, "C84", issue_id)["commitments"][0]["status"] == "missed"
 
 
 # --- G5: escalation of a resolved or closed issue (AC-88..91) ---
@@ -148,9 +118,9 @@ def test_tracking_verify_and_missed_without_evidence_still_pass(store):  # AC-83
 def test_resolved_or_closed_issue_cannot_be_escalated(store, status):  # AC-88, 89, 90
     client = _client(store)
     company = f"E{status}"
-    issue_id, _ = _issue_with_commitment(client, company)
+    issue_id, _ = _issue_with_commitment(client, store, company)
     close = {"company_id": company, "issue_id": issue_id, "status": status, "outcome": "x"}
-    assert client.post("/api/stewardship/tracking/close", json=close).status_code == 200
+    assert client.post("/api/stewardship/close", json=close).status_code == 200
     before = _issue(client, company, issue_id)
     res = client.post(
         f"/api/engagement/records/{company}/issues/{issue_id}/escalate",
@@ -164,7 +134,7 @@ def test_resolved_or_closed_issue_cannot_be_escalated(store, status):  # AC-88, 
 
 def test_open_issue_can_still_be_escalated(store):  # AC-91 (must not change)
     client = _client(store)
-    issue_id, _ = _issue_with_commitment(client, "E91")
+    issue_id, _ = _issue_with_commitment(client, store, "E91")
     res = client.post(
         f"/api/engagement/records/E91/issues/{issue_id}/escalate", json={"stage": "written_escalation_to_board", "reason": ""}
     )
@@ -188,7 +158,7 @@ def test_same_outreach_twice_adds_one_entry(store):  # AC-93, 94, 95, 97
 
 def test_outreach_on_a_resolved_issue_keeps_milestone_and_status(store):  # AC-96
     client = _client(store)
-    issue_id, cid = _issue_with_commitment(client, "O96")
+    issue_id, cid = _issue_with_commitment(client, store, "O96")
     assert _verify(client, "O96", issue_id, {"commitment_id": cid}).status_code == 200
     assert client.post(f"/api/engagement/records/O96/issues/{issue_id}/log-outreach-sent", json={"summary": "U"}).status_code == 200
     issue = _issue(client, "O96", issue_id)

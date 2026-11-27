@@ -35,18 +35,17 @@ from urllib.parse import quote, unquote
 
 from arp.schemas.engagement import FIR_THEME_LABELS, EngagementRecord, EscalationStage
 from arp.showcase.schema import FIELD_IDS as SIMULATED_FIELDS
+from arp.stewardship.config_store import PolicyStore, component_ids, validate_weights
+from arp.stewardship.monitoring import OPEN
 from arp.stewardship.notes import NoteLog
-from arp.stewardship.policies import PolicyStore, component_ids, validate_weights
-from arp.stewardship.process import current_tiers
 from arp.stewardship.programmes import ProgrammeLog
-from arp.stewardship.tiers import TIERS, TierStore
-from arp.stewardship.tracking import OPEN, watch_flags_by_company
 from arp.stewardship.trigger_store import TriggerStore
 from arp.stewardship.universe import company_by_security
 from arp.storage.jsonl_io import complete_rows
 from arp.storage.locks import KeyedLock
 
 POLICY = "priority_weights"
+TIERS = ("bilateral", "letter", "monitor")
 TIER_VALUE = dict(zip(TIERS, (1.0, 0.5, 0.0), strict=True))
 GRADES = {"A": ("Leader", 0.0), "B": ("Credible", 0.2), "C": ("Gaps", 0.4), "D": ("Emerging", 0.6),
           "E": ("Not credible", 0.8), "F": ("Disqualified", 1.0)}  # fmt: skip
@@ -123,6 +122,30 @@ def engaged(record: EngagementRecord | None) -> tuple[dict, list[str]]:
     return {"yes": True, "last": max(when).astimezone(UTC).date().isoformat()}, topics
 
 
+def _commitment_flags(record: EngagementRecord | None, today: date) -> list[dict[str, str]]:
+    """Overdue and broken commitments across a company's open issues."""
+    if record is None:
+        return []
+    out: list[dict[str, str]] = []
+    for issue in record.issues:
+        if issue.status not in OPEN:
+            continue
+        for c in issue.commitments:
+            status = c.status.value if hasattr(c.status, "value") else str(c.status)
+            if status == "missed":
+                since = (c.validated_at or "")[:10]
+                msg = f'Commitment broken: "{c.text}" was marked not met on {since}.' if since else f'Commitment broken: "{c.text}".'
+                out.append({"kind": "broken", "message": msg})
+            elif status == "pending" and c.target_date:
+                try:
+                    due = date.fromisoformat(c.target_date[:10])
+                except ValueError:
+                    continue
+                if due < today:
+                    out.append({"kind": "overdue", "message": f'Commitment overdue: "{c.text}" was due {due.isoformat()}.'})
+    return out
+
+
 def indicators(
     sample: dict,
     records: list[EngagementRecord],
@@ -132,9 +155,8 @@ def indicators(
     observations: dict[str, dict],
     today: date,
 ) -> list[dict]:
-    """One row per issuer with every indicator column and `normalised`: component id -> 0..1, or None when empty.
-    Overdue and broken commitments come from `watch_flags_by_company()`, read once for all companies."""
-    by_company, flags = {r.company_id: r for r in records}, watch_flags_by_company(records, today)
+    """One row per issuer with every indicator column and `normalised`: component id -> 0..1, or None when empty."""
+    by_company = {r.company_id: r for r in records}
     counts: dict[str, Counter] = {}
     new_high: set[str] = set()  # the tag asks a person to act, so a resolved or dismissed trigger does not set it
     for t in triggers:
@@ -153,12 +175,12 @@ def indicators(
         record = by_company.get(iid)
         open_issues = [i for i in record.issues if i.status in OPEN] if record else []
         escalated = sum(i.escalation_stage != EscalationStage.PRIVATE_ENGAGEMENT for i in open_issues)
-        commitment_flags = [{"kind": f.kind, "message": f.message} for f in flags.get(iid, ()) if f.item_kind == "commitment"]
+        commitment_flags = _commitment_flags(record, today)
         kinds = Counter(f["kind"] for f in commitment_flags)
         overdue, broken = kinds["overdue"], kinds["broken"]
         c = counts.get(iid, Counter())
         trig = {"high": c["high"], "medium": c["medium"], "low": c["low"]}
-        tier, confirmed = tiers[iid]
+        tier, confirmed = tiers.get(iid, ("monitor", False))
         meeting = next_meeting(meetings[iid], today) if iid in meetings else None
         obs, company_obs = observed[iid], observations.get(iid, {})
         norms = company_obs.get(NORMS)
@@ -244,11 +266,9 @@ def house_rows(
     today: date,
     issuers: list[dict] | None = None,
 ) -> list[dict]:
-    """`indicators()` with the stored triggers and the tiers (the confirmed one, else the coverage rules' proposal).
-    Tiers always come from the whole house `sample`; `issuers` (default: the sample's) are the scope's rows."""
-    confirmed = TierStore(root).latest()
-    tiers = {i: (t, i in confirmed) for i, t in current_tiers(root, sample, records).items()}
+    """`indicators()` with stored triggers for the house or requested scope issuers."""
     rows = {"issuers": sample["issuers"] if issuers is None else issuers}
+    tiers = {i["issuer_id"]: ("monitor", False) for i in rows["issuers"]}
     return indicators(rows, records, TriggerStore(root).list_triggers(), tiers, meetings, observations, today)
 
 

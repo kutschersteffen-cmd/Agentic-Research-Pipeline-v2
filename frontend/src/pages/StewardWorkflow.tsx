@@ -1,32 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { api } from "../api/client";
-import type { StewardshipFlow, StewardshipStream } from "../types";
-import { SOURCE_LABEL, STAGE_TABS, SampleChip, openCount } from "./steward/common";
+import { useMe } from "../lib/reviewer";
+import { STAGE_TABS } from "./steward/common";
+import { DraftingStudio } from "./steward/drafting";
+import { WorkbenchStudio } from "./steward/workbench";
 
 export { STAGE_TABS };
-import { useMe } from "../lib/reviewer";
-import { FlowChart, FlowList } from "./steward/flow";
-import { DraftingStudio } from "./steward/drafting";
-import { TrackingStudio } from "./steward/tracking";
-import { WorkbenchStudio } from "./steward/workbench";
-import {
-  CheckpointStudio,
-  ClientPolicyStudio,
-  MonitoringStudio,
-  ReportingStudio,
-  SelectionStudio,
-  VotingStudio,
-} from "./steward/studios";
-import type { MetricSource } from "../types";
 
-const CLIENT_STAGES = new Set(["client_policy", "reporting"]);
-// Workbench is a section of Selection; its old link opens Selection at that section.
-const IN_SELECTION = new Set(["workbench"]);
-const NEW_STREAM = "+new";
-
-/** Which companies the house program covers (see backend stewardship/universe.py).
- * Portfolio holdings make stewardship share company ids with Risk Monitoring,
- * Proxy Voting and Decision Studio, so their handoffs match. */
+/** Which companies the house program covers (see backend stewardship/universe.py). */
 function HouseUniverse({ onChanged }: { onChanged: () => void }) {
   const [info, setInfo] = useState<Awaited<ReturnType<typeof api.getHouseUniverse>> | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -68,259 +49,35 @@ function HouseUniverse({ onChanged }: { onChanged: () => void }) {
   );
 }
 
-function AddStream({ onCreated }: { onCreated: (id: string) => void }) {
-  const [name, setName] = useState("");
-  const [vehicle, setVehicle] = useState("SMA");
-  const [policy, setPolicy] = useState<unknown | null>(null);
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function readFile(file: File | undefined) {
-    setError(null);
-    if (!file) return;
-    try {
-      setPolicy(JSON.parse(await file.text()));
-      setFileName(file.name);
-    } catch {
-      setError("That file is not valid JSON.");
-    }
-  }
-  async function create() {
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await api.createStewardshipStream({ name, vehicle_type: vehicle, client_policy: policy ?? undefined });
-      onCreated(res.stream_id);
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <section className="card">
-      <h2>Add a client stream</h2>
-      <p className="help-text">
-        A client stream runs the house process with the client's own policy on top. Start from the client's envisioned voting
-        policy as a questionnaire (JSON, positions on the issue catalogue), or from the built-in example to try it out.
-      </p>
-      <div className="inline-fields">
-        <input aria-label="Client name" placeholder="Client name" value={name} onChange={(e) => setName(e.target.value)} />
-        <select aria-label="Vehicle type" value={vehicle} onChange={(e) => setVehicle(e.target.value)}>
-          <option value="SMA">SMA (segregated)</option>
-          <option value="CCF">CCF (pooled)</option>
-          <option value="ETF">ETF (pooled)</option>
-        </select>
-        <label className="link-button file-button">
-          {fileName ?? "Upload client policy (optional)"}
-          <input type="file" accept="application/json,.json" onChange={(e) => readFile(e.target.files?.[0])} hidden />
-        </label>
-        <button onClick={create} disabled={!name.trim() || busy}>
-          {busy ? "Creating…" : "Create stream"}
-        </button>
-      </div>
-      {!policy && <p className="muted">No file chosen: the stream starts from the example envisioned policy.</p>}
-      {error && <p className="error-text" role="alert">{error}</p>}
-    </section>
-  );
-}
-
-/** The stage lives in the URL (`#/stewardship/<stage>`), so Back moves between
- * stages and a process step can open a stage studio directly. */
+/** StewardIQ workspace: Selection Workbench and Outreach Drafting. */
 export function StewardWorkflow({ initialTab }: { initialTab?: string }) {
-  const asked: string = STAGE_TABS.some((t) => t.id === initialTab) ? initialTab! : "overview";
-  const tab = IN_SELECTION.has(asked) ? "selection" : asked;
-  const [streams, setStreams] = useState<StewardshipStream[]>([]);
-  const [stream, setStream] = useState("house");
-  const [houseFlow, setHouseFlow] = useState<StewardshipFlow | null>(null);
-  const [clientFlow, setClientFlow] = useState<StewardshipFlow | null>(null);
-  const [adding, setAdding] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  // The overview reads as a list by default (what a committee can follow);
-  // the graph shows the loops between stages for whoever wants them.
-  const [view, setView] = useState<"list" | "graph">("list");
-
-  const loadStreams = useCallback(async () => {
-    try {
-      setStreams((await api.listStewardshipStreams()).streams);
-    } catch (err) {
-      setError((err as Error).message);
-    }
-  }, []);
-  const reload = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      setHouseFlow(await api.getStewardshipFlow("house"));
-      setClientFlow(stream === "house" ? null : await api.getStewardshipFlow(stream));
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }, [stream]);
-
-  useEffect(() => {
-    loadStreams();
-  }, [loadStreams]);
-  // The Workbench's rows come first: the flow (stage badges) is read once they show, not alongside them.
-  const [flowWanted, setFlowWanted] = useState(asked !== "workbench");
-  // #/stewardship/workbench and /overlap scroll to their section once the content above it has loaded.
-  const scrollToSection = useCallback(() => {
-    if (IN_SELECTION.has(asked)) document.getElementById(`steward-${asked}`)?.scrollIntoView();
-  }, [asked]);
-  const showFlow = useCallback(() => {
-    setFlowWanted(true);
-    scrollToSection();
-  }, [scrollToSection]);
-  useEffect(() => {
-    if (asked !== "workbench") setFlowWanted(true);
-  }, [asked]);
-  useEffect(() => {
-    if (flowWanted) reload();
-  }, [reload, flowWanted]);
-
-  // Client stages default to the first client stream when the house is selected.
-  const firstClient = streams.find((s) => s.kind === "client")?.stream_id;
-  useEffect(() => {
-    if (CLIENT_STAGES.has(tab) && stream === "house" && firstClient) setStream(firstClient);
-  }, [tab, stream, firstClient]);
-  function chooseProgram(id: string) {
-    if (id === NEW_STREAM) return setAdding(true);
-    setAdding(false);
-    setStream(id);
-    if (id === "house" && CLIENT_STAGES.has(tab)) openTab("overview");
-  }
-  // The house program first, under one name; then each client stream.
-  const programs = [...streams].sort((a, b) => Number(a.kind === "client") - Number(b.kind === "client"));
-  function openTab(next: string) {
-    setAdding(false);
-    if (CLIENT_STAGES.has(next) && stream === "house" && firstClient) setStream(firstClient);
-    window.location.hash = next === "overview" ? "/stewardship" : `/stewardship/${next}`;
-  }
-
-  const overviewFlow = stream === "house" ? houseFlow : clientFlow;
-  const stageFor = (id: string) => (CLIENT_STAGES.has(id) ? (stream === "house" ? houseFlow : clientFlow) : houseFlow)?.stages.find((s) => s.id === id);
-  const stage = tab === "overview" ? undefined : stageFor(tab);
-  const mandate = overviewFlow?.stream.mandate;
-  const studioProps = stage ? { stage, onChanged: reload, onOpen: openTab } : null;
-  useEffect(scrollToSection, [scrollToSection, stage]);
+  const tab = initialTab === "drafting" ? "drafting" : "workbench";
+  const [reloadKey, setReloadKey] = useState(0);
+  const bump = () => setReloadKey((k) => k + 1);
 
   return (
-    <div className="page">
-      <h1>Steward Workflow</h1>
-      <p className="help-text">Each stage of the stewardship cycle, with the decisions waiting on you.</p>
-
-      <nav className="sub-nav workflow-tabs stepper" aria-label="Workflow stages">
-        <button className={tab === "overview" ? "nav-tab active" : "nav-tab"} aria-current={tab === "overview" ? "step" : undefined} onClick={() => openTab("overview")}>
-          Overview
-        </button>
-        {STAGE_TABS.filter((t) => !IN_SELECTION.has(t.id) && (stream !== "house" || !CLIENT_STAGES.has(t.id))).map((t) => {
-          const n = openCount(stageFor(t.id));
-          return (
-            <span key={t.id} className="stepper-item">
-              <button
-                className={tab === t.id ? "nav-tab active" : "nav-tab"}
-                aria-current={tab === t.id ? "step" : undefined}
-                aria-label={n > 0 ? `${t.label}, ${n} open decisions` : undefined}
-                onClick={() => openTab(t.id)}
-              >
-                {t.n && <span className="stepper-num">{t.n}</span>}
-                {t.label}
-                {n > 0 && <span className="tab-badge">{n}</span>}
-              </button>
-            </span>
-          );
-        })}
-        <label className="field-label workflow-program">
-          Program
-          <select aria-label="Program" value={adding ? NEW_STREAM : stream} onChange={(e) => chooseProgram(e.target.value)}>
-            {programs.map((s) => (
-              <option key={s.stream_id} value={s.stream_id}>
-                {s.kind === "client" ? s.name : "House program"}
-              </option>
-            ))}
-            <option value={NEW_STREAM}>+ New client stream…</option>
-          </select>
-        </label>
+    <div className="steward-page">
+      <header className="page-header">
+        <h1>StewardIQ</h1>
+        <p className="help-text">
+          Prioritise companies for engagement, manage programmes and notes, and review outreach drafts with four-eyes approval.
+        </p>
+        <HouseUniverse onChanged={bump} />
+      </header>
+      <nav className="tab-bar" aria-label="StewardIQ sections">
+        {STAGE_TABS.map((t) => (
+          <a
+            key={t.id}
+            href={`#/stewardship/${t.id}`}
+            className={tab === t.id ? "nav-tab active" : "nav-tab"}
+            aria-current={tab === t.id ? "page" : undefined}
+          >
+            {t.label}
+          </a>
+        ))}
       </nav>
-
-      {error && <p className="error-text" role="alert">{error}</p>}
-      {adding && (
-        <AddStream
-          onCreated={async (id) => {
-            await loadStreams();
-            setAdding(false);
-            setStream(id);
-          }}
-        />
-      )}
-
-      {tab === "overview" && (
-        <>
-          {!adding && !overviewFlow && !error && <p className="status-text">Loading stages…</p>}
-          {!adding && overviewFlow && (
-            <section className="card">
-              <div className="section-heading">
-                <h2>{overviewFlow.stream.name}</h2>
-                {mandate && (
-                  <span className="chip">
-                    {[mandate.vehicle_type, mandate.benchmark, mandate.voting_mode && mandate.voting_mode.replace(/_/g, " ")].filter(Boolean).join(" · ")}
-                  </span>
-                )}
-                {loading && <span className="muted">Refreshing…</span>}
-              </div>
-              {/* Where the numbers come from is reference, not work: folded. */}
-              <details className="data-sources">
-                <summary>Data sources{stream === "house" ? " and companies covered" : ""}</summary>
-                <div className="chip-row source-legend">
-                  {(Object.keys(SOURCE_LABEL) as MetricSource[]).map((s) => (
-                    <span key={s} className="chip">
-                      <span className={`source-dot source-${s}`} /> {SOURCE_LABEL[s]}
-                    </span>
-                  ))}
-                </div>
-                {stream === "house" && <HouseUniverse onChanged={reload} />}
-              </details>
-              <div className="toolbar flow-view">
-                <p className="muted">
-                  {/placeholder/i.test(overviewFlow.data_note) && <SampleChip />} {overviewFlow.data_note} Click a stage to open its studio.
-                </p>
-                <span className="flow-view-switch">
-                  {(["list", "graph"] as const).map((v) => (
-                    <button key={v} className={view === v ? "nav-tab active" : "nav-tab"} aria-pressed={view === v} onClick={() => setView(v)}>
-                      {v === "list" ? "List" : "Graph"}
-                    </button>
-                  ))}
-                </span>
-              </div>
-              {view === "graph" && <FlowChart flow={overviewFlow} selected="" onSelect={openTab} />}
-              <FlowList flow={overviewFlow} selected="" onSelect={openTab} phoneOnly={view === "graph"} />
-            </section>
-          )}
-        </>
-      )}
-
-      {tab !== "overview" && CLIENT_STAGES.has(tab) && stream === "house" && (
-        <p className="muted card">Choose a client in Program, or "+ New client stream…", to work on its policy and reporting.</p>
-      )}
-      {tab !== "overview" && !stage && loading && <p className="status-text">Loading…</p>}
-
-      {studioProps && tab === "monitoring" && <MonitoringStudio {...studioProps} />}
-      {studioProps && tab === "selection" && <SelectionStudio {...studioProps} />}
-      {tab === "selection" && (
-        <div id="steward-workbench">
-          <WorkbenchStudio onRowsShown={showFlow} />
-        </div>
-      )}
-      {studioProps && tab === "drafting" && <DraftingStudio {...studioProps} />}
-      {studioProps && tab === "voting" && <VotingStudio {...studioProps} />}
-      {studioProps && tab === "checkpoint" && <CheckpointStudio {...studioProps} />}
-      {studioProps && tab === "tracking" && <TrackingStudio {...studioProps} />}
-      {studioProps && tab === "client_policy" && stream !== "house" && <ClientPolicyStudio key={stream} {...studioProps} streamId={stream} />}
-      {studioProps && tab === "reporting" && stream !== "house" && <ReportingStudio key={stream} {...studioProps} streamId={stream} />}
+      {tab === "workbench" && <WorkbenchStudio key={reloadKey} />}
+      {tab === "drafting" && <DraftingStudio key={reloadKey} />}
     </div>
   );
 }

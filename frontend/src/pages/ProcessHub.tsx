@@ -35,12 +35,32 @@ export function useRuns() {
 }
 
 
-/** The house stewardship flow, loaded once: its stages carry StewardIQ's numbers. */
-export function useHouseFlow() {
+/** StewardIQ pending outreach drafts shaped as the drafting stage so card/menu states settle cleanly. */
+export function useHouseFlow(): { flow: StewardshipFlow | null; error: string | null } {
   const [flow, setFlow] = useState<StewardshipFlow | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
-    api.getStewardshipFlow("house").then(setFlow, (err: Error) => setError(err.message));
+    api.listDrafts().then(
+      (r) => {
+        const pending = r.drafts.filter((d) => d.status === "draft");
+        setFlow({
+          stream_id: "house",
+          stream_name: "House programme",
+          stages: [
+            {
+              id: "drafting",
+              number: 1,
+              title: "Drafting",
+              layer: "house",
+              summary: "",
+              metrics: [],
+              decisions: pending.map((d) => ({ kind: "outreach", draft_id: d.draft_id, decision: null })),
+            },
+          ],
+        } as unknown as StewardshipFlow);
+      },
+      (err: Error) => setError(err.message),
+    );
   }, []);
   return { flow, error };
 }

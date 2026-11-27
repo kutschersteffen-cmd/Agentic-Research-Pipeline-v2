@@ -11,17 +11,15 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-pytest.importorskip("zen")
-
-from arp.api.deps import get_stream_store, settings_dep  # noqa: E402
-from arp.api.main import app  # noqa: E402
-from arp.config import Settings, get_settings  # noqa: E402
-from arp.schemas.engagement import Commitment, EngagementIssue, EngagementRecord  # noqa: E402
-from arp.stewardship import worklist  # noqa: E402
-from arp.stewardship.intake import intake_votes  # noqa: E402
-from arp.stewardship.policies import PolicyStore  # noqa: E402
-from arp.stewardship.process import StreamStore  # noqa: E402
-from arp.stewardship.trigger_store import TriggerStore, trigger_id  # noqa: E402
+from arp.api.deps import get_stream_store, settings_dep
+from arp.api.main import app
+from arp.config import Settings, get_settings
+from arp.schemas.engagement import Commitment, CommitmentStatus, EngagementIssue, EngagementRecord
+from arp.stewardship import worklist
+from arp.stewardship.config_store import PolicyStore, StreamStore
+from arp.stewardship.intake import intake_votes
+from arp.stewardship.trigger_store import TriggerStore, trigger_id
+from arp.storage.engagement_store_factory import build_engagement_store
 
 pytestmark = pytest.mark.usefixtures("sample_house_universe", "pg")
 SNAPSHOT = Path(__file__).parent / "fixtures" / "stewardship_worklist_unchanged_main.json"
@@ -115,12 +113,12 @@ def test_new_trigger_shows_without_restart(client, root):
 def test_overdue_commitment_counts_until_the_issue_closes(client):
     # AC-6, AC-56, AC-54
     past = (datetime.now(UTC).date() - timedelta(days=30)).isoformat()
+    eng = build_engagement_store(get_settings())
     for company in ("SYN05", "SYN11"):
         issue = _issue(client, company)
-        r = client.post("/api/stewardship/tracking/commitments", json={"company_id": company, "issue_id": issue, "text": "Publish targets", "target_date": past})
-        assert r.status_code == 200, r.text
+        eng.add_commitment(company, issue, Commitment(text="Publish targets", target_date=past, recorded_by="tester"))
         if company == "SYN11":
-            r = client.post("/api/stewardship/tracking/close", json={"company_id": company, "issue_id": issue, "status": "closed", "outcome": "done"})
+            r = client.post("/api/stewardship/close", json={"company_id": company, "issue_id": issue, "status": "closed", "outcome": "done"})
             assert r.status_code == 200, r.text
     rows = _rows(client)
     assert rows["SYN05"]["overdue_commitments"] == 1 and _part(rows["SYN05"], "overdue_commitments")["points"] == 7.5
@@ -131,12 +129,11 @@ def test_overdue_commitment_counts_until_the_issue_closes(client):
 def test_broken_commitments_count_and_weigh_nothing(client):
     # AC-30, AC-53
     issue = _issue(client, "SYN08")
+    eng = build_engagement_store(get_settings())
     for text in ("Publish targets", "Split chair and CEO"):
-        r = client.post("/api/stewardship/tracking/commitments", json={"company_id": "SYN08", "issue_id": issue, "text": text})
-        assert r.status_code == 200, r.text
-        r = client.post(f"/api/stewardship/tracking/commitments/{r.json()['commitment_id']}",
-                        json={"company_id": "SYN08", "issue_id": issue, "status": "missed"})
-        assert r.status_code == 200, r.text
+        c = Commitment(text=text, recorded_by="tester")
+        eng.add_commitment("SYN08", issue, c)
+        eng.update_commitment_status("SYN08", issue, c.commitment_id, CommitmentStatus.MISSED, "tester")
     rows = _rows(client)
     assert rows["SYN08"]["broken_commitments"] == 2 and rows["SYN08"]["overdue_commitments"] == 0
     assert {k: _part(rows["SYN08"], "broken_commitments")[k] for k in ("weight", "normalised", "points")} == {"weight": 0, "normalised": 1.0, "points": 0.0}
@@ -216,12 +213,12 @@ def test_saved_weights_apply_after_four_eyes_activation(root):
 def test_a_version_saved_before_broken_commitments_reads_it_as_weight_0(client, root, monkeypatch):
     # Spec "The policy": a version saved earlier lacks broken_commitments and reads it as weight 0, so the Weights
     # section can still preview and save it (code review of PR 7, finding 1).
-    from arp.stewardship import policies
+    from arp.stewardship import config_store
 
     old = [i for i in BUNDLED if i != "broken_commitments"]
     store = PolicyStore(root)
     with monkeypatch.context() as m:
-        m.setattr(policies, "component_ids", lambda: old)
+        m.setattr(config_store, "component_ids", lambda: old)
         v1 = store.save(worklist.POLICY, {**_v0_with(), "components": [c for c in _v0_with()["components"] if c["id"] != "broken_commitments"]}, "", "user_a", {})
     store.activate(worklist.POLICY, v1, "user_b")
     active = client.get("/api/stewardship/policies/priority_weights").json()["active"]
@@ -232,7 +229,7 @@ def test_a_version_saved_before_broken_commitments_reads_it_as_weight_0(client, 
 
 
 def _sample() -> dict:
-    from arp.stewardship.process import load_sample
+    from arp.stewardship.sample import load_sample
 
     return load_sample()
 

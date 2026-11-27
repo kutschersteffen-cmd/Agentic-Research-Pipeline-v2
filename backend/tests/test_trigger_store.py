@@ -92,7 +92,7 @@ def test_issuer_fields_keeps_existing_keys_and_adds_total():
 def test_trigger_routes(tmp_path, monkeypatch):
     from arp.api.deps import get_stream_store
     from arp.api.main import app
-    from arp.stewardship.process import StreamStore
+    from arp.stewardship.config_store import StreamStore
 
     app.dependency_overrides[get_stream_store] = lambda: StreamStore(tmp_path)
     try:
@@ -133,7 +133,7 @@ def test_record_run_rejects_trigger_without_issuer_or_rule_before_writing(store,
 def test_triggers_route_rejects_bogus_status(tmp_path):
     from arp.api.deps import get_stream_store
     from arp.api.main import app
-    from arp.stewardship.process import StreamStore
+    from arp.stewardship.config_store import StreamStore
 
     app.dependency_overrides[get_stream_store] = lambda: StreamStore(tmp_path)
     try:

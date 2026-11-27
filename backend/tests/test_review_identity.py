@@ -12,7 +12,7 @@ from arp.api.routers import stewardship as stewardship_router
 from arp.cli._shared import cli_principal
 from arp.config import Settings
 from arp.orchestration.review_queue import latest_decisions, record_review_decision
-from arp.stewardship.process import StreamStore
+from arp.stewardship.config_store import StreamStore
 from arp.storage.run_store import RunStore
 from tests.conftest import PRINCIPAL
 
@@ -63,7 +63,7 @@ def test_stewardship_approved_by_comes_from_principal(tmp_path):
     app.dependency_overrides[current_user] = lambda: PRINCIPAL
     with TestClient(app) as c:
         # Another user saved v1; the body's `approved_by` must not be able to impersonate them.
-        r = c.post("/api/stewardship/policies/house_voting/activate", json={"version": 0, "approved_by": "Mallory"})
+        r = c.post("/api/stewardship/policies/priority_weights/activate", json={"version": 0, "approved_by": "Mallory"})
         assert r.status_code == 200
         assert r.json()["approved_by"] == "u_test"
 

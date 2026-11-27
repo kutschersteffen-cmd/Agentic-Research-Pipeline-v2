@@ -27,7 +27,7 @@ from arp.publish.facts import PublishStore
 from arp.publish.scheduler import PublishingScheduler
 from arp.retrieval.content_store_factory import content_store_for
 from arp.review.analytics import ReviewAnalyticsScheduler
-from arp.stewardship.process import StreamStore
+from arp.stewardship.config_store import StreamStore
 from arp.storage.document_blob_store import blob_store_for
 from arp.storage.document_store import DocumentContentStore
 from arp.storage.engagement_store import EngagementStore

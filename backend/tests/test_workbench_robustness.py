@@ -14,15 +14,13 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-pytest.importorskip("zen")
-
-from arp.api.deps import get_stream_store  # noqa: E402
-from arp.api.main import app  # noqa: E402
-from arp.config import get_settings  # noqa: E402
-from arp.stewardship import worklist  # noqa: E402
-from arp.stewardship.notes import NoteLog  # noqa: E402
-from arp.stewardship.process import StreamStore  # noqa: E402
-from arp.stewardship.programmes import ProgrammeLog  # noqa: E402
+from arp.api.deps import get_stream_store
+from arp.api.main import app
+from arp.config import get_settings
+from arp.stewardship import worklist
+from arp.stewardship.config_store import StreamStore
+from arp.stewardship.notes import NoteLog
+from arp.stewardship.programmes import ProgrammeLog
 
 Q = worklist.cycle_of(datetime.now(UTC).date())
 BACKEND = Path(__file__).resolve().parents[1]

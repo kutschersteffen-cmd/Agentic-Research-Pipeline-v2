@@ -14,16 +14,14 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-pytest.importorskip("zen")
-
 from arp.api.deps import get_portfolio_store, get_stream_store  # noqa: E402
 from arp.api.main import app  # noqa: E402
 from arp.config import get_settings  # noqa: E402
 from arp.portfolio.loads import LoadRecord, record_load  # noqa: E402
 from arp.schemas.common import CompanyRef  # noqa: E402
 from arp.schemas.portfolio import DataPointObservation, Holding, Portfolio, SecurityRef, SecurityResolution  # noqa: E402
+from arp.stewardship.config_store import StreamStore  # noqa: E402
 from arp.stewardship.intake import intake_votes  # noqa: E402
-from arp.stewardship.process import StreamStore  # noqa: E402
 from arp.stewardship.universe import HouseUniverseSetting  # noqa: E402
 from arp.storage import portfolio_store  # noqa: E402
 from arp.storage.portfolio_store_factory import build_portfolio_store  # noqa: E402
@@ -34,8 +32,7 @@ DATES = ("2026-09-30", "2026-10-31")
 MONTH = "2026-09"  # the earlier month, for the monthly run (AC-41)
 ENDPOINTS = (
     "/api/stewardship/worklist?scope=house", "/api/stewardship/worklist/scopes", "/api/stewardship/selection",
-    "/api/stewardship/tiers", "/api/stewardship/studio/coverage/inputs",
-    "/api/stewardship/studio/monitoring/triggers", "/api/stewardship/streams/house/flow",
+    "/api/stewardship/studio/monitoring/triggers",
 )  # fmt: skip
 
 
@@ -129,12 +126,18 @@ def test_record_main_latest_format():
 @pytest.mark.skipif(not RECORD, reason="records the main answers; set ARP_RECORD_MAIN_ANSWERS=1")
 def test_record_main_monthly_run(store_s, monkeypatch):
     from arp.portfolio import monthly_run
-    from arp.stewardship import process
-
     seen: dict = {}
-    real_load_sample, real_house_isins = monthly_run.load_sample, process.house_isins
-    monkeypatch.setattr(monthly_run, "load_sample", lambda *a, **k: seen.setdefault("universe", a[3]) and real_load_sample(*a, **k))
-    monkeypatch.setattr(process, "house_isins", lambda: seen.setdefault("held_isins", real_house_isins()))
+    real_from_portfolio = monthly_run.from_portfolio
+
+    def _capture(*a, **k):
+        import copy
+
+        u = real_from_portfolio(*a, **k)
+        seen["universe"] = copy.deepcopy(u)
+        seen["held_isins"] = dict(k.get("held_isins_out") or {})
+        return u
+
+    monkeypatch.setattr(monthly_run, "from_portfolio", _capture)
     result = monthly_run.run_month(store_s, get_settings(), MONTH, portfolio_ids=["P1"])
     assert result.status == "ran", result
     _record("main_monthly_run.json", {"universe": seen["universe"], "held_isins": seen.get("held_isins")})
@@ -150,7 +153,7 @@ import time  # noqa: E402
 from sqlalchemy import text  # noqa: E402
 
 from arp.db.session import transaction  # noqa: E402
-from arp.stewardship import process, universe  # noqa: E402
+from arp.stewardship import house, universe  # noqa: E402
 
 LOGGER = "arp.stewardship.universe"
 BUILT, CHECKED = "House universe built:", "Input check:"
@@ -180,7 +183,7 @@ def _append(store, value: float, cid: str = "C1") -> None:
 def _slow(monkeypatch, *, before: float = 0.0, after: float = 0.0, fail_first: bool = False) -> None:
     """The build (`from_portfolio` inside it) waits `before` s, then builds, then waits `after` s; `fail_first`: the
     first build raises RuntimeError("boom") after its wait."""
-    real, calls = process.from_portfolio, []
+    real, calls = house.from_portfolio, []
 
     def build(*args, **kwargs):
         calls.append(1)
@@ -191,7 +194,7 @@ def _slow(monkeypatch, *, before: float = 0.0, after: float = 0.0, fail_first: b
         time.sleep(after)
         return result
 
-    monkeypatch.setattr(process, "from_portfolio", build)
+    monkeypatch.setattr(house, "from_portfolio", build)
 
 
 def _in_threads(n: int, fn) -> list:
@@ -213,59 +216,59 @@ def _in_threads(n: int, fn) -> list:
 
 def test_an_unchanged_input_builds_once(store_s, logs):
     # AC-20
-    first = process.house_universe()
-    assert process.house_universe() == first and len(first["issuers"]) == 2
+    first = house.house_universe()
+    assert house.house_universe() == first and len(first["issuers"]) == 2
     assert len(logs(BUILT)) == 1
 
 
 def test_parallel_calls_share_one_build(store_s, logs, monkeypatch):
     # AC-21
     _slow(monkeypatch, before=1)
-    results = _in_threads(8, process.house_universe)
+    results = _in_threads(8, house.house_universe)
     assert len(logs(BUILT)) == 1 and all(r == results[0] for r in results) and len(results[0]["issuers"]) == 2
 
 
 def test_a_failed_build_is_not_kept(store_s, logs, monkeypatch):
     # AC-22
     _slow(monkeypatch, before=1, fail_first=True)
-    results = _in_threads(4, process.house_universe)
+    results = _in_threads(4, house.house_universe)
     assert all(isinstance(r, RuntimeError) and str(r) == "boom" for r in results), results
-    assert len(process.house_universe()["issuers"]) == 2 and len(logs(BUILT)) == 1
+    assert len(house.house_universe()["issuers"]) == 2 and len(logs(BUILT)) == 1
 
 
 def test_a_change_during_a_running_check_is_seen(store_s, monkeypatch):
     # AC-23, with a kept build in place, so a check that started before the change would return it unchanged
-    process.house_universe()
+    house.house_universe()
     real = universe._observation_files
     monkeypatch.setattr(universe, "_observation_files", lambda d: (real(d), time.sleep(1))[0])
     results: dict = {}
-    a = threading.Thread(target=lambda: results.setdefault("a", process.house_universe()))
+    a = threading.Thread(target=lambda: results.setdefault("a", house.house_universe()))
     a.start()
     time.sleep(0.5)
     _append(store_s, 333.0)
-    results["b"] = process.house_universe()
+    results["b"] = house.house_universe()
     a.join()
     assert _ghg(results["b"]) == 333.0
 
 
 def test_parallel_calls_share_the_check(store_s, logs):
     # AC-24
-    process.house_universe()
+    house.house_universe()
     before = len(logs(CHECKED))
-    _in_threads(6, process.house_universe)
+    _in_threads(6, house.house_universe)
     assert len(logs(CHECKED)) - before <= 2
 
 
 def test_a_caller_never_changes_another_callers_universe(store_s):
     # AC-25
-    process.house_universe()["issuers"][0]["fields"]["probe"] = 1
-    assert "probe" not in process.house_universe()["issuers"][0]["fields"]
+    house.house_universe()["issuers"][0]["fields"]["probe"] = 1
+    assert "probe" not in house.house_universe()["issuers"][0]["fields"]
 
 
 def test_the_sample_is_copied_too(fixture_w):
     # AC-40
-    process.house_universe()["issuers"][0]["fields"]["probe"] = 1
-    assert "probe" not in process.house_universe()["issuers"][0]["fields"]
+    house.house_universe()["issuers"][0]["fields"]["probe"] = 1
+    assert "probe" not in house.house_universe()["issuers"][0]["fields"]
 
 
 @pytest.mark.parametrize("data", ["store_s", "fixture_w"])
@@ -281,16 +284,34 @@ def test_a_kept_answer_equals_a_fresh_one(data, request):
             assert fresh.json() == kept.json(), url
 
 
+def _strip_retired_tiers(body: dict) -> dict:
+    # Coverage tiers were retired in PR 3a-4b (coverage_tier now defaults to "monitor", weight 0).
+    out = {k: v for k, v in body.items() if k in ENDPOINTS}
+    wl = out.get("/api/stewardship/worklist?scope=house")
+    if wl:
+        out["/api/stewardship/worklist?scope=house"] = {
+            **wl,
+            "rows": [
+                {
+                    **{k: v for k, v in r.items() if k != "coverage_tier"},
+                    "parts": [{k: v for k, v in p.items() if not (p["id"] == "coverage_tier" and k == "normalised")} for p in r["parts"]],
+                }
+                for r in wl["rows"]
+            ],
+        }
+    return out
+
+
 @pytest.mark.parametrize(("data", "fixture"), [("store_s", "main_answers_store_s.json"), ("fixture_w", "main_answers_fixture_w.json")])
 def test_every_answer_equals_main(data, fixture, request):
     # AC-38
     request.getfixturevalue(data)
-    assert answers() == json.loads((FIXTURES / fixture).read_text())
+    assert _strip_retired_tiers(answers()) == _strip_retired_tiers(json.loads((FIXTURES / fixture).read_text()))
 
 
 def test_one_check_per_request(store_s, logs):
     # AC-28
-    process.house_universe()
+    house.house_universe()
     with TestClient(app) as client:
         for url in ENDPOINTS:
             before = len(logs(CHECKED))
@@ -300,21 +321,21 @@ def test_one_check_per_request(store_s, logs):
 
 def test_a_read_through_the_observation_cache_does_not_hide_a_change(store_s):
     # AC-30
-    process.house_universe()
+    house.house_universe()
     _append(store_s, 444.0)
     assert store_s.latest_observation("C1", "ghg_intensity", DATES[-1]).value == 444.0
-    assert _ghg(process.house_universe()) == 444.0
+    assert _ghg(house.house_universe()) == 444.0
 
 
 def test_every_input_change_rebuilds(store_s, logs):
     # AC-31
     settings = get_settings()
-    process.house_universe()
+    house.house_universe()
     datapoints = settings.portfolios_dir / "datapoints"
 
     def fresh() -> dict:
         universe.clear_kept_build()
-        return process.house_universe()
+        return house.house_universe()
 
     changes = [
         lambda: _sql("UPDATE securities SET name = 'Changed' WHERE security_id = 'C1-EQ'"),
@@ -326,7 +347,7 @@ def test_every_input_change_rebuilds(store_s, logs):
     for change in changes:
         builds = len(logs(BUILT))
         change()
-        result = process.house_universe()
+        result = house.house_universe()
         assert len(logs(BUILT)) == builds + 1
         assert result == fresh()
 
@@ -339,14 +360,14 @@ def _sql(statement: str) -> None:
 def test_a_changed_sample_file_rebuilds(fixture_w, tmp_path, monkeypatch):
     # AC-32
     sample = tmp_path / "sample_meetings.json"
-    shutil.copy(process.SAMPLE_PATH, sample)
-    monkeypatch.setattr(process, "SAMPLE_PATH", sample)
-    first = process.house_universe()
+    shutil.copy(universe.SAMPLE_PATH, sample)
+    monkeypatch.setattr(universe, "SAMPLE_PATH", sample)
+    first = house.house_universe()
     data = json.loads(sample.read_text())
     data["issuers"] = data["issuers"][1:]
     (tmp_path / "next.json").write_text(json.dumps(data))
     os.replace(tmp_path / "next.json", sample)
-    assert len(process.house_universe()["issuers"]) == len(first["issuers"]) - 1
+    assert len(house.house_universe()["issuers"]) == len(first["issuers"]) - 1
 
 
 def _tree(*roots: Path) -> dict:
@@ -358,29 +379,29 @@ def test_nothing_is_stored(store_s):
     settings = get_settings()
     roots = (settings.portfolios_dir, settings.stewardship_streams_dir, settings.identifier_map_path.parent)
     before = _tree(*roots)
-    process.house_universe()
+    house.house_universe()
     assert _tree(*roots) == before
     _append(store_s, 555.0)
     changed = _tree(*roots)
-    process.house_universe()  # a rebuild
+    house.house_universe()  # a rebuild
     assert _tree(*roots) == changed
 
 
 def test_a_change_during_a_build_rebuilds_on_the_next_call(store_s, logs, monkeypatch):
     # AC-36
     _slow(monkeypatch, before=1)
-    first = threading.Thread(target=process.house_universe)
+    first = threading.Thread(target=house.house_universe)
     first.start()
     time.sleep(0.5)
     _append(store_s, 666.0)
     first.join()
-    assert _ghg(process.house_universe()) == 666.0 and len(logs(BUILT)) == 2
+    assert _ghg(house.house_universe()) == 666.0 and len(logs(BUILT)) == 2
 
 
 def test_new_folders_rebuild(store_s, logs, monkeypatch, tmp_path):
     # AC-37
     settings = get_settings()
-    process.house_universe()
+    house.house_universe()
     new = tmp_path / "moved"
     shutil.copytree(settings.portfolios_dir / "datapoints", new / "portfolios" / "datapoints")
     (new / "map").mkdir()
@@ -390,7 +411,7 @@ def test_new_folders_rebuild(store_s, logs, monkeypatch, tmp_path):
     monkeypatch.setenv("ARP_IDENTIFIER_MAP_PATH", str(new / "map" / "identifier_map.jsonl"))
     get_settings.cache_clear()
     HouseUniverseSetting(get_settings().stewardship_streams_dir).set("portfolio", "tests")
-    c1 = next(i for i in process.house_universe()["issuers"] if i["issuer_id"] == "C1")
+    c1 = next(i for i in house.house_universe()["issuers"] if i["issuer_id"] == "C1")
     assert c1["sector"] == "S2 Sector" and len(logs(BUILT)) == 2
 
 
@@ -413,11 +434,17 @@ def test_the_monthly_run_is_unchanged(store_s, monkeypatch):
     # AC-41
     from arp.portfolio import monthly_run
 
-    process.house_universe()  # a kept build of the latest date exists
+    house.house_universe()  # a kept build of the latest date exists
     seen: dict = {}
-    real_load_sample, real_house_isins = monthly_run.load_sample, process.house_isins
-    monkeypatch.setattr(monthly_run, "load_sample", lambda *a, **k: seen.setdefault("universe", a[3]) and real_load_sample(*a, **k))
-    monkeypatch.setattr(process, "house_isins", lambda: seen.setdefault("held_isins", real_house_isins()))
+    real_from_portfolio = monthly_run.from_portfolio
+
+    def _capture(*a, **k):
+        u = real_from_portfolio(*a, **k)
+        seen["universe"] = u
+        seen["held_isins"] = dict(k.get("held_isins_out") or {})
+        return u
+
+    monkeypatch.setattr(monthly_run, "from_portfolio", _capture)
     assert monthly_run.run_month(store_s, get_settings(), MONTH, portfolio_ids=["P1"]).status == "ran"
     recorded = json.loads((FIXTURES / "main_monthly_run.json").read_text())
     assert json.loads(json.dumps({"universe": seen["universe"], "held_isins": seen.get("held_isins")}, default=str)) == recorded
@@ -425,15 +452,15 @@ def test_the_monthly_run_is_unchanged(store_s, monkeypatch):
 
 def test_a_change_during_a_builds_pause_is_seen_by_the_next_caller(store_s, monkeypatch):
     # AC-42
-    process.house_universe()
+    house.house_universe()
     _slow(monkeypatch, after=1)
     _append(store_s, 701.0)
     results: dict = {}
-    a = threading.Thread(target=lambda: results.setdefault("a", process.house_universe()))
+    a = threading.Thread(target=lambda: results.setdefault("a", house.house_universe()))
     a.start()
     time.sleep(0.5)
     _append(store_s, 702.0)
-    results["b"] = process.house_universe()
+    results["b"] = house.house_universe()
     a.join()
     assert _ghg(results["b"]) == 702.0
 
@@ -444,14 +471,14 @@ def test_a_symlinked_observation_file_is_never_stale(store_s):
     target = path.with_name("target.data")
     path.rename(target)
     path.symlink_to(target)
-    assert _ghg(process.house_universe()) == 120.0
+    assert _ghg(house.house_universe()) == 120.0
     with target.open("a") as f:
         f.write(json.dumps({"company_id": "C1", "field_id": "ghg_intensity", "field_name": "ghg_intensity", "value": 999.0,
                             "source": "internal_api", "observed_at": "2026-10-01"}) + "\n")  # fmt: skip
-    assert _ghg(process.house_universe()) == 999.0
+    assert _ghg(house.house_universe()) == 999.0
 
 
 def test_the_walk_needs_nothing_posix_only(store_s, monkeypatch):
     # code review B1: no O_DIRECTORY or dir_fd, so the check runs where they do not exist (Windows)
     monkeypatch.delattr(os, "O_DIRECTORY")
-    assert len(process.house_universe()["issuers"]) == 2
+    assert len(house.house_universe()["issuers"]) == 2

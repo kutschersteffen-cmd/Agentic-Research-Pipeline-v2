@@ -4,21 +4,17 @@ import copy
 import json
 
 import pytest
+from fastapi import HTTPException
 
-pytest.importorskip("zen")
-
-from fastapi import HTTPException  # noqa: E402
-
-from arp.api.routers.stewardship import (  # noqa: E402
+from arp.api.routers.stewardship import (
     OpenFromTriggerRequest,
     monitoring_triggers,
     open_engagement_from_trigger,
 )
-from arp.config import Settings  # noqa: E402
-from arp.stewardship.monitoring import evaluate, load_graph, preview  # noqa: E402
-from arp.stewardship.policies import PolicyStore  # noqa: E402
-from arp.stewardship.process import SAMPLE_PATH, StreamStore  # noqa: E402
-from arp.storage.engagement_store import EngagementStore  # noqa: E402
+from arp.stewardship.config_store import PolicyStore, StreamStore
+from arp.stewardship.monitoring import evaluate, load_graph, preview
+from arp.stewardship.universe import SAMPLE_PATH
+from arp.storage.engagement_store import EngagementStore
 from tests.conftest import PRINCIPAL
 
 SAMPLE = json.loads(SAMPLE_PATH.read_text())
@@ -62,6 +58,37 @@ def test_preview_shows_who_a_stricter_threshold_flags():
     assert result["newly_flagged"] and not result["no_longer_flagged"]
 
 
+def test_evaluator_handles_null_cells_bool_int_and_malformed_graphs():
+    graph = copy.deepcopy(load_graph())
+    table = next(n for n in graph["nodes"] if n["id"] == "monitoring_rules")
+    table["content"]["rules"][0]["controversy"] = None  # JSON null cell acts as wildcard
+    assert len(evaluate(graph, SAMPLE, [])) == len(evaluate(load_graph(), SAMPLE, []))
+    # bool vs int must not cross-match
+    bool_graph = {
+        "nodes": [{
+            "type": "decisionTableNode",
+            "content": {
+                "inputs": [{"id": "c1", "field": "issuer.flag"}],
+                "outputs": [
+                    {"id": "o1", "field": "rule"}, {"id": "o2", "field": "type"},
+                    {"id": "o3", "field": "theme"}, {"id": "o4", "field": "severity"},
+                    {"id": "o5", "field": "reason"},
+                ],
+                "rules": [{"c1": "true", "o1": "'r'", "o2": "'score_change'", "o3": "'climate'", "o4": "'high'", "o5": "'x'"}],
+            },
+        }],
+    }
+    assert evaluate(bool_graph, _one({"flag": 1}), []) == []
+    assert len(evaluate(bool_graph, _one({"flag": True}), [])) == 1
+    for bad in ({"nodes": ["bad"]}, {"nodes": [{"type": "decisionTableNode", "content": {"inputs": "bad"}}]}):
+        with pytest.raises(ValueError):
+            evaluate(bad, _one({}), [])
+    bad_expr = copy.deepcopy(bool_graph)
+    bad_expr["nodes"][0]["content"]["rules"][0]["c1"] = "== invalid("
+    with pytest.raises(ValueError):
+        evaluate(bad_expr, _one({"flag": True}), [])
+
+
 def test_an_invalid_trigger_type_is_rejected_on_save(tmp_path):
     graph = copy.deepcopy(load_graph())
     table = next(n for n in graph["nodes"] if n["id"] == "monitoring_rules")
@@ -78,7 +105,7 @@ def test_open_engagement_from_a_trigger_uses_the_rule_and_only_once(tmp_path):
     [issue] = engagements.get("SYN10").issues
     assert (issue.theme, issue.severity.value, issue.source.value) == ("climate_transition", "high", "monitoring_rule")
     assert opened["issue_id"] == issue.issue_id
-    attached = next(t for t in monitoring_triggers(Settings(), streams, engagements)["triggers"] if t["rule"] == "clti_laggard")
+    attached = next(t for t in monitoring_triggers(streams, engagements)["triggers"] if t["rule"] == "clti_laggard")
     assert attached["engagement_id"] == issue.issue_id
     with pytest.raises(HTTPException) as again:
         open_engagement_from_trigger(body, streams, engagements, PRINCIPAL)

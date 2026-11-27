@@ -26,7 +26,7 @@ const down = { runs: null, flow: null };
 
 test("AC-4: busy R&D Lab first dot is failed", () => assert.equal(view("R&D Lab", busy).dots[0], "failed"));
 test("AC-5: busy Argus first dot is wait", () => assert.equal(view("Argus", busy).dots[0], "wait"));
-test("AC-6: busy StewardIQ first two dots wait", () => assert.deepEqual(view("StewardIQ", busy).dots.slice(0, 2), ["wait", "wait"]));
+test("AC-6: busy StewardIQ first dot waits", () => assert.equal(view("StewardIQ", busy).dots[0], "wait"));
 test("AC-7: busy Transition Intelligence Platform has a running dot", () => assert.ok(view("Transition Intelligence Platform", busy).dots.includes("now")));
 test("AC-8: busy Data Hub dots are idle", () => assert.deepEqual(view("Data Hub", busy).dots, ["idle"]));
 

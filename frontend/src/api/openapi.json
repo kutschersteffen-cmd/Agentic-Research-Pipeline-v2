@@ -2359,24 +2359,6 @@
     "title": "BenchmarksOut",
     "type": "object"
    },
-   "BilateralPickRequest": {
-    "properties": {
-     "issuer_id": {
-      "title": "Issuer Id",
-      "type": "string"
-     },
-     "reason": {
-      "title": "Reason",
-      "type": "string"
-     }
-    },
-    "required": [
-     "issuer_id",
-     "reason"
-    ],
-    "title": "BilateralPickRequest",
-    "type": "object"
-   },
    "Body_add_fact_api_transition_barrier_cells__code___region__facts_post": {
     "properties": {
      "as_of": {
@@ -4221,89 +4203,6 @@
     "title": "CommitmentFlag",
     "type": "object"
    },
-   "CommitmentRequest": {
-    "properties": {
-     "company_id": {
-      "title": "Company Id",
-      "type": "string"
-     },
-     "issue_id": {
-      "title": "Issue Id",
-      "type": "string"
-     },
-     "proof_statement": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Proof Statement"
-     },
-     "target_date": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Target Date"
-     },
-     "text": {
-      "title": "Text",
-      "type": "string"
-     }
-    },
-    "required": [
-     "company_id",
-     "issue_id",
-     "text"
-    ],
-    "title": "CommitmentRequest",
-    "type": "object"
-   },
-   "CommitmentStatusRequest": {
-    "properties": {
-     "company_id": {
-      "title": "Company Id",
-      "type": "string"
-     },
-     "evidence": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Evidence"
-     },
-     "issue_id": {
-      "title": "Issue Id",
-      "type": "string"
-     },
-     "status": {
-      "enum": [
-       "verified",
-       "missed"
-      ],
-      "title": "Status",
-      "type": "string"
-     }
-    },
-    "required": [
-     "company_id",
-     "issue_id",
-     "status"
-    ],
-    "title": "CommitmentStatusRequest",
-    "type": "object"
-   },
    "CompanyActivity": {
     "properties": {
      "activity": {
@@ -5143,26 +5042,6 @@
     "title": "Confidence",
     "type": "string"
    },
-   "ConfirmTiersRequest": {
-    "properties": {
-     "issuer_ids": {
-      "anyOf": [
-       {
-        "items": {
-         "type": "string"
-        },
-        "type": "array"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Issuer Ids"
-     }
-    },
-    "title": "ConfirmTiersRequest",
-    "type": "object"
-   },
    "Confirmed": {
     "properties": {
      "confirmed": {
@@ -5507,20 +5386,6 @@
     "title": "CoverageOut",
     "type": "object"
    },
-   "CoveragePreviewRequest": {
-    "properties": {
-     "graph": {
-      "additionalProperties": true,
-      "title": "Graph",
-      "type": "object"
-     }
-    },
-    "required": [
-     "graph"
-    ],
-    "title": "CoveragePreviewRequest",
-    "type": "object"
-   },
    "CreateDraftRequest": {
     "properties": {
      "company_id": {
@@ -5585,41 +5450,6 @@
      "name"
     ],
     "title": "CreateRecordRequest",
-    "type": "object"
-   },
-   "CreateStreamRequest": {
-    "properties": {
-     "client_policy": {
-      "anyOf": [
-       {
-        "additionalProperties": true,
-        "type": "object"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Client Policy"
-     },
-     "name": {
-      "title": "Name",
-      "type": "string"
-     },
-     "vehicle_type": {
-      "default": "SMA",
-      "enum": [
-       "SMA",
-       "CCF",
-       "ETF"
-      ],
-      "title": "Vehicle Type",
-      "type": "string"
-     }
-    },
-    "required": [
-     "name"
-    ],
-    "title": "CreateStreamRequest",
     "type": "object"
    },
    "CreateTaxonomyRequest": {
@@ -7362,20 +7192,6 @@
     "title": "EscalateRequest",
     "type": "object"
    },
-   "EscalationPreviewRequest": {
-    "properties": {
-     "graph": {
-      "additionalProperties": true,
-      "title": "Graph",
-      "type": "object"
-     }
-    },
-    "required": [
-     "graph"
-    ],
-    "title": "EscalationPreviewRequest",
-    "type": "object"
-   },
    "EscalationStage": {
     "description": "Illustrative 6-step escalation ladder. Stage 4+ overlaps with the\nvoting module: a decision to reach PRIVATE_ENGAGEMENT..ESCALATION_TO_CHAIR\nstays inside the engagement workflow, but VOTE_AGAINST_MANAGEMENT and\nbeyond are the same decision the voting module's Policy Application\nAgent checks for alignment against (see arp.voting.policy_agent).",
     "enum": [
@@ -7388,38 +7204,6 @@
     ],
     "title": "EscalationStage",
     "type": "string"
-   },
-   "ExceptionDecisionRequest": {
-    "properties": {
-     "client_step": {
-      "title": "Client Step",
-      "type": "string"
-     },
-     "decision": {
-      "enum": [
-       "adopt",
-       "decline"
-      ],
-      "title": "Decision",
-      "type": "string"
-     },
-     "issue_id": {
-      "title": "Issue Id",
-      "type": "string"
-     },
-     "note": {
-      "default": "",
-      "title": "Note",
-      "type": "string"
-     }
-    },
-    "required": [
-     "issue_id",
-     "client_step",
-     "decision"
-    ],
-    "title": "ExceptionDecisionRequest",
-    "type": "object"
    },
    "Exploration": {
     "properties": {
@@ -10017,20 +9801,6 @@
     "title": "MergeResponse",
     "type": "object"
    },
-   "MonitoringPreviewRequest": {
-    "properties": {
-     "graph": {
-      "additionalProperties": true,
-      "title": "Graph",
-      "type": "object"
-     }
-    },
-    "required": [
-     "graph"
-    ],
-    "title": "MonitoringPreviewRequest",
-    "type": "object"
-   },
    "MonthlyRunRequest": {
     "properties": {
      "esg_provider": {
@@ -10902,54 +10672,6 @@
     ],
     "title": "Pillar",
     "type": "string"
-   },
-   "PolicyDecisionRequest": {
-    "properties": {
-     "decision": {
-      "enum": [
-       "adopt",
-       "adopt_with_modification",
-       "decline",
-       "defer",
-       "clarify"
-      ],
-      "title": "Decision",
-      "type": "string"
-     },
-     "issue_id": {
-      "title": "Issue Id",
-      "type": "string"
-     },
-     "modification": {
-      "anyOf": [
-       {
-        "additionalProperties": true,
-        "type": "object"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Modification"
-     },
-     "note": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Note"
-     }
-    },
-    "required": [
-     "issue_id",
-     "decision"
-    ],
-    "title": "PolicyDecisionRequest",
-    "type": "object"
    },
    "Portfolio": {
     "properties": {
@@ -19634,20 +19356,6 @@
      "votes"
     ],
     "title": "VotesBody",
-    "type": "object"
-   },
-   "VotingPreviewRequest": {
-    "properties": {
-     "policy": {
-      "additionalProperties": true,
-      "title": "Policy",
-      "type": "object"
-     }
-    },
-    "required": [
-     "policy"
-    ],
-    "title": "VotingPreviewRequest",
     "type": "object"
    },
    "WaitingCounts": {
@@ -32742,24 +32450,98 @@
     ]
    }
   },
-  "/api/stewardship/catalogue": {
+  "/api/stewardship/case-study/{company_id}/{issue_id}": {
    "get": {
-    "operationId": "get_catalogue_api_stewardship_catalogue_get",
+    "description": "E7: a case study compiled from a closed engagement's records, with its E8 style flags.",
+    "operationId": "get_case_study_api_stewardship_case_study__company_id___issue_id__get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "company_id",
+      "required": true,
+      "schema": {
+       "title": "Company Id",
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "issue_id",
+      "required": true,
+      "schema": {
+       "title": "Issue Id",
+       "type": "string"
+      }
+     }
+    ],
     "responses": {
      "200": {
       "content": {
        "application/json": {
         "schema": {
          "additionalProperties": true,
-         "title": "Response Get Catalogue Api Stewardship Catalogue Get",
+         "title": "Response Get Case Study Api Stewardship Case Study  Company Id   Issue Id  Get",
          "type": "object"
         }
        }
       },
       "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
      }
     },
-    "summary": "Get Catalogue",
+    "summary": "Get Case Study",
+    "tags": [
+     "stewardship"
+    ]
+   }
+  },
+  "/api/stewardship/close": {
+   "post": {
+    "operationId": "close_engagement_api_stewardship_close_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CloseRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Close Engagement Api Stewardship Close Post",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "summary": "Close Engagement",
     "tags": [
      "stewardship"
     ]
@@ -32885,7 +32667,7 @@
   },
   "/api/stewardship/drafts/{draft_id}/approve": {
    "post": {
-    "description": "The stage 5 checkpoint for outreach: nothing is sent before a second person approves it.",
+    "description": "Four-eyes checkpoint for outreach: nothing is sent before a second person approves it.",
     "operationId": "approve_draft_api_stewardship_drafts__draft_id__approve_post",
     "parameters": [
      {
@@ -33346,16 +33128,6 @@
        "title": "Policy Id",
        "type": "string"
       }
-     },
-     {
-      "in": "query",
-      "name": "stream",
-      "required": false,
-      "schema": {
-       "default": "house",
-       "title": "Stream",
-       "type": "string"
-      }
      }
     ],
     "responses": {
@@ -33398,16 +33170,6 @@
       "required": true,
       "schema": {
        "title": "Policy Id",
-       "type": "string"
-      }
-     },
-     {
-      "in": "query",
-      "name": "stream",
-      "required": false,
-      "schema": {
-       "default": "house",
-       "title": "Stream",
        "type": "string"
       }
      }
@@ -33462,16 +33224,6 @@
       "required": true,
       "schema": {
        "title": "Policy Id",
-       "type": "string"
-      }
-     },
-     {
-      "in": "query",
-      "name": "stream",
-      "required": false,
-      "schema": {
-       "default": "house",
-       "title": "Stream",
        "type": "string"
       }
      }
@@ -33536,16 +33288,6 @@
       "schema": {
        "title": "Version",
        "type": "integer"
-      }
-     },
-     {
-      "in": "query",
-      "name": "stream",
-      "required": false,
-      "schema": {
-       "default": "house",
-       "title": "Stream",
-       "type": "string"
       }
      }
     ],
@@ -33823,6 +33565,49 @@
     ]
    }
   },
+  "/api/stewardship/report": {
+   "get": {
+    "operationId": "get_house_report_api_stewardship_report_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "title": "Response Get House Report Api Stewardship Report Get",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "Get House Report",
+    "tags": [
+     "stewardship"
+    ]
+   }
+  },
+  "/api/stewardship/report.pptx": {
+   "get": {
+    "description": "The house stewardship summary as a PowerPoint deck, rendered on request.",
+    "operationId": "get_house_report_pptx_api_stewardship_report_pptx_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "summary": "Get House Report Pptx",
+    "tags": [
+     "stewardship"
+    ]
+   }
+  },
   "/api/stewardship/selection": {
    "get": {
     "description": "The engagement selection of a scope and cycle (default: the current one), folded from its log.",
@@ -33965,610 +33750,9 @@
     ]
    }
   },
-  "/api/stewardship/streams": {
-   "get": {
-    "operationId": "list_streams_api_stewardship_streams_get",
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "additionalProperties": true,
-         "title": "Response List Streams Api Stewardship Streams Get",
-         "type": "object"
-        }
-       }
-      },
-      "description": "Successful Response"
-     }
-    },
-    "summary": "List Streams",
-    "tags": [
-     "stewardship"
-    ]
-   },
-   "post": {
-    "operationId": "create_stream_api_stewardship_streams_post",
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/CreateStreamRequest"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "additionalProperties": true,
-         "title": "Response Create Stream Api Stewardship Streams Post",
-         "type": "object"
-        }
-       }
-      },
-      "description": "Successful Response"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      },
-      "description": "Validation Error"
-     }
-    },
-    "summary": "Create Stream",
-    "tags": [
-     "stewardship"
-    ]
-   }
-  },
-  "/api/stewardship/streams/{stream_id}/build": {
-   "post": {
-    "operationId": "post_build_api_stewardship_streams__stream_id__build_post",
-    "parameters": [
-     {
-      "in": "path",
-      "name": "stream_id",
-      "required": true,
-      "schema": {
-       "title": "Stream Id",
-       "type": "string"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "additionalProperties": true,
-         "title": "Response Post Build Api Stewardship Streams  Stream Id  Build Post",
-         "type": "object"
-        }
-       }
-      },
-      "description": "Successful Response"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      },
-      "description": "Validation Error"
-     }
-    },
-    "summary": "Post Build",
-    "tags": [
-     "stewardship"
-    ]
-   }
-  },
-  "/api/stewardship/streams/{stream_id}/decisions": {
-   "post": {
-    "operationId": "post_decision_api_stewardship_streams__stream_id__decisions_post",
-    "parameters": [
-     {
-      "in": "path",
-      "name": "stream_id",
-      "required": true,
-      "schema": {
-       "title": "Stream Id",
-       "type": "string"
-      }
-     }
-    ],
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/PolicyDecisionRequest"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "additionalProperties": true,
-         "title": "Response Post Decision Api Stewardship Streams  Stream Id  Decisions Post",
-         "type": "object"
-        }
-       }
-      },
-      "description": "Successful Response"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      },
-      "description": "Validation Error"
-     }
-    },
-    "summary": "Post Decision",
-    "tags": [
-     "stewardship"
-    ]
-   }
-  },
-  "/api/stewardship/streams/{stream_id}/exceptions": {
-   "post": {
-    "description": "The house decides a client's escalation above its own step: adopt moves the\nengagement to the client's step; decline keeps the house step. Both are logged\non the stream, so the client report can show them.",
-    "operationId": "decide_client_exception_api_stewardship_streams__stream_id__exceptions_post",
-    "parameters": [
-     {
-      "in": "path",
-      "name": "stream_id",
-      "required": true,
-      "schema": {
-       "title": "Stream Id",
-       "type": "string"
-      }
-     }
-    ],
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/ExceptionDecisionRequest"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "additionalProperties": true,
-         "title": "Response Decide Client Exception Api Stewardship Streams  Stream Id  Exceptions Post",
-         "type": "object"
-        }
-       }
-      },
-      "description": "Successful Response"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      },
-      "description": "Validation Error"
-     }
-    },
-    "summary": "Decide Client Exception",
-    "tags": [
-     "stewardship"
-    ]
-   }
-  },
-  "/api/stewardship/streams/{stream_id}/flow": {
-   "get": {
-    "operationId": "get_flow_api_stewardship_streams__stream_id__flow_get",
-    "parameters": [
-     {
-      "in": "path",
-      "name": "stream_id",
-      "required": true,
-      "schema": {
-       "title": "Stream Id",
-       "type": "string"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "additionalProperties": true,
-         "title": "Response Get Flow Api Stewardship Streams  Stream Id  Flow Get",
-         "type": "object"
-        }
-       }
-      },
-      "description": "Successful Response"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      },
-      "description": "Validation Error"
-     }
-    },
-    "summary": "Get Flow",
-    "tags": [
-     "stewardship"
-    ]
-   }
-  },
-  "/api/stewardship/streams/{stream_id}/report": {
-   "get": {
-    "operationId": "get_client_report_api_stewardship_streams__stream_id__report_get",
-    "parameters": [
-     {
-      "in": "path",
-      "name": "stream_id",
-      "required": true,
-      "schema": {
-       "title": "Stream Id",
-       "type": "string"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "additionalProperties": true,
-         "title": "Response Get Client Report Api Stewardship Streams  Stream Id  Report Get",
-         "type": "object"
-        }
-       }
-      },
-      "description": "Successful Response"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      },
-      "description": "Validation Error"
-     }
-    },
-    "summary": "Get Client Report",
-    "tags": [
-     "stewardship"
-    ]
-   }
-  },
-  "/api/stewardship/streams/{stream_id}/report.pptx": {
-   "get": {
-    "description": "The same report as a PowerPoint deck, rendered on request and not stored.",
-    "operationId": "get_client_report_pptx_api_stewardship_streams__stream_id__report_pptx_get",
-    "parameters": [
-     {
-      "in": "path",
-      "name": "stream_id",
-      "required": true,
-      "schema": {
-       "title": "Stream Id",
-       "type": "string"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {}
-       }
-      },
-      "description": "Successful Response"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      },
-      "description": "Validation Error"
-     }
-    },
-    "summary": "Get Client Report Pptx",
-    "tags": [
-     "stewardship"
-    ]
-   }
-  },
-  "/api/stewardship/streams/{stream_id}/studio/escalation/preview": {
-   "post": {
-    "operationId": "post_client_escalation_preview_api_stewardship_streams__stream_id__studio_escalation_preview_post",
-    "parameters": [
-     {
-      "in": "path",
-      "name": "stream_id",
-      "required": true,
-      "schema": {
-       "title": "Stream Id",
-       "type": "string"
-      }
-     }
-    ],
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/EscalationPreviewRequest"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "additionalProperties": true,
-         "title": "Response Post Client Escalation Preview Api Stewardship Streams  Stream Id  Studio Escalation Preview Post",
-         "type": "object"
-        }
-       }
-      },
-      "description": "Successful Response"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      },
-      "description": "Validation Error"
-     }
-    },
-    "summary": "Post Client Escalation Preview",
-    "tags": [
-     "stewardship"
-    ]
-   }
-  },
-  "/api/stewardship/studio/coverage/inputs": {
-   "get": {
-    "description": "The per-company inputs the coverage rules see (for the rule editor's live preview).",
-    "operationId": "coverage_inputs_api_stewardship_studio_coverage_inputs_get",
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "additionalProperties": true,
-         "title": "Response Coverage Inputs Api Stewardship Studio Coverage Inputs Get",
-         "type": "object"
-        }
-       }
-      },
-      "description": "Successful Response"
-     }
-    },
-    "summary": "Coverage Inputs",
-    "tags": [
-     "stewardship"
-    ]
-   }
-  },
-  "/api/stewardship/studio/coverage/preview": {
-   "post": {
-    "operationId": "post_coverage_preview_api_stewardship_studio_coverage_preview_post",
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/CoveragePreviewRequest"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "additionalProperties": true,
-         "title": "Response Post Coverage Preview Api Stewardship Studio Coverage Preview Post",
-         "type": "object"
-        }
-       }
-      },
-      "description": "Successful Response"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      },
-      "description": "Validation Error"
-     }
-    },
-    "summary": "Post Coverage Preview",
-    "tags": [
-     "stewardship"
-    ]
-   }
-  },
-  "/api/stewardship/studio/escalation/client-example": {
-   "get": {
-    "description": "An example client escalation graph (stricter on climate for CLTI laggards).",
-    "operationId": "client_escalation_example_api_stewardship_studio_escalation_client_example_get",
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "additionalProperties": true,
-         "title": "Response Client Escalation Example Api Stewardship Studio Escalation Client Example Get",
-         "type": "object"
-        }
-       }
-      },
-      "description": "Successful Response"
-     }
-    },
-    "summary": "Client Escalation Example",
-    "tags": [
-     "stewardship"
-    ]
-   }
-  },
-  "/api/stewardship/studio/escalation/preview": {
-   "post": {
-    "operationId": "post_escalation_preview_api_stewardship_studio_escalation_preview_post",
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/EscalationPreviewRequest"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "additionalProperties": true,
-         "title": "Response Post Escalation Preview Api Stewardship Studio Escalation Preview Post",
-         "type": "object"
-        }
-       }
-      },
-      "description": "Successful Response"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      },
-      "description": "Validation Error"
-     }
-    },
-    "summary": "Post Escalation Preview",
-    "tags": [
-     "stewardship"
-    ]
-   }
-  },
-  "/api/stewardship/studio/escalation/recommendations": {
-   "get": {
-    "description": "What the active escalation rules recommend for every open engagement (sample and live).",
-    "operationId": "escalation_recommendations_api_stewardship_studio_escalation_recommendations_get",
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "additionalProperties": true,
-         "title": "Response Escalation Recommendations Api Stewardship Studio Escalation Recommendations Get",
-         "type": "object"
-        }
-       }
-      },
-      "description": "Successful Response"
-     }
-    },
-    "summary": "Escalation Recommendations",
-    "tags": [
-     "stewardship"
-    ]
-   }
-  },
-  "/api/stewardship/studio/monitoring/preview": {
-   "post": {
-    "operationId": "post_monitoring_preview_api_stewardship_studio_monitoring_preview_post",
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/MonitoringPreviewRequest"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "additionalProperties": true,
-         "title": "Response Post Monitoring Preview Api Stewardship Studio Monitoring Preview Post",
-         "type": "object"
-        }
-       }
-      },
-      "description": "Successful Response"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      },
-      "description": "Validation Error"
-     }
-    },
-    "summary": "Post Monitoring Preview",
-    "tags": [
-     "stewardship"
-    ]
-   }
-  },
   "/api/stewardship/studio/monitoring/triggers": {
    "get": {
-    "description": "The triggers the active monitoring rules raise on company data, matched to\nopen engagements, followed by the tracking triggers from the engagements themselves.",
+    "description": "Triggers raised by the active monitoring rules on company data, matched to open engagements.",
     "operationId": "monitoring_triggers_api_stewardship_studio_monitoring_triggers_get",
     "responses": {
      "200": {
@@ -34632,49 +33816,6 @@
     ]
    }
   },
-  "/api/stewardship/studio/voting/preview": {
-   "post": {
-    "operationId": "post_voting_preview_api_stewardship_studio_voting_preview_post",
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/VotingPreviewRequest"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "additionalProperties": true,
-         "title": "Response Post Voting Preview Api Stewardship Studio Voting Preview Post",
-         "type": "object"
-        }
-       }
-      },
-      "description": "Successful Response"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      },
-      "description": "Validation Error"
-     }
-    },
-    "summary": "Post Voting Preview",
-    "tags": [
-     "stewardship"
-    ]
-   }
-  },
   "/api/stewardship/style/check": {
    "post": {
     "description": "E8: blocklisted phrases in a text, with where they are. Flags only.",
@@ -34714,380 +33855,6 @@
      }
     },
     "summary": "Post Style Check",
-    "tags": [
-     "stewardship"
-    ]
-   }
-  },
-  "/api/stewardship/tiers": {
-   "get": {
-    "description": "The tier report (E1): distribution of confirmed tiers, the latest assignment\nper issuer with the rule that decided it, and the changes awaiting confirmation.",
-    "operationId": "get_tiers_api_stewardship_tiers_get",
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "additionalProperties": true,
-         "title": "Response Get Tiers Api Stewardship Tiers Get",
-         "type": "object"
-        }
-       }
-      },
-      "description": "Successful Response"
-     }
-    },
-    "summary": "Get Tiers",
-    "tags": [
-     "stewardship"
-    ]
-   }
-  },
-  "/api/stewardship/tiers/bilateral": {
-   "post": {
-    "description": "Picks a company for bilateral: while the pick stands it is the company's tier\nproposal, which still needs the tier confirm at stage 5 to count.",
-    "operationId": "post_bilateral_pick_api_stewardship_tiers_bilateral_post",
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/BilateralPickRequest"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "additionalProperties": true,
-         "title": "Response Post Bilateral Pick Api Stewardship Tiers Bilateral Post",
-         "type": "object"
-        }
-       }
-      },
-      "description": "Successful Response"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      },
-      "description": "Validation Error"
-     }
-    },
-    "summary": "Post Bilateral Pick",
-    "tags": [
-     "stewardship"
-    ]
-   }
-  },
-  "/api/stewardship/tiers/bilateral/{issuer_id}/withdraw": {
-   "post": {
-    "operationId": "post_bilateral_withdraw_api_stewardship_tiers_bilateral__issuer_id__withdraw_post",
-    "parameters": [
-     {
-      "in": "path",
-      "name": "issuer_id",
-      "required": true,
-      "schema": {
-       "title": "Issuer Id",
-       "type": "string"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "additionalProperties": true,
-         "title": "Response Post Bilateral Withdraw Api Stewardship Tiers Bilateral  Issuer Id  Withdraw Post",
-         "type": "object"
-        }
-       }
-      },
-      "description": "Successful Response"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      },
-      "description": "Validation Error"
-     }
-    },
-    "summary": "Post Bilateral Withdraw",
-    "tags": [
-     "stewardship"
-    ]
-   }
-  },
-  "/api/stewardship/tiers/confirm": {
-   "post": {
-    "operationId": "post_confirm_tiers_api_stewardship_tiers_confirm_post",
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/ConfirmTiersRequest"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "additionalProperties": true,
-         "title": "Response Post Confirm Tiers Api Stewardship Tiers Confirm Post",
-         "type": "object"
-        }
-       }
-      },
-      "description": "Successful Response"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      },
-      "description": "Validation Error"
-     }
-    },
-    "summary": "Post Confirm Tiers",
-    "tags": [
-     "stewardship"
-    ]
-   }
-  },
-  "/api/stewardship/tracking": {
-   "get": {
-    "description": "Every commitment with its target date and status, and the engagements, open and closed.",
-    "operationId": "get_tracking_api_stewardship_tracking_get",
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "additionalProperties": true,
-         "title": "Response Get Tracking Api Stewardship Tracking Get",
-         "type": "object"
-        }
-       }
-      },
-      "description": "Successful Response"
-     }
-    },
-    "summary": "Get Tracking",
-    "tags": [
-     "stewardship"
-    ]
-   }
-  },
-  "/api/stewardship/tracking/case-study/{company_id}/{issue_id}": {
-   "get": {
-    "description": "E7: a case study compiled from a closed engagement's records, with its E8 style flags.",
-    "operationId": "get_case_study_api_stewardship_tracking_case_study__company_id___issue_id__get",
-    "parameters": [
-     {
-      "in": "path",
-      "name": "company_id",
-      "required": true,
-      "schema": {
-       "title": "Company Id",
-       "type": "string"
-      }
-     },
-     {
-      "in": "path",
-      "name": "issue_id",
-      "required": true,
-      "schema": {
-       "title": "Issue Id",
-       "type": "string"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "additionalProperties": true,
-         "title": "Response Get Case Study Api Stewardship Tracking Case Study  Company Id   Issue Id  Get",
-         "type": "object"
-        }
-       }
-      },
-      "description": "Successful Response"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      },
-      "description": "Validation Error"
-     }
-    },
-    "summary": "Get Case Study",
-    "tags": [
-     "stewardship"
-    ]
-   }
-  },
-  "/api/stewardship/tracking/close": {
-   "post": {
-    "operationId": "close_engagement_api_stewardship_tracking_close_post",
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/CloseRequest"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "additionalProperties": true,
-         "title": "Response Close Engagement Api Stewardship Tracking Close Post",
-         "type": "object"
-        }
-       }
-      },
-      "description": "Successful Response"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      },
-      "description": "Validation Error"
-     }
-    },
-    "summary": "Close Engagement",
-    "tags": [
-     "stewardship"
-    ]
-   }
-  },
-  "/api/stewardship/tracking/commitments": {
-   "post": {
-    "description": "Logs a commitment the company made, as validated by the person recording it.",
-    "operationId": "add_commitment_api_stewardship_tracking_commitments_post",
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/CommitmentRequest"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "additionalProperties": true,
-         "title": "Response Add Commitment Api Stewardship Tracking Commitments Post",
-         "type": "object"
-        }
-       }
-      },
-      "description": "Successful Response"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      },
-      "description": "Validation Error"
-     }
-    },
-    "summary": "Add Commitment",
-    "tags": [
-     "stewardship"
-    ]
-   }
-  },
-  "/api/stewardship/tracking/commitments/{commitment_id}": {
-   "post": {
-    "operationId": "set_commitment_status_api_stewardship_tracking_commitments__commitment_id__post",
-    "parameters": [
-     {
-      "in": "path",
-      "name": "commitment_id",
-      "required": true,
-      "schema": {
-       "title": "Commitment Id",
-       "type": "string"
-      }
-     }
-    ],
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/CommitmentStatusRequest"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "200": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "additionalProperties": true,
-         "title": "Response Set Commitment Status Api Stewardship Tracking Commitments  Commitment Id  Post",
-         "type": "object"
-        }
-       }
-      },
-      "description": "Successful Response"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/HTTPValidationError"
-        }
-       }
-      },
-      "description": "Validation Error"
-     }
-    },
-    "summary": "Set Commitment Status",
     "tags": [
      "stewardship"
     ]

@@ -15,7 +15,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@gorules/jdm-editor": "1.52.0",
     "@mermaid-js/layout-elk": "0.1.7",
     "mermaid": "11.4.1",
     "react": "^19.2.8",

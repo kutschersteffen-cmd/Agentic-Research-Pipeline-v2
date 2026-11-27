@@ -6,16 +6,14 @@ from pathlib import Path
 
 import pytest
 
-pytest.importorskip("zen")
-
-from arp.api.routers.stewardship import monitoring_triggers  # noqa: E402
-from arp.config import Settings  # noqa: E402
-from arp.db.session import transaction  # noqa: E402
-from arp.stewardship import process, vote_ledger_feed  # noqa: E402
-from arp.stewardship.npx_load import load_npx  # noqa: E402
-from arp.stewardship.process import SAMPLE_PATH, StreamStore  # noqa: E402
-from arp.stewardship.vote_ledger_feed import ledger_rows  # noqa: E402
-from arp.storage.engagement_store import EngagementStore  # noqa: E402
+from arp.api.routers.stewardship import monitoring_triggers
+from arp.db.session import transaction
+from arp.stewardship import house, sample, vote_ledger_feed
+from arp.stewardship.config_store import StreamStore
+from arp.stewardship.npx_load import load_npx
+from arp.stewardship.universe import SAMPLE_PATH, HouseBuild
+from arp.stewardship.vote_ledger_feed import ledger_rows
+from arp.storage.engagement_store import EngagementStore
 
 FIXTURE = Path(__file__).parent / "fixtures" / "npx" / "fixture.csv"
 SOCGEN = "isin_FR0000130809"  # in the house universe, no stw_companies row
@@ -25,8 +23,9 @@ SOCGEN = "isin_FR0000130809"  # in the house universe, no stw_companies row
 def universe(pg, sample_house_universe, monkeypatch):
     issuer = copy.deepcopy(json.loads(SAMPLE_PATH.read_text())["issuers"][0])
     issuer.update(issuer_id=SOCGEN, name="Societe Generale", fields={})
-    # house_universe() and house_isins() both read house_build(); the sample-like universe above holds no securities
-    monkeypatch.setattr(process, "house_build", lambda: process.HouseBuild({"issuers": [copy.deepcopy(issuer)]}, {}, None))
+    build = lambda: HouseBuild({"issuers": [copy.deepcopy(issuer)]}, {}, None)  # noqa: E731
+    monkeypatch.setattr(house, "house_build", build)
+    monkeypatch.setattr(sample, "house_build", build)
 
 
 def _load(tmp_path, pg, dates=None, lines=None):
@@ -41,7 +40,7 @@ def _load(tmp_path, pg, dates=None, lines=None):
 
 
 def _vote_triggers(tmp_path):
-    out = monitoring_triggers(Settings(), StreamStore(tmp_path / "s"), EngagementStore(tmp_path / "e"))["triggers"]
+    out = monitoring_triggers(StreamStore(tmp_path / "s"), EngagementStore(tmp_path / "e"))["triggers"]
     return [t for t in out if t["issuer_id"] == SOCGEN and t["type"] == "vote_outcome"]
 
 
@@ -73,16 +72,15 @@ def test_null_against_counts_decided_only(tmp_path, pg):
     assert (fields["vote.decided"], fields["vote.against_management"]) == (1, 0)
 
 
-def test_isin_registered_under_a_universe_id_gives_that_id(tmp_path, pg, monkeypatch):
+def test_isin_registered_under_a_universe_id_gives_that_id(tmp_path, pg):
     from arp.db.companies import resolve_company
     from arp.schemas.common import CompanyRef
 
-    issuer = {**process.house_universe()["issuers"][0], "issuer_id": "SgFr01"}
-    monkeypatch.setattr(process, "house_universe", lambda: {"issuers": [issuer]})
+    issuer = {**house.house_universe()["issuers"][0], "issuer_id": "SgFr01"}
     with transaction(pg) as s:
         resolve_company(s, CompanyRef(company_id="SgFr01", name="Societe Generale", isin="FR0000130809"))
     _load(tmp_path, pg, lines=[1])  # stw_companies is empty: the meeting has no company_id
-    [row] = ledger_rows(pg, 365)
+    [row] = ledger_rows(pg, 365, house_issuers=[issuer])
     assert row["company_id"] == "SgFr01"
 
 
@@ -93,7 +91,7 @@ def test_isin_of_a_company_outside_the_house_universe_keeps_isin_key(tmp_path, p
     with transaction(pg) as s:
         resolve_company(s, CompanyRef(company_id="Other99", name="Societe Generale", isin="FR0000130809"))
     _load(tmp_path, pg, lines=[1])
-    [row] = ledger_rows(pg, 365)
+    [row] = ledger_rows(pg, 365, house_issuers=house.house_universe()["issuers"])
     assert row["company_id"] == SOCGEN
 
 
@@ -113,12 +111,14 @@ def test_ac38_house_issuer_holding_the_isin_gets_the_trigger(tmp_path, pg, monke
     isin = next(i for i, c in held_isins(store).items() if c == "isin_DE0005190003")
     # an unheld security-master row on the same ISIN, naming another company: the held issuer still wins
     store.save_security(SecurityRef(security_id="BMW_GY", isin=isin, name="BMW", asset_class="equity", currency="EUR", company_id="bmw_legacy"))
-    monkeypatch.setattr(process, "house_build", lambda: process.HouseBuild(from_portfolio(store), held_isins(store), None))
+    build = lambda: HouseBuild(from_portfolio(store), held_isins(store), None)  # noqa: E731
+    monkeypatch.setattr(house, "house_build", build)
+    monkeypatch.setattr(sample, "house_build", build)
     d = tmp_path / "npx"
     d.mkdir()
     (d / "f.csv").write_text(FIXTURE.read_text().replace("FR0000130809", isin).replace("/2024,", "/2026,"))
     load_npx(d, pg)
-    out = monitoring_triggers(Settings(), StreamStore(tmp_path / "s"), EngagementStore(tmp_path / "e"))["triggers"]
+    out = monitoring_triggers(StreamStore(tmp_path / "s"), EngagementStore(tmp_path / "e"))["triggers"]
     assert [t["rule"] for t in out if t["issuer_id"] == "isin_DE0005190003" and t["type"] == "vote_outcome"] == ["vote_against_management"]
 
 
@@ -144,5 +144,5 @@ def test_one_real_against_vote_clears_demo(tmp_path, pg):  # AC-2
 
 
 def _all_rule_triggers(tmp_path):
-    out = monitoring_triggers(Settings(), StreamStore(tmp_path / "s"), EngagementStore(tmp_path / "e"))["triggers"]
+    out = monitoring_triggers(StreamStore(tmp_path / "s"), EngagementStore(tmp_path / "e"))["triggers"]
     return [t for t in out if "rule" in t and "engagement_id" in t]

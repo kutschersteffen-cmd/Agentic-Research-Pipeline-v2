@@ -89,19 +89,12 @@ def test_scan_says_which_signals_were_skipped(page):  # AC-111
 
 
 def test_outreach_draft_by_the_signed_in_author_says_a_second_person_is_needed(page):  # AC-144
-    item = {"kind": "outreach", "draft_id": "dr1", "company": "Acme", "theme": "climate", "type": "letter",
-            "interaction_type": "dialogue", "proposed_interaction_type": "dialogue", "proposed_because": "x",
-            "text": "Dear board", "style_flags": [], "authors": ["Ana"]}
-
-    def flow(route):
-        body = route.fetch().json()
-        for stage in body["stages"]:
-            if stage["id"] == "checkpoint":
-                stage["decisions"] = [item, *stage.get("decisions", [])]
-        route.fulfill(json=body)
-
-    page.route("**/api/stewardship/streams/house/flow", flow)
-    page.goto(f"{URL}/#/stewardship/checkpoint")
+    item = {"draft_id": "dr1", "company_id": "ACME", "company": "Acme", "issue_id": "i1", "theme": "climate", "type": "letter",
+            "interaction_type": "informational", "proposed_interaction_type": "informational", "proposed_because": "x",
+            "text": "Dear board", "style_flags": [], "status": "draft", "created_by": "Ana",
+            "created_at": "2026-11-12T00:00:00+00:00", "history": [{"at": "2026-11-12T00:00:00+00:00", "by": "Ana", "action": "created"}]}
+    page.route("**/api/stewardship/drafts", lambda r: r.fulfill(json={"drafts": [item]}))
+    page.goto(f"{URL}/#/stewardship/drafting")
     button = page.get_by_role("button", name="Approve for sending")
     button.wait_for()
     assert button.is_disabled()

@@ -16,7 +16,7 @@ from arp.api.routers import portfolio as portfolio_router
 from arp.config import Settings
 from arp.schemas.portfolio_monitoring import Alert, AlertCategory, AlertStatus
 from arp.stewardship import monitoring
-from arp.stewardship.process import load_sample
+from arp.stewardship.sample import load_sample
 from arp.storage.portfolio_store import PortfolioStore
 
 pytestmark = pytest.mark.usefixtures("sample_house_universe")
