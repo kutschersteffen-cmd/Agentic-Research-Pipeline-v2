@@ -10,7 +10,6 @@ import { DraftingStudio } from "./steward/drafting";
 import { ProgramStudio } from "./steward/program";
 import { TrackingStudio } from "./steward/tracking";
 import { WorkbenchStudio } from "./steward/workbench";
-import { OverlapStudio } from "./steward/overlap";
 import {
   CheckpointStudio,
   ClientPolicyStudio,
@@ -23,8 +22,8 @@ import type { MetricSource } from "../types";
 
 // "program" is not a stage: it calibrates a client program across stages 2-5 (Part 5).
 const CLIENT_STAGES = new Set(["client_policy", "reporting", "program"]);
-// Workbench and Overlap are sections of Selection; their old links open Selection at that section.
-const IN_SELECTION = new Set(["workbench", "overlap"]);
+// Workbench is a section of Selection; its old link opens Selection at that section.
+const IN_SELECTION = new Set(["workbench"]);
 const NEW_STREAM = "+new";
 
 /** Which companies the house program covers (see backend stewardship/universe.py).
@@ -314,15 +313,9 @@ export function StewardWorkflow({ initialTab }: { initialTab?: string }) {
       {studioProps && tab === "monitoring" && <MonitoringStudio {...studioProps} />}
       {studioProps && tab === "selection" && <SelectionStudio {...studioProps} />}
       {tab === "selection" && (
-        <>
-          {/* Each studio brings its own "Workbench" / "Overlap" heading. */}
-          <div id="steward-workbench">
-            <WorkbenchStudio onRowsShown={showFlow} />
-          </div>
-          <div id="steward-overlap">
-            <OverlapStudio />
-          </div>
-        </>
+        <div id="steward-workbench">
+          <WorkbenchStudio onRowsShown={showFlow} />
+        </div>
       )}
       {studioProps && tab === "drafting" && <DraftingStudio {...studioProps} />}
       {studioProps && tab === "voting" && <VotingStudio {...studioProps} />}
