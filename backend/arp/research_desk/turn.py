@@ -140,6 +140,30 @@ def _prompt(question: str, history: list[tuple[str, dict]], sources: list[dict])
     return "\n\n".join(parts)
 
 
+def _round_robin_passages(lists: list[list]) -> list:
+    merged = {}
+    for i in range(max(len(p) for p in lists)):  # round-robin across the sub-questions' lists
+        for picked in lists:
+            if i < len(picked):
+                merged.setdefault(picked[i].chunk_id, picked[i])
+    return list(merged.values())[:THOROUGH_PASSAGES]
+
+
+def _build_turn_sources(passages: list, docs: dict[str, SourceDocument], scores: dict[str, dict]) -> list[dict]:
+    names = company_names()
+    return [
+        {
+            "n": n, "kind": "report", "company_id": doc.company_id,
+            "company_name": names.get(doc.company_id.upper(), doc.company_id), "filename": doc.title,
+            "doc_type": doc.doc_type.value, "chunk_id": c.chunk_id, "text": c.text,
+            "page": _page_for_offset(doc.page_breaks, c.char_start), "scores": scores.get(c.chunk_id, {}),
+            "used": False,
+        }
+        for n, c in enumerate(passages, 1)
+        for doc in (docs[c.doc_id],)
+    ]
+
+
 async def run_turn(turn_id: int, llm: LLMClient) -> None:
     with transaction() as s:
         t = s.get(m.DeskTurn, turn_id)
@@ -202,24 +226,12 @@ async def run_turn(turn_id: int, llm: LLMClient) -> None:
         passages = lists[0]
         if thorough:
             start("rank")
-            merged = {}
-            for i in range(max(len(p) for p in lists)):  # round-robin across the sub-questions' lists
-                for picked in lists:
-                    if i < len(picked):
-                        merged.setdefault(picked[i].chunk_id, picked[i])
-            passages = list(merged.values())[:THOROUGH_PASSAGES]
+            passages = _round_robin_passages(lists)
             done({"passages": len(passages), "reranked": reranked})
         else:
             stages["rank"]["status"] = "skipped"
 
-        names = company_names()
-        for n, c in enumerate(passages, 1):
-            doc = docs[c.doc_id]
-            sources.append({"n": n, "kind": "report", "company_id": doc.company_id,
-                            "company_name": names.get(doc.company_id.upper(), doc.company_id), "filename": doc.title,
-                            "doc_type": doc.doc_type.value, "chunk_id": c.chunk_id, "text": c.text,
-                            "page": _page_for_offset(doc.page_breaks, c.char_start), "scores": scores.get(c.chunk_id, {}),
-                            "used": False})
+        sources.extend(_build_turn_sources(passages, docs, scores))
 
         start("write")
         out = await model(DeskAnswer, _SYSTEM, _prompt(question, [(q, a or {}) for q, a in history], sources))

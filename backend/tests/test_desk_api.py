@@ -119,3 +119,17 @@ def test_ac85_chat_list_holds_20(env):
     for _ in range(21):
         assert env.client.post("/api/desk/chats", json={}).status_code == 201
     assert len(env.client.get("/api/desk/chats").json()) == 20
+
+
+def test_round_robin_passages_interleaves_dedups_and_caps():
+    from types import SimpleNamespace
+
+    from arp.research_desk.turn import THOROUGH_PASSAGES, _round_robin_passages
+
+    a = [SimpleNamespace(chunk_id=f"a{i}") for i in range(10)]
+    b = [SimpleNamespace(chunk_id="a0"), SimpleNamespace(chunk_id="b1"), SimpleNamespace(chunk_id="b2")]
+    picked = _round_robin_passages([a, b])
+    ids = [c.chunk_id for c in picked]
+    assert ids[:4] == ["a0", "a1", "b1", "a2"]
+    assert len(ids) == len(set(ids)) <= THOROUGH_PASSAGES
+    assert len(_round_robin_passages([[SimpleNamespace(chunk_id=f"c{i}") for i in range(20)]])) == THOROUGH_PASSAGES
