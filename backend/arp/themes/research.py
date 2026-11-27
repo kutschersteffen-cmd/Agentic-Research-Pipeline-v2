@@ -14,22 +14,17 @@ from pathlib import Path
 from typing import Literal
 from uuid import uuid4
 
-from fastapi import Depends
 from pydantic import BaseModel, Field
 
-from arp.api.deps import get_run_store, settings_dep
-from arp.config import Settings
 from arp.discovery.site_finder import SearchResult, SearchUnreachable, WebSearchClient
 from arp.grounding import ground_citations
 from arp.ingestion.html_text import extract_html_text
 from arp.llm.base import LLMClient
-from arp.orchestration.jobs import run_alive
 from arp.research.taxonomy_sources.fetch import _MAX_CHARS, fetch_source_text_or_empty
 from arp.schemas.common import Citation, DocType, SourceDocument
 from arp.schemas.taxonomy import Taxonomy
 from arp.storage.atomic_io import atomic_write_text, read_text_utf8
 from arp.storage.locks import KeyedLock
-from arp.storage.run_store import RunStore
 from arp.storage.safe_path import UnsafeIdentifierError, safe_id
 
 logger = logging.getLogger(__name__)
@@ -216,10 +211,6 @@ class ResearchStore:
         path = self._file_path(dossier_id, source_id, file)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(data)
-
-
-def get_research_store(settings: Settings = Depends(settings_dep), run_store: RunStore = Depends(get_run_store)) -> ResearchStore:
-    return ResearchStore(settings.runs_dir / "_dossiers" / "research", lambda run_id: run_alive(run_store, run_id))
 
 
 def recover(record: ResearchRecord, alive: Callable[[str | None], bool]) -> ResearchRecord:

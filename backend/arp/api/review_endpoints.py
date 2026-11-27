@@ -4,7 +4,12 @@ from pydantic import BaseModel, ConfigDict
 
 from arp.api.auth import Principal
 from arp.errors import ClientInputError
-from arp.orchestration.review_queue import decision_history, latest_decisions, record_review_decision
+from arp.orchestration.review_queue import (
+    decision_history,
+    get_review_queue,  # noqa: F401 - re-exported for router callers
+    latest_decisions,
+    record_review_decision,
+)
 from arp.storage.run_store import RunStore
 from arp.transition_barrier import RUN_TYPE as BARRIER_RUN_TYPE
 
@@ -30,14 +35,6 @@ class ReviewDecisionRequest(BaseModel):
     decision: str  # approve | edit | reject | escalate
     edited_value: dict | None = None
     comment: str | None = None
-
-
-def get_review_queue(run_store: RunStore, run_id: str) -> dict:
-    rows = run_store.read_review_queue(run_id)
-    decisions = latest_decisions(run_store, run_id)
-    pending = [r for r in rows if r["item_key"] not in decisions]
-    decided = [{"item": r, "decision": decisions[r["item_key"]]} for r in rows if r["item_key"] in decisions]
-    return {"pending": pending, "decided": decided}
 
 
 def get_review_decisions(run_store: RunStore, run_id: str) -> dict:

@@ -10,13 +10,10 @@ from pathlib import Path
 from typing import Literal
 from uuid import uuid4
 
-from fastapi import Depends
 from pydantic import BaseModel
 
-from arp.api.deps import settings_dep
-from arp.api.review_endpoints import get_review_queue
-from arp.config import Settings
 from arp.emerging_themes.pipeline import load_candidates_with_status
+from arp.orchestration.review_queue import get_review_queue
 from arp.schemas.common import CompanyRef, JobStatus, RunManifest, now_iso
 from arp.schemas.emerging_themes import CandidateStatus, ContextBrief
 from arp.schemas.taxonomy import TaxonomyStatus
@@ -141,10 +138,6 @@ class DossierStore:
                 return dossier
             dossier.status, dossier.shelved_by, dossier.shelved_at, dossier.shelve_reason = "active", None, None, None
             return self._save(dossier)
-
-
-def get_dossier_store(settings: Settings = Depends(settings_dep)) -> DossierStore:
-    return DossierStore(settings.runs_dir / "_dossiers")
 
 
 def context_brief(d: Dossier, run_store: RunStore) -> ContextBrief | None:

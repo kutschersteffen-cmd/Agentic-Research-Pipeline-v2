@@ -11,19 +11,20 @@ from pathlib import Path
 
 from sqlalchemy import func, select, update
 
-from arp.api.deps import get_document_content_store, get_run_store
 from arp.api.saved_universe import load_saved_universe
 from arp.config import get_settings
 from arp.db import models as m
 from arp.db.documents import derive_doc_id
-from arp.db.session import transaction
+from arp.db.session import require_dsn, transaction
 from arp.grounding import _page_for_offset
 from arp.ingestion.local_files import parse_file_to_text_with_pages, parser_version
 from arp.ingestion.parsing import chunk_document
 from arp.llm.base import LLMClient
 from arp.research_desk.check import MAX_CALCULATIONS, DeskAnswer, DeskSubQuestions, check_answer
+from arp.retrieval.content_store_factory import content_store_for
 from arp.retrieval.select_evidence import select_relevant_chunks
 from arp.schemas.common import DocType, SourceDocument
+from arp.storage.run_store import RunStore
 from arp.storage.safe_path import UnsafeIdentifierError, safe_id
 
 log = logging.getLogger(__name__)
@@ -76,7 +77,8 @@ def scope_companies(kind: str, ref: str) -> list[str]:
     if kind == "universe":
         # relative to runs_dir ("_universes/x.csv") or the absolute path the universe upload answers
         return [c.company_id for c in load_saved_universe(str(settings.runs_dir / ref), settings)]
-    return [c.company_id for c in get_run_store().load_companies(ref) or []]
+    run_store = RunStore(require_dsn(settings), settings.runs_dir)
+    return [c.company_id for c in run_store.load_companies(ref) or []]
 
 
 def reap_stale_desk_turns(now: datetime | None = None) -> int:
@@ -96,7 +98,7 @@ def _save(turn_id: int, **values) -> None:
 
 
 def _pick_sources(keys: list[str]) -> tuple[list, dict[str, SourceDocument]]:
-    store = get_document_content_store()
+    store = content_store_for(get_settings())
     files = sorted(((k, t, f) for k in keys for t, f in report_files(k)), key=lambda x: x[2].stat().st_mtime,
                    reverse=True)[:MAX_FILES]
     chunks, docs = [], {}
@@ -113,6 +115,7 @@ def _pick_sources(keys: list[str]) -> tuple[list, dict[str, SourceDocument]]:
 
 def _search(chunks: list, questions: list[str], thorough: bool) -> tuple[list[list], dict, bool]:
     settings = get_settings()
+    content_store = content_store_for(settings)
     rerank = {"rerank_candidates": settings.rerank_candidates, "rerank_model": settings.rerank_model} \
         if thorough and settings.rerank_enabled else {}
     lists, scores, reranked = [], {}, False
@@ -121,7 +124,7 @@ def _search(chunks: list, questions: list[str], thorough: bool) -> tuple[list[li
         lists.append(select_relevant_chunks(
             chunks, q.split(), max_chunks=THOROUGH_PASSAGES if thorough else QUICK_PASSAGES, require_hit=True,
             fallback_to_all=True, hybrid_retrieval_enabled=settings.hybrid_retrieval_enabled,
-            content_store=get_document_content_store(), explain=explain, **rerank))
+            content_store=content_store, explain=explain, **rerank))
         for cid, s in explain.get("scores", {}).items():
             scores.setdefault(cid, s)
         reranked = reranked or bool(explain.get("reranked"))

@@ -7,6 +7,7 @@ from pydantic import BaseModel, field_validator
 
 from arp.api.auth import Principal, current_user
 from arp.api.deps import get_run_store, get_stream_store, get_taxonomy_store
+from arp.api.dossier_deps import get_dossier_store, get_research_store
 from arp.schemas.common import RunManifest
 from arp.schemas.emerging_themes import ContextBrief
 from arp.stewardship.process import StreamStore
@@ -20,10 +21,9 @@ from arp.themes.dossiers import (
     context_brief,
     current_step,
     derive_steps,
-    get_dossier_store,
 )
 from arp.themes.position import PositionStore, get_position_store
-from arp.themes.research import ResearchStore, get_research_store
+from arp.themes.research import ResearchStore
 
 router = APIRouter(prefix="/api/dossiers", tags=["dossiers"])
 
