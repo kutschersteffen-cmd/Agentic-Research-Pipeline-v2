@@ -1885,47 +1885,6 @@ button.hub-step:hover:not(:disabled) { background: var(--panel); }
 .flow-runs.compact .data-table :is(th, td):nth-child(n+6):nth-child(-n+7) { display: none; }
 .flow-runs .selected-row td:first-child { font-weight: 600; }
 
-/* Meteor Dodge: a vector-cabinet world of its own (fixed phosphor-on-black in both themes). */
-.cabinet { position: relative; width: min(100%, 480px, calc((100dvh - var(--cab-chrome, 14.5rem)) * 0.75)); min-width: 12rem; aspect-ratio: 3 / 4; user-select: none; -webkit-user-select: none; background: #05070a; border: 1px solid var(--panel-border); overflow: hidden; touch-action: none; }
-.cabinet canvas { display: block; width: 100%; height: 100%; }
-.cabinet-vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 55%, rgb(0 0 0 / 0.65) 100%); }
-.cabinet-hud { position: absolute; inset: 12px 14px auto; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: var(--text-sm); color: #5ce1e6; z-index: 1; letter-spacing: 0.06em; font-variant-numeric: tabular-nums; }
-.cabinet-score { font-size: 1.5rem; font-weight: 600; }
-.cabinet-score-best { animation: cabinet-pulse 1s ease-in-out infinite alternate; }
-@keyframes cabinet-pulse { from { opacity: 1; } to { opacity: 0.45; } }
-.cabinet-card { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s-4); background: rgb(5 7 10 / 0.6); color: #5ce1e6; text-align: center; z-index: 2; }
-.cabinet-card strong { font-family: var(--font-display); font-size: clamp(2rem, 8vw, 3rem); font-weight: 600; letter-spacing: -0.03em; }
-.cabinet-card span { font-family: var(--font-mono); }
-.cabinet-go { font-family: var(--font-mono); font-size: var(--text-sm); letter-spacing: 0.1em; color: #05070a; background: #5ce1e6; border: 0; padding: 10px 18px; cursor: pointer; }
-.cabinet-go:hover { background: #fff; }
-.cabinet-go:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
-@media (prefers-reduced-motion: reduce) { .cabinet-score-best { animation: none; } }
-
-/* Arcade: the list of games. The game screens themselves are the .cabinet rules above. */
-.arcade-back { margin: 0 0 var(--s-2); font-size: var(--text-sm); }
-.arcade-list { list-style: none; margin: var(--s-6) 0 0; padding: 0; border-top: 1px solid var(--panel-border); }
-.arcade-list li { border-bottom: 1px solid var(--panel-border); }
-.arcade-list a { display: grid; grid-template-columns: minmax(10rem, 14rem) 1fr auto; gap: var(--s-4); align-items: baseline; padding: var(--s-4) 0; color: inherit; text-decoration: none; }
-.arcade-title { font-family: var(--font-display); font-weight: 600; font-size: 1.125rem; letter-spacing: -0.02em; }
-.arcade-play { font-family: var(--font-mono); font-size: var(--text-sm); }
-@media (max-width: 640px) { .arcade-list a { grid-template-columns: 1fr auto; } .arcade-list a .muted { grid-column: 1 / -1; order: 3; } }
-.cabinet canvas { image-rendering: pixelated; }
-.cabinet-hint { font-size: var(--text-xs); color: #8aa530; letter-spacing: 0.04em; }
-.cabinet-card strong { padding-inline: var(--s-4); text-wrap: balance; }
-
-/* Phones: drop the help line above the game so the cabinet fits the screen; the controls show on the title card instead. */
-@media (max-width: 640px), (max-height: 500px) {
-  .arcade-game { --cab-chrome: 10.5rem; }
-  .arcade-game > .muted { display: none; }
-}
-
-/* On-screen buttons for phones: only on touch or narrow screens, and the cabinet leaves room for them. */
-.touchpad { display: none; gap: var(--s-3); margin-top: var(--s-3); width: 100%; }
-.touchpad button { min-height: 4rem; font-family: var(--font-mono); font-size: 1rem; font-weight: 600; letter-spacing: 0.1em; color: #5ce1e6; background: #05070a; border: 2px solid #5ce1e6; border-radius: 0; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; cursor: pointer; }
-.touchpad button:active { background: #5ce1e6; color: #05070a; }
-.touchpad button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-@media (pointer: coarse), (max-width: 640px) { .touchpad { display: grid; } .arcade-game:has(.touchpad) { --cab-chrome: 15.5rem; } }
-
 /* XBRL Facts (pages/XbrlFacts.tsx) and its tag dropdown (components/TagCombobox.tsx). */
 .xbrl-choice { border: none; padding: 0; margin: 0; min-width: 0; }
 .xbrl-choice .checkbox-label { margin: var(--s-1_5) 0; }
