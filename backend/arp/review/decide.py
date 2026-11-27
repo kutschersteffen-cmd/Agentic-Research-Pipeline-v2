@@ -188,6 +188,75 @@ def decide(
         return _decide_locked(run_store, run_id, item_key, req, principal, settings=settings, content_store=content_store)
 
 
+def _ground_correction_if_needed(
+    req: ItemDecisionRequest, bundle: dict, field: dict, current, *,
+    content_store: DocumentContentStore | None, fuzzy_threshold: float,
+) -> Citation | None:
+    if req.decision != "correct" or req.correction_citation is None:
+        return None
+    data_type = field.get("data_type")
+    if data_type is None and any(_is_number(v) for v in (current, req.corrected_value.get("value"))):
+        data_type = "number"  # no field definition (an old run): judge by the value itself
+    return ground_correction(
+        req.correction_citation, bundle, content_store=content_store, data_type=data_type,
+        corrected_value=req.corrected_value, fuzzy_threshold=fuzzy_threshold,
+    )
+
+
+def _second_reasons_for_decision(
+    run_store: RunStore, run_id: str, item_key: str, item, req: ItemDecisionRequest, s, step: str,
+    field: dict, current, *, sample_rate: float, extra_reasons: tuple[str, ...],
+) -> list[str]:
+    kind = item.kind.value
+    reasons: list[str] = []
+    if step == "first" and kind != "other":  # a failure report keeps the legacy single decision
+        prior = None
+        if kind in ("value", "restatement_candidate"):
+            key = item.payload["item_key"] if kind == "restatement_candidate" else item_key
+            prior = RunHistory.load(run_store, exclude_run_id=run_id).last_decided(key)
+        reasons = second_review_reasons(
+            req.decision, kind=kind, item_key=item_key, high_risk=item.high_risk,
+            first_audit_passed=field.get("first_audit_passed"), current_value=current,
+            corrected_value=req.corrected_value, prior=prior, sample_rate=sample_rate,
+            changes_final=s.state in FINAL_STATES and not agrees(s.effective, req.model_dump()),
+        )
+        # Accepting a new value over one a person approved or edited needs a second approver (owner, 2026-11-11);
+        # keeping the accepted value, or replacing an auto-accepted one, changes no human decision.
+        accepted_by = (item.payload.get("accepted") or {}).get("status") if kind == "conflict" else None
+        if req.decision == "approve" and accepted_by in ("approved", "edited") and "published_change" not in reasons:
+            reasons.insert(0, "published_change")
+        if kind == "barrier_cell" and req.decision == "approve" and item.payload["kind"] == "changed" and "published_change" not in reasons:
+            reasons.insert(0, "published_change")  # a rating change; an unchanged result only follows the sampling
+    reasons += [r for r in extra_reasons if r not in reasons]
+    return reasons
+
+
+def _normalise_corrected(kind: str, req: ItemDecisionRequest):
+    corrected = req.corrected_value
+    if kind == "security" and req.decision == "correct":
+        return {"value": normalise_lei(str(corrected["value"]))}  # a case-only difference is agreement
+    if kind == "identity" and req.decision == "correct" and corrected.get("resolved_lei") is not None:
+        return {**corrected, "resolved_lei": normalise_lei(str(corrected["resolved_lei"]))}
+    return corrected
+
+
+def _run_post_decision_hooks(
+    settings: Settings, run_id: str, item_key: str, item, s, after, step: str, bundle: dict,
+) -> None:
+    if item.kind.value == "discovered_document" and after.state in FINAL_STATES:
+        try:  # the decision is already written, so a failed file move or manifest write never fails it
+            apply_decision(settings, item.payload, after.effective["decision"])
+        except Exception:  # noqa: BLE001
+            logger.exception("Discovery decision not applied for %s/%s", run_id, item_key)
+    if step == "second" and after.state == "second_done" and s.first.get("decision") == "correct":
+        try:  # E56: the gold set grows; the decision is already written, so this never fails it
+            record_confirmed_correction(
+                bundle, s.first["corrected_value"], settings, citation=s.first.get("correction_citation"),
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception("Gold case not recorded for %s/%s", run_id, item_key)
+
+
 def _decide_locked(
     run_store: RunStore, run_id: str, item_key: str, req: ItemDecisionRequest, principal: Principal, *,
     settings: Settings, content_store: DocumentContentStore | None, extra_reasons: tuple[str, ...] = (),
@@ -217,40 +286,14 @@ def _decide_locked(
         raise DecisionError(409, "this item changed since you loaded it; reload")
     field = bundle["field_definition"] or {}
     current = (bundle["value"] or {}).get("value")
-    citation = None
-    if req.decision == "correct" and req.correction_citation is not None:
-        data_type = field.get("data_type")
-        if data_type is None and any(_is_number(v) for v in (current, req.corrected_value.get("value"))):
-            data_type = "number"  # no field definition (an old run): judge by the value itself
-        citation = ground_correction(
-            req.correction_citation, bundle, content_store=content_store, data_type=data_type,
-            corrected_value=req.corrected_value, fuzzy_threshold=settings.grounding_fuzzy_threshold,
-        )
-    reasons: list[str] = []
-    if step == "first" and kind != "other":  # a failure report keeps the legacy single decision
-        prior = None
-        if kind in ("value", "restatement_candidate"):
-            key = item.payload["item_key"] if kind == "restatement_candidate" else item_key
-            prior = RunHistory.load(run_store, exclude_run_id=run_id).last_decided(key)
-        reasons = second_review_reasons(
-            req.decision, kind=kind, item_key=item_key, high_risk=item.high_risk,
-            first_audit_passed=field.get("first_audit_passed"), current_value=current,
-            corrected_value=req.corrected_value, prior=prior, sample_rate=settings.second_review_sample_rate,
-            changes_final=s.state in FINAL_STATES and not agrees(s.effective, req.model_dump()),
-        )
-        # Accepting a new value over one a person approved or edited needs a second approver (owner, 2026-11-11);
-        # keeping the accepted value, or replacing an auto-accepted one, changes no human decision.
-        accepted_by = (item.payload.get("accepted") or {}).get("status") if kind == "conflict" else None
-        if req.decision == "approve" and accepted_by in ("approved", "edited") and "published_change" not in reasons:
-            reasons.insert(0, "published_change")
-        if barrier and req.decision == "approve" and item.payload["kind"] == "changed" and "published_change" not in reasons:
-            reasons.insert(0, "published_change")  # a rating change; an unchanged result only follows the sampling
-    reasons += [r for r in extra_reasons if r not in reasons]
-    corrected = req.corrected_value
-    if kind == "security" and req.decision == "correct":
-        corrected = {"value": normalise_lei(str(corrected["value"]))}  # a case-only difference is agreement
-    if kind == "identity" and req.decision == "correct" and corrected.get("resolved_lei") is not None:
-        corrected = {**corrected, "resolved_lei": normalise_lei(str(corrected["resolved_lei"]))}
+    citation = _ground_correction_if_needed(
+        req, bundle, field, current, content_store=content_store, fuzzy_threshold=settings.grounding_fuzzy_threshold,
+    )
+    reasons = _second_reasons_for_decision(
+        run_store, run_id, item_key, item, req, s, step, field, current,
+        sample_rate=settings.second_review_sample_rate, extra_reasons=extra_reasons,
+    )
+    corrected = _normalise_corrected(kind, req)
     snapshot_id = write_snapshot(run_store, run_id, bundle)
     append_decision(run_store, run_id, ReviewDecision(
         item_key=item_key, decision=req.decision, reason_code=req.reason_code, reviewer=principal.name,
@@ -259,20 +302,8 @@ def _decide_locked(
         second_required=bool(reasons), second_reasons=reasons,
     ))
     after = _state(run_store, run_id, item_key)
-    state = after.state
-    if kind == "discovered_document" and state in FINAL_STATES:
-        try:  # the decision is already written, so a failed file move or manifest write never fails it
-            apply_decision(settings, item.payload, after.effective["decision"])
-        except Exception:  # noqa: BLE001
-            logger.exception("Discovery decision not applied for %s/%s", run_id, item_key)
-    if step == "second" and state == "second_done" and s.first.get("decision") == "correct":
-        try:  # E56: the gold set grows; the decision is already written, so this never fails it
-            record_confirmed_correction(
-                bundle, s.first["corrected_value"], settings, citation=s.first.get("correction_citation"),
-            )
-        except Exception:  # noqa: BLE001
-            logger.exception("Gold case not recorded for %s/%s", run_id, item_key)
-    return {"state": state, "snapshot_id": snapshot_id, "second_reasons": reasons}
+    _run_post_decision_hooks(settings, run_id, item_key, item, s, after, step, bundle)
+    return {"state": after.state, "snapshot_id": snapshot_id, "second_reasons": reasons}
 
 
 def _bulk_refusal(run_store: RunStore, run_id: str, it: BulkItem, principal: Principal, *,
