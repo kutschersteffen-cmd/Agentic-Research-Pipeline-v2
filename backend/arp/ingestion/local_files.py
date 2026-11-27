@@ -409,18 +409,9 @@ class LocalFileDocumentSource(DocumentSource):
         self, doc_id: str, company_id: str, doc_type: DocType, file_path: Path, content_key: str, full_text: str,
         table_spans: list | None = None,
     ) -> None:
-        """Best-effort OpenSearch indexing + mandatory blob-store archival, run
-        synchronously here since this whole method (via _parse_and_identify)
-        already executes off the event loop in a to_thread worker. Indexing
-        is gated and best-effort (arp/retrieval/search_indexer.py); the blob
-        store is mandatory and a failed or unverified copy raises."""
-        from arp.retrieval.search_indexer import index_document_if_enabled
-
-        index_document_if_enabled(
-            self._indexing_config, doc_id=doc_id, company_id=company_id, doc_type=doc_type, title=file_path.name, full_text=full_text,
-            table_spans=table_spans, content_key=content_key, parser_version=parser_version(),
-        )
-
+        """Mandatory blob-store archival, run synchronously here since this whole
+        method (via _parse_and_identify) already executes off the event loop in
+        a to_thread worker. A failed or unverified copy raises."""
         from arp.storage.document_blob_store import upload_or_fail
 
         # CaptureStoreError propagates: _fetch_one drops the file this fetch.

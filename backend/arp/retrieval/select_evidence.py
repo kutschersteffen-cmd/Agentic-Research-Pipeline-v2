@@ -35,30 +35,6 @@ def _rrf_fuse(rankings: list[list[str]], k: int = _RRF_K, scores_out: dict[str, 
     return sorted(scores, key=lambda cid: scores[cid], reverse=True)
 
 
-def _opensearch_bm25_ranking(candidates: list[DocumentChunk], query_text: str, client) -> list[tuple[str, float]]:
-    """BM25 ranking computed by OpenSearch's arp-chunks index instead of
-    the in-memory LlamaIndex retriever -- a `terms` filter on the
-    candidates' chunk_ids keeps ranking scoped to exactly this call's
-    candidate set (matching BM25IndexCache's own "index only the filtered
-    corpus, never filter results afterward" invariant, since OpenSearch's
-    BM25 statistics would otherwise reflect the whole corpus, not just
-    these candidates), plus a `multi_match` on `text`. Returns
-    (chunk_id, score) pairs, highest first -- chunk_ids not present in
-    OpenSearch (e.g. not yet indexed) are simply absent, not an error."""
-    chunk_ids = [c.chunk_id for c in candidates]
-    body = {
-        "query": {
-            "bool": {
-                "filter": {"terms": {"chunk_id": chunk_ids}},
-                "must": {"multi_match": {"query": query_text, "fields": ["text"]}},
-            }
-        },
-        "size": len(chunk_ids),
-    }
-    response = client.search(index="arp-chunks", body=body)
-    return [(hit["_source"]["chunk_id"], hit["_score"]) for hit in response["hits"]["hits"]]
-
-
 def _embedding_key(chunk: DocumentChunk, text: str) -> str:
     """Cache key of a chunk's vector. The chunk's own text is fixed by its id (doc + offsets), so the id alone
     keys it, as before; any other index text (context headers) adds a hash of the exact text embedded, so
@@ -223,20 +199,13 @@ def _bm25_score(
     query_text: str,
     texts: dict[str, str],
     *,
-    retrieval_backend: str,
-    opensearch_client,
     require_hit: bool,
     parents: dict[str, DocumentChunk] | None,
-) -> tuple[list[tuple[str, float]], dict[str, DocumentChunk], str]:
-    use_opensearch_bm25 = retrieval_backend == "opensearch" and opensearch_client is not None
-    if use_opensearch_bm25:
-        by_id = {c.chunk_id: c for c in candidates}
-        scored = _opensearch_bm25_ranking(candidates, query_text, opensearch_client)
-    else:
-        key = INDEX_CACHE.make_key(candidates, texts)
-        retriever, by_id = INDEX_CACHE.get_or_build(key, candidates, texts)
-        results = retriever.retrieve(query_text)
-        scored = [(r.node.id_, r.score or 0.0) for r in results]
+) -> tuple[list[tuple[str, float]], dict[str, DocumentChunk]]:
+    key = INDEX_CACHE.make_key(candidates, texts)
+    retriever, by_id = INDEX_CACHE.get_or_build(key, candidates, texts)
+    results = retriever.retrieve(query_text)
+    scored = [(r.node.id_, r.score or 0.0) for r in results]
 
     if require_hit:
         scored = [(chunk_id, score) for chunk_id, score in scored if score > 0.0]
@@ -246,7 +215,7 @@ def _bm25_score(
             best.setdefault(parents[chunk_id].chunk_id, score)
         scored = list(best.items())
         by_id = {p.chunk_id: p for p in parents.values()}
-    return scored, by_id, "opensearch" if use_opensearch_bm25 else "bm25"
+    return scored, by_id
 
 
 def _hybrid_fuse(
@@ -297,8 +266,6 @@ def select_relevant_chunks(
     fallback_to_all: bool = False,
     hybrid_retrieval_enabled: bool = False,
     content_store: DocumentContentStore | None = None,
-    retrieval_backend: str = "bm25",
-    opensearch_client=None,
     rerank_candidates: int | None = None,
     on_unranked_fallback: Callable[[], None] | None = None,
     index_texts: dict[str, str] | None = None,
@@ -344,16 +311,6 @@ def select_relevant_chunks(
       ranking -- catching exactly that vocabulary gap is the point.
       Grounding is unaffected either way: citations are still exact-
       matched against full_text regardless of which chunks were selected.
-    - `retrieval_backend` / `opensearch_client`: opt-in, default to
-      "bm25"/None, and every existing caller leaves them there -- so this
-      is a strict addition, never a change to current behavior. When
-      `retrieval_backend == "opensearch"` and `opensearch_client` is
-      supplied, the BM25 half is computed by OpenSearch's arp-chunks
-      index (see `_opensearch_bm25_ranking`) instead of the in-memory
-      LlamaIndex retriever -- everything downstream (`require_hit`,
-      `fallback_to_all`, RRF fusion with `hybrid_retrieval_enabled`'s
-      local-embedding ranking) is unchanged, since this only swaps who
-      computes the BM25 half, not what happens to its output.
     - `rerank_candidates`: when set, the top `rerank_candidates` of the final
       ranking (fused, BM25, or the `fallback_to_all` candidates) are reordered
       by the local cross-encoder (see arp/retrieval/rerank.py) and the best
@@ -389,9 +346,8 @@ def select_relevant_chunks(
 
     query_text = " ".join(query_terms)
     texts = {c.chunk_id: (index_texts or {}).get(c.chunk_id, c.text) for c in candidates}
-    scored, by_id, bm25_method = _bm25_score(
+    scored, by_id = _bm25_score(
         candidates, query_text, texts,
-        retrieval_backend=retrieval_backend, opensearch_client=opensearch_client,
         require_hit=require_hit, parents=parents,
     )
     for chunk_id, score in scored:
@@ -406,13 +362,13 @@ def select_relevant_chunks(
             ranked, method = candidates, "unranked"
         else:
             ranked = [by_id[chunk_id] for chunk_id in fused]
-            method = "hybrid" if bm25_method == "bm25" else "opensearch_hybrid"
+            method = "hybrid"
     elif require_hit and not scored and fallback_to_all:
         if on_unranked_fallback is not None and rerank_candidates is None:
             on_unranked_fallback()
         ranked, method = candidates, "unranked"
     else:
-        ranked, method = [by_id[chunk_id] for chunk_id, _ in scored], bm25_method
+        ranked, method = [by_id[chunk_id] for chunk_id, _ in scored], "bm25"
 
     return _finalize_ranking(
         ranked, method,

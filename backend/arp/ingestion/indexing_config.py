@@ -1,6 +1,5 @@
-"""Bundles the small subset of Settings that the OpenSearch live-indexing
-hook (arp/retrieval/search_indexer.py) and the object-store live-upload
-hook (arp/storage/document_blob_store.py) need, so DocumentSource
+"""Bundles the small subset of Settings that the object-store live-upload
+hook (arp/storage/document_blob_store.py) needs, so DocumentSource
 implementations (LocalFileDocumentSource, EdgarDocumentSource) take one
 narrow, explicit config object instead of the whole Settings -- matching
 how those classes already take individual primitive values (user_agent,
@@ -19,8 +18,6 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class IndexingConfig:
-    opensearch_url: str | None = None
-    search_live_indexing_enabled: bool = False
     object_store_endpoint_url: str | None = None
     object_store_access_key: str | None = None
     object_store_secret_key: str | None = None
@@ -31,8 +28,6 @@ class IndexingConfig:
     @classmethod
     def from_settings(cls, settings: Settings) -> IndexingConfig:
         return cls(
-            opensearch_url=settings.opensearch_url,
-            search_live_indexing_enabled=settings.search_live_indexing_enabled,
             object_store_endpoint_url=settings.object_store_endpoint_url,
             object_store_access_key=settings.object_store_access_key,
             object_store_secret_key=settings.object_store_secret_key,
@@ -40,10 +35,6 @@ class IndexingConfig:
             object_store_live_upload_enabled=settings.object_store_live_upload_enabled,
             blob_store_dir=settings.blob_store_dir,
         )
-
-    @property
-    def opensearch_enabled(self) -> bool:
-        return bool(self.opensearch_url and self.search_live_indexing_enabled)
 
     @property
     def object_store_enabled(self) -> bool:

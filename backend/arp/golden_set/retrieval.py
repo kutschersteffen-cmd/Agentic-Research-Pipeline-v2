@@ -175,7 +175,7 @@ def _report(run_id: str | None, settings: Settings, ranks: list[int | None], sta
         "run_id": run_id,
         "settings": {"hybrid_retrieval_enabled": settings.hybrid_retrieval_enabled, "rerank_enabled": settings.rerank_enabled,
                      "rerank_candidates": settings.rerank_candidates, "evidence_max_chunks": k,
-                     "retrieval_backend": settings.retrieval_backend},
+                     "retrieval_backend": "bm25"},
         "gold_spans": len(ranks),
         "stale_spans": stale,
         "fields_ranked": len(seconds),

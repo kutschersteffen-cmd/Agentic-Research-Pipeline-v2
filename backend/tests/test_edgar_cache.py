@@ -130,16 +130,11 @@ async def test_edgar_doc_id_is_stable_across_fetches(tmp_path, monkeypatch):
     assert first[0].doc_id.startswith("doc_")
 
 
-async def test_indexing_config_hooks_on_cache_hit_only_indexes_not_uploads(tmp_path, monkeypatch):
+async def test_indexing_config_hooks_on_cache_hit_does_not_reupload(tmp_path, monkeypatch):
     """A parsed-content cache hit means the filing was already registered
-    (and, if configured, already archived) on some earlier fetch -- so
-    only the (idempotent, cheap-to-repeat) OpenSearch indexing hook fires
-    again; there's no new raw_bytes to archive a second time."""
-    index_calls = []
+    and archived on some earlier fetch -- there's no new raw_bytes to archive
+    a second time."""
     upload_calls = []
-    monkeypatch.setattr(
-        "arp.retrieval.search_indexer.index_document_if_enabled", lambda config, **kwargs: index_calls.append(kwargs)
-    )
     monkeypatch.setattr(
         "arp.storage.document_blob_store.blob_store_for", lambda config: type("S", (), {"exists": lambda self, k: True})()
     )
@@ -148,7 +143,7 @@ async def test_indexing_config_hooks_on_cache_hit_only_indexes_not_uploads(tmp_p
     )
     cache_dir = tmp_path / "cache"
     store = DocumentContentStore(tmp_path / "store", dsn=pg_dsn())
-    config = IndexingConfig(opensearch_url="http://localhost:9200", search_live_indexing_enabled=True)
+    config = IndexingConfig()
     source = EdgarDocumentSource(user_agent="test-agent test@example.com", cache_dir=cache_dir, content_store=store, indexing_config=config)
 
     _write_submissions_cache(cache_dir, "0000320193", _SUBMISSIONS)
@@ -169,17 +164,11 @@ async def test_indexing_config_hooks_on_cache_hit_only_indexes_not_uploads(tmp_p
     company = CompanyRef(company_id="apple", name="Apple Inc.", cik="320193")
     await source.fetch(company)
 
-    assert len(index_calls) == 1
-    assert index_calls[0]["full_text"] == "Cached filing text."
     assert upload_calls == []
 
 
 async def test_indexing_config_hooks_on_fresh_fetch_archives_raw_bytes(tmp_path, monkeypatch):
-    index_calls = []
     upload_calls = []
-    monkeypatch.setattr(
-        "arp.retrieval.search_indexer.index_document_if_enabled", lambda config, **kwargs: index_calls.append(kwargs)
-    )
     monkeypatch.setattr("arp.storage.document_blob_store.blob_store_for", lambda config: None)
     monkeypatch.setattr(
         "arp.storage.document_blob_store.upload_or_fail",
@@ -187,7 +176,7 @@ async def test_indexing_config_hooks_on_fresh_fetch_archives_raw_bytes(tmp_path,
     )
     cache_dir = tmp_path / "cache"
     store = DocumentContentStore(tmp_path / "store", dsn=pg_dsn())
-    config = IndexingConfig(opensearch_url="http://localhost:9200", search_live_indexing_enabled=True)
+    config = IndexingConfig()
     source = EdgarDocumentSource(user_agent="test-agent test@example.com", cache_dir=cache_dir, content_store=store, indexing_config=config)
     _write_submissions_cache(cache_dir, "0000320193", _SUBMISSIONS)
 
@@ -199,8 +188,6 @@ async def test_indexing_config_hooks_on_fresh_fetch_archives_raw_bytes(tmp_path,
     company = CompanyRef(company_id="apple", name="Apple Inc.", cik="320193")
     docs = await source.fetch(company)
 
-    assert len(index_calls) == 1
-    assert index_calls[0]["full_text"] == "Freshly fetched filing text."
     assert len(upload_calls) == 1
     assert upload_calls[0][1] == b"raw html bytes"
     assert store.resolve_document(docs[0].doc_id).storage_uri == "s3://arp-documents/fake"

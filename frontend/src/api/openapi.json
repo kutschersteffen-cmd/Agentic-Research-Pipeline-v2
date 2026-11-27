@@ -22165,13 +22165,13 @@
       "title": "Link"
      },
      "score": {
-      "description": "Raw OpenSearch _score for this hit, not normalized across types.",
+      "description": "Relevance score for this hit, not normalized across types.",
       "title": "Score",
       "type": "number"
      },
      "snippet": {
       "default": "",
-      "description": "Plain-text excerpt from OpenSearch's highlight response (tags stripped server-side).",
+      "description": "Short plain-text summary or excerpt for this search hit.",
       "title": "Snippet",
       "type": "string"
      },

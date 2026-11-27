@@ -5,7 +5,6 @@ test_postgres_portfolio_store.py, gated on a real instance."""
 from __future__ import annotations
 
 import pytest
-from pydantic import ValidationError
 
 from arp.config import Settings
 from arp.retrieval.content_store_factory import build_hybrid_content_store
@@ -40,9 +39,3 @@ def test_portfolio_store_is_the_postgres_store(tmp_path):
 def test_hybrid_content_store_is_the_document_content_store(tmp_path, pg):
     store = build_hybrid_content_store(_settings(tmp_path, postgres_dsn=pg))
     assert isinstance(store, DocumentContentStore)
-
-
-def test_selecting_a_backend_without_its_connection_is_refused_at_construction(tmp_path):
-    """Caught when Settings is built (startup, API and CLI alike), not felt later as a different backend."""
-    with pytest.raises(ValidationError):
-        _settings(tmp_path, retrieval_backend="opensearch")

@@ -200,20 +200,10 @@ class EdgarDocumentSource(DocumentSource):
         source_url: str,
         fiscal_period: str | None = None,
     ) -> None:
-        """Best-effort OpenSearch indexing + object-store archival, mirrors
-        LocalFileDocumentSource._index_and_archive. raw_bytes is None on a
-        parsed-content cache hit (see _get_filing_text) -- indexing and
-        the document-registry sync still run (idempotent, cheap to
-        repeat), but there's nothing new to archive since the original
-        bytes were already archived (or attempted) the first time this
-        filing was registered."""
-        from arp.retrieval.search_indexer import index_document_if_enabled
-
-        index_document_if_enabled(
-            self._indexing_config, doc_id=doc_id, company_id=company_id, doc_type=doc_type, title=title, full_text=full_text,
-            fiscal_period=fiscal_period, content_key=content_key, parser_version=_edgar_parser_version(),
-        )
-
+        """Object-store archival, mirrors LocalFileDocumentSource._index_and_archive.
+        raw_bytes is None on a parsed-content cache hit (see _get_filing_text) --
+        there's nothing new to archive since the original bytes were already
+        archived (or attempted) the first time this filing was registered."""
         if raw_bytes is not None:
             from arp.storage.document_blob_store import blob_store_for, upload_or_fail
 

@@ -6,9 +6,8 @@ from arp.config import get_settings
 from arp.db.session import require_dsn
 
 db_app = typer.Typer(
-    help="Store setup: Postgres/pgvector (required, ARP_POSTGRES_DSN), plus the optional OpenSearch "
-    "(ARP_OPENSEARCH_URL + the `opensearch` extra) and object storage (ARP_OBJECT_STORE_ENDPOINT_URL + the "
-    "`object_storage` extra); file-era import and verify."
+    help="Store setup: Postgres/pgvector (required, ARP_POSTGRES_DSN), plus optional object storage "
+    "(ARP_OBJECT_STORE_ENDPOINT_URL + the `object_storage` extra); file-era import and verify."
 )
 
 
@@ -78,22 +77,6 @@ def db_check_postgres() -> None:
     raise typer.Exit(1)
 
 
-@db_app.command("init-opensearch")
-def db_init_opensearch() -> None:
-    """Creates the arp-companies/arp-documents/arp-chunks/arp-taxonomy
-    indices (behind their stable aliases), idempotently. Run once against a
-    fresh OpenSearch cluster before setting ARP_SEARCH_LIVE_INDEXING_ENABLED
-    and/or ARP_RETRIEVAL_BACKEND=opensearch."""
-    settings = get_settings()
-    if not settings.opensearch_url:
-        typer.echo("ARP_OPENSEARCH_URL is not set -- nothing to initialize.", err=True)
-        raise typer.Exit(1)
-    from arp.storage.opensearch_client import ensure_indices
-
-    ensure_indices(settings.opensearch_url)
-    typer.echo(f"OpenSearch indices ready at {settings.opensearch_url}.")
-
-
 @db_app.command("init-object-store")
 def db_init_object_store() -> None:
     """Creates the object-storage bucket for immutable source-document
@@ -111,64 +94,11 @@ def db_init_object_store() -> None:
 
 
 reindex_app = typer.Typer(
-    help="Backfill/resync OpenSearch and the object store for documents "
-    "that predate them (or whose live hook failed). Runs regardless of the *_enabled flags -- those only "
+    help="Backfill/resync the object store for documents "
+    "that predate it (or whose live hook failed). Runs regardless of the *_enabled flags -- those only "
     "gate the live hook, not this one-off backfill."
 )
 db_app.add_typer(reindex_app, name="reindex")
-
-
-@reindex_app.command("opensearch")
-def reindex_opensearch(batch_size: int = typer.Option(200, help="Rows read from the parsed-content cache per batch.")) -> None:
-    """Re-chunks and bulk-indexes every already-registered document's
-    cached parsed text into arp-documents/arp-chunks. Safe to re-run --
-    every index write is an upsert keyed by doc_id/chunk_id."""
-    settings = get_settings()
-    if not settings.opensearch_url:
-        typer.echo("ARP_OPENSEARCH_URL is not set -- nothing to index.", err=True)
-        raise typer.Exit(1)
-    from arp.ingestion.indexing_config import IndexingConfig
-    from arp.retrieval.content_store_factory import content_store_for
-    from arp.retrieval.search_indexer import index_document
-    from arp.schemas.common import DocType
-
-    content_store = content_store_for(settings)
-    config = IndexingConfig(opensearch_url=settings.opensearch_url, search_live_indexing_enabled=True)
-
-    indexed = failed = skipped = 0
-    offset = 0
-    while True:
-        rows, _total = content_store.list_cached_content(offset, batch_size)
-        if not rows:
-            break
-        doc_refs = content_store.list_documents_by_content_keys([row["content_key"] for row in rows])
-        for row in rows:
-            doc_ref = doc_refs.get(row["content_key"])
-            if doc_ref is None:
-                skipped += 1  # parsed content with no registered document (e.g. content_cache_enabled but not registered)
-                continue
-            parsed = content_store.get_cached_text(row["id"])
-            if parsed is None:
-                skipped += 1
-                continue
-            try:
-                index_document(
-                    config,
-                    doc_id=doc_ref.doc_id,
-                    company_id=doc_ref.company_id,
-                    doc_type=DocType(doc_ref.doc_type),
-                    title=doc_ref.title,
-                    full_text=parsed.full_text,
-                    table_spans=parsed.table_spans,
-                    content_key=row["content_key"],
-                    parser_version=row["parser_version"],
-                )
-                indexed += 1
-            except Exception as exc:  # noqa: BLE001 - isolate one bad document from the whole backfill
-                failed += 1
-                typer.echo(f"Failed to index {doc_ref.doc_id}: {exc}", err=True)
-        offset += len(rows)
-    typer.echo(f"OpenSearch backfill complete: indexed={indexed} skipped={skipped} failed={failed}.")
 
 
 @reindex_app.command("object-store")

@@ -20,8 +20,6 @@ def _settings(tmp_path, **overrides) -> Settings:
 def test_from_settings_maps_every_field(tmp_path):
     settings = _settings(
         tmp_path,
-        opensearch_url="http://localhost:9200",
-        search_live_indexing_enabled=True,
         object_store_endpoint_url="http://localhost:9000",
         object_store_access_key="arp",
         object_store_secret_key="arp12345",
@@ -31,19 +29,11 @@ def test_from_settings_maps_every_field(tmp_path):
 
     config = IndexingConfig.from_settings(settings)
 
-    assert config.opensearch_url == "http://localhost:9200"
-    assert config.search_live_indexing_enabled is True
     assert config.object_store_endpoint_url == "http://localhost:9000"
     assert config.object_store_access_key == "arp"
     assert config.object_store_secret_key == "arp12345"
     assert config.object_store_bucket == "arp-documents"
     assert config.object_store_live_upload_enabled is True
-
-
-def test_opensearch_enabled_requires_both_url_and_flag(tmp_path):
-    assert not IndexingConfig(opensearch_url=None, search_live_indexing_enabled=True).opensearch_enabled
-    assert not IndexingConfig(opensearch_url="http://localhost:9200", search_live_indexing_enabled=False).opensearch_enabled
-    assert IndexingConfig(opensearch_url="http://localhost:9200", search_live_indexing_enabled=True).opensearch_enabled
 
 
 def test_object_store_enabled_requires_both_url_and_flag(tmp_path):
@@ -56,5 +46,4 @@ def test_object_store_enabled_requires_both_url_and_flag(tmp_path):
 
 def test_defaults_are_entirely_disabled():
     config = IndexingConfig()
-    assert not config.opensearch_enabled
     assert not config.object_store_enabled

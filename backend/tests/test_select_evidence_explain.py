@@ -21,12 +21,6 @@ def _f1(**kw):
     return out, explain
 
 
-class _FakeOpenSearchClient:
-    def search(self, index, body):
-        ids = body["query"]["bool"]["filter"]["terms"]["chunk_id"]
-        return {"hits": {"hits": [{"_source": {"chunk_id": cid}, "_score": float(20 - i)} for i, cid in enumerate(ids[:10])]}}
-
-
 @pytest.fixture
 def scorer(monkeypatch):
     monkeypatch.setattr(rerank, "_unavailable", False)
@@ -82,17 +76,6 @@ def test_reranked_even_when_order_is_kept(monkeypatch, scorer):  # AC-9
     monkeypatch.setattr(rerank, "_score", lambda q, texts: [float(-i) for i in range(len(texts))])
     _, ex = _f1(rerank_candidates=10)
     assert ex["reranked"] is True
-
-
-def test_opensearch():  # AC-10
-    _, ex = _f1(retrieval_backend="opensearch", opensearch_client=_FakeOpenSearchClient())
-    assert ex["method"] == "opensearch"
-
-
-def test_opensearch_hybrid(vectors):  # AC-11
-    _, ex = _f1(retrieval_backend="opensearch", opensearch_client=_FakeOpenSearchClient(),
-                hybrid_retrieval_enabled=True, content_store=object())
-    assert ex["method"] == "opensearch_hybrid"
 
 
 def test_unranked_fallback():  # AC-12, AC-40

@@ -49,11 +49,7 @@ def _write_doc(tmp_path, company_id, doc_type, name, text):
 
 
 def test_indexing_config_hooks_are_called_on_registration(tmp_path, monkeypatch):
-    index_calls = []
     upload_calls = []
-    monkeypatch.setattr(
-        "arp.retrieval.search_indexer.index_document_if_enabled", lambda config, **kwargs: index_calls.append(kwargs)
-    )
     monkeypatch.setattr("arp.storage.document_blob_store.blob_store_for", lambda config: None)
     monkeypatch.setattr(
         "arp.storage.document_blob_store.upload_or_fail",
@@ -61,32 +57,15 @@ def test_indexing_config_hooks_are_called_on_registration(tmp_path, monkeypatch)
     )
     _write_doc(tmp_path, "acme", DocType.ANNUAL_REPORT_10K, "report.txt", "Some disclosure text about green capex.")
     content_store = DocumentContentStore(tmp_path / "store", dsn=pg_dsn())
-    config = IndexingConfig(opensearch_url="http://localhost:9200", search_live_indexing_enabled=True)
+    config = IndexingConfig()
     source = LocalFileDocumentSource(tmp_path / "docs", content_store=content_store, indexing_config=config)
 
     docs = asyncio.run(source.fetch(CompanyRef(company_id="acme", name="Acme")))
 
-    assert len(index_calls) == 1
-    assert index_calls[0]["company_id"] == "acme"
-    assert index_calls[0]["full_text"] == "Some disclosure text about green capex."
     assert len(upload_calls) == 1
     assert upload_calls[0][1] == b"Some disclosure text about green capex."
     # the upload hook's returned storage_uri gets recorded against the document
     assert content_store.resolve_document(docs[0].doc_id).storage_uri == "s3://arp-documents/fake"
-
-
-def test_no_indexing_config_never_calls_the_hooks(tmp_path, monkeypatch):
-    index_calls = []
-    monkeypatch.setattr(
-        "arp.retrieval.search_indexer.index_document_if_enabled", lambda config, **kwargs: index_calls.append(kwargs)
-    )
-    _write_doc(tmp_path, "acme", DocType.ANNUAL_REPORT_10K, "report.txt", "text")
-    content_store = DocumentContentStore(tmp_path / "store", dsn=pg_dsn())
-    source = LocalFileDocumentSource(tmp_path / "docs", content_store=content_store)
-
-    asyncio.run(source.fetch(CompanyRef(company_id="acme", name="Acme")))
-
-    assert index_calls == []
 
 
 def test_fetch_without_a_store_behaves_exactly_as_before(tmp_path):
