@@ -88,12 +88,6 @@ def test_a_missing_column_is_reported_then_added(current_schema):
     assert report["missing_columns"] == []
     assert report["current"] is True
 
-    from arp.bi.views import create_bi_views
-    from arp.storage.postgres import get_engine
-
-    with get_engine(DSN).begin() as conn:
-        create_bi_views(conn)  # the migration only runs once per DB
-
 
 def test_a_column_the_models_dropped_is_reported_as_drift_not_removed(current_schema):
     """Deliberately not acted on: dropping a column destroys data, so the
@@ -163,8 +157,8 @@ def test_the_projection_fk_step_is_idempotent_against_a_legacy_database(current_
 
 def test_schema_step_0003_idempotent_pg(current_schema):
     """E77: index holdings share `holdings` with portfolio holdings. The step
-    runs once, re-runs safely, lets an index row with no FX rate and no
-    portfolio in, and keeps the BI views portfolio-only."""
+    runs once, re-runs safely, and lets an index row with no FX rate and no
+    portfolio in."""
     from arp.storage.postgres_schema import ensure_schema
     from tests.postgres_helpers import reset_postgres_tables
 
@@ -188,8 +182,6 @@ def test_schema_step_0003_idempotent_pg(current_schema):
             " ('index', 'IDX_ONLY', 'S1', '2026-10-31', 1.0, NULL)"
         )
         assert _execute("SELECT kind FROM holdings WHERE weight_pct IS NULL") == [("portfolio",)]
-        assert _execute("SELECT portfolio_id, market_value_eur FROM bi.holdings") == [("X1", 10.0)]
-        assert _execute("SELECT count(*) FROM bi.holdings_history") == [(1,)]
     finally:
         reset_postgres_tables(DSN)
 

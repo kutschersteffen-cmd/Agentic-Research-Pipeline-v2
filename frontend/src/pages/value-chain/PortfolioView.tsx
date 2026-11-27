@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../api/client";
-import { apiMessage } from "../../lib/projects";
+import { apiMessage } from "../../lib/apiError";
 import { activityLine, cents, naceLinkLine, nodeLine, pct1, pickerHits, portfolioHash, searchable, unresolvedText } from "../../lib/valueChain";
 import type { PortfolioSummary, Taxonomy, VcIcioCode, VcLinkRuleIn, VcLinks, VcNodeRef, VcPortfolio } from "../../types";
 import { Bars } from "./NodeView";

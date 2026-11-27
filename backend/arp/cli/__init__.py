@@ -4,7 +4,6 @@ import typer
 
 from arp.cli.agent import agent_app
 from arp.cli.authority_library import authority_library_app
-from arp.cli.bi import bi_app
 from arp.cli.calibration import calibration_app
 from arp.cli.climate import climate_app
 from arp.cli.compute import compute_app
@@ -22,7 +21,6 @@ from arp.cli.index import index_app
 from arp.cli.io_tables import io_app
 from arp.cli.plan import plan_app
 from arp.cli.portfolio import portfolio_app
-from arp.cli.project import project_app
 from arp.cli.publish import publish_app
 from arp.cli.replication import replicate_app
 from arp.cli.reporting import reporting_app
@@ -129,8 +127,6 @@ app.add_typer(db_app, name="db")
 app.add_typer(taxonomy_researcher_app, name="taxonomy-researcher")
 app.add_typer(calibration_app, name="calibration")
 app.add_typer(reporting_app, name="report")
-app.add_typer(bi_app, name="bi")
-app.add_typer(project_app, name="project")
 app.add_typer(publish_app, name="publish")
 app.add_typer(snapshots_app, name="snapshots")
 app.add_typer(holdings_app, name="holdings")

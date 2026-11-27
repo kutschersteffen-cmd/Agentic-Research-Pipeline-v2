@@ -1324,7 +1324,7 @@ export const CHART_TYPES: ChartType[] = [
   "bar", "column", "stacked_column", "line", "area", "pie", "doughnut", "scatter", "radar", "waterfall", "heatmap", "table",
 ];
 
-export type ChartSpec = Served<S["arp__schemas__chart_specs__ChartSpec"]>;
+export type ChartSpec = Served<S["ChartSpec"]>;
 
 export interface TableSpec {
   dataset_id: string;
@@ -2598,28 +2598,6 @@ export interface RunCompany {
   /** The central id the company was matched to; absent for a run started before it was saved. */
   entity_id?: string | null;
 }
-
-/** Superset BI designer (/api/bi). A plan that fails validation is a 200 with `rejected` reasons and no dashboard;
- * a question back from the model is a 200 with `clarification_needed`. */
-export type BIChartSpec = Served<S["ChartSpec-Output"]>;
-
-export type BIChartPlan = Served<S["ChartPlan"]>;
-
-export type BIDesignResult = Served<S["DesignResult"]>;
-
-export type BIEmbedToken = Served<S["EmbedToken"]>;
-
-/** An embeddable Superset dashboard (slug starts with `arp-`), from GET /api/bi/dashboards. */
-export type DashboardItem = Served<S["DashboardItem"]>;
-
-/** Projects (/api/projects): a named data set plus its dashboards. */
-export type ProjectSummary = Served<S["ProjectSummary"]>;
-
-export type OpenedDashboard = Served<S["OpenedDashboard"]>;
-
-export type OpenResult = Served<S["OpenResult"]>;
-
-export type ExportedDashboard = Served<S["ExportedDashboard"]>;
 
 export interface HolderStatus {
   holder_id: string;

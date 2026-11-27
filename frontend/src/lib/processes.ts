@@ -167,7 +167,6 @@ export const WORKSPACES: Workspace[] = [
         steps: [
           { tab: "portfolio-monitoring", sub: "holdings", label: "Holdings Intake", does: "Load the month's holdings and ESG data; the monthly run starts once both are in.", handsOn: "Month's snapshot", carried: true },
           { tab: "portfolio-monitoring", sub: "monitoring", label: "Monitoring & Alerts", does: "Threshold breaches and news controversies on holdings.", handsOn: "Open alerts", carried: true },
-          { tab: "portfolio-monitoring", sub: "dashboards", label: "Dashboards", does: "WACI, financed emissions and coverage by portfolio.", handsOn: "Alerts as company fields", carried: true },
           { tab: "stewardship", sub: "monitoring", label: "Steward · Monitoring", does: "Open alerts raise stewardship triggers; open the engagement in StewardIQ." },
         ],
       },
@@ -177,7 +176,7 @@ export const WORKSPACES: Workspace[] = [
         cadence: "Annual, plus ad hoc before committees",
         outcome: "A tiered list of issuers to engage, each with a walk-vs-talk verdict and sector context.",
         steps: [
-          { tab: "portfolio-monitoring", sub: "dashboards", label: "Risk Monitoring", does: "WACI, financed emissions and data coverage: where the carbon sits.", handsOn: "Holdings in scope", carried: true },
+          { tab: "portfolio-monitoring", sub: "monitoring", label: "Risk Monitoring", does: "WACI, financed emissions and data coverage: where the carbon sits.", handsOn: "Holdings in scope", carried: true },
           { tab: "transitionBarrier", label: "Transition Barriers", does: "Sector × jurisdiction barriers: what can a company in this sector realistically commit to?", handsOn: "Sector context", runTypes: ["transition_barrier_refresh"] },
           { tab: "transitionPlan", label: "Transition Plan", does: "64 indicators per issuer, walk vs. talk, each with a grounded citation (run by Argus), scored with a ratified template.", handsOn: "Indicator scores and tiers", carried: true, runTypes: ["transition_plan"] },
           { tab: "decision", label: "Decision Studio", does: "Tune the scoring template; ratify it, then publish the tiers.", handsOn: "Published tiers", carried: true },

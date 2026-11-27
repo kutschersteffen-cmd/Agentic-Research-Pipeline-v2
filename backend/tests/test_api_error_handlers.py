@@ -172,7 +172,7 @@ def test_ac48_http_exception_unchanged(client, caplog):
 # AC-55: every class that answers 400/503 today keeps that status. (module, class)
 _400 = [
     ("arp.universe", "UniverseRejected"), ("arp.storage.safe_path", "UnsafeIdentifierError"),
-    ("arp.net_safety", "UnsafeURLError"), ("arp.projects.store", "ProjectError"),
+    ("arp.net_safety", "UnsafeURLError"),
     ("arp.research.value_chain.model", "ShockError"), ("arp.research.value_chain.model", "UnknownMaterial"),
     ("arp.research.value_chain.links", "LinkError"), ("arp.research.value_chain.revenue", "RecipeError"),
     ("arp.research.taxonomy_schema", "ThemeRunRefused"), ("arp.research.exposure_layers", "LayerSettingsError"),

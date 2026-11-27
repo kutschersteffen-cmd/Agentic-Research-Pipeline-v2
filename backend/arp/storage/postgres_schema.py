@@ -137,9 +137,8 @@ def _fields_id_check_v2(conn: Connection) -> None:
 
 
 def _create_bi_views(conn: Connection) -> None:
-    from arp.bi.views import create_bi_views
-
-    create_bi_views(conn)
+    """Legacy migration step retained as a no-op after Superset BI removal."""
+    return
 
 
 def _holdings_intake(conn: Connection) -> None:

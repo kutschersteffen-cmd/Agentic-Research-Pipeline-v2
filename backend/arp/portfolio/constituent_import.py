@@ -31,12 +31,12 @@ from pathlib import Path
 import openpyxl
 
 from arp.portfolio.loads import LoadRecord, record_load_once
-from arp.projects.store import ID_RE
 from arp.schemas.common import CompanyRef
 from arp.schemas.portfolio import Holding, Portfolio, SecurityRef
 from arp.storage.portfolio_store import PortfolioStore
 from arp.storage.safe_path import UnsafeIdentifierError, safe_id
 
+ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
 NOTIONAL_EUR = 100_000_000  # assumed fund size when none is given
 
 ASSET_CLASS = {

@@ -34,7 +34,6 @@ from arp.api.routers import (
     ask,
     authoritative,
     authority_taxonomy,
-    bi,
     calibration,
     capabilities,
     climate,
@@ -57,7 +56,6 @@ from arp.api.routers import (
     overlap,
     plans,
     portfolio,
-    projects,
     publish,
     refine,
     replication,
@@ -233,8 +231,6 @@ app.include_router(portfolio.router, dependencies=[Depends(authorize)])
 app.include_router(climate.router, dependencies=[Depends(authorize)])
 app.include_router(decision.router, dependencies=[Depends(authorize)])
 app.include_router(authoritative.router, dependencies=[Depends(authorize)])
-app.include_router(bi.router, dependencies=[Depends(authorize)])
-app.include_router(projects.router, dependencies=[Depends(authorize)])
 app.include_router(search.router, dependencies=[Depends(authorize)])
 app.include_router(emerging_themes.router, dependencies=[Depends(authorize)])
 app.include_router(dossiers.router, dependencies=[Depends(authorize)])
