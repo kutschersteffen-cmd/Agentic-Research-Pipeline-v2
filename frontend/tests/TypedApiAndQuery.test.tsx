@@ -80,17 +80,36 @@ describe("typed openapi-fetch client", () => {
       "503: Service Unavailable",
     );
   });
+
+  it("falls back to statusText for empty-body non-2xx responses and resolves relative baseUrls", async () => {
+    const seenUrls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(async (input: RequestInfo | URL) => {
+        seenUrls.push(requestUrl(input));
+        return new Response("", { status: 503, statusText: "Service Unavailable" });
+      }),
+    );
+
+    const sameOrigin = createTypedClient("");
+    await expect(sameOrigin.GET("/api/me").then(unwrap)).rejects.toThrow("503: Service Unavailable");
+    const relativePrefix = createTypedClient(".");
+    await expect(relativePrefix.GET("/api/me").then(unwrap)).rejects.toThrow("503: Service Unavailable");
+    expect(seenUrls.every((u) => u.endsWith("/api/me"))).toBe(true);
+  });
 });
 
 describe("TanStack Query integration in App", () => {
-  it("refetches waiting counts when arp:decided fires", async () => {
+  it("refetches waiting counts when arp:decided fires and hides badge on error", async () => {
     let waitingCalls = 0;
+    let failWaiting = false;
     vi.stubGlobal(
       "fetch",
       vi.fn().mockImplementation(async (input: RequestInfo | URL) => {
         const url = requestUrl(input);
         if (url.includes("/api/waiting")) {
           waitingCalls += 1;
+          if (failWaiting) return new Response(JSON.stringify({ detail: "down" }), { status: 500, headers: { "Content-Type": "application/json" } });
           return new Response(JSON.stringify({ total: waitingCalls, by_type: {} }), {
             status: 200,
             headers: { "Content-Type": "application/json" },
@@ -123,7 +142,9 @@ describe("TanStack Query integration in App", () => {
 
     await waitFor(() => expect(waitingCalls).toBeGreaterThanOrEqual(1));
     const before = waitingCalls;
+    failWaiting = true;
     window.dispatchEvent(new Event("arp:decided"));
     await waitFor(() => expect(waitingCalls).toBeGreaterThan(before));
+    await waitFor(() => expect(document.querySelector(".start-topbar-badge")).toBeNull());
   });
 });

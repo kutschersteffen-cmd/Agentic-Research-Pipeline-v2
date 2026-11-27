@@ -160,7 +160,17 @@ function App() {
     if (el) el.textContent = "";
   }, [active]);
 
-  // A decision anywhere (see lib/announce) invalidates the cached counts and run list.
+  // A decision anywhere (see lib/announce) or a route change invalidates the cached counts and run list.
+  const firstRoute = useRef(true);
+  useEffect(() => {
+    if (firstRoute.current) {
+      firstRoute.current = false;
+      return;
+    }
+    void queryClient.invalidateQueries({ queryKey: queryKeys.waiting });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.recentRuns });
+  }, [route, queryClient]);
+
   useEffect(() => {
     const onDecided = () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.waiting });
@@ -173,12 +183,12 @@ function App() {
   // Counts on the "Needs you" items, refreshed on every navigation and after
   // every decision. Failure leaves them off rather than showing a zero nobody measured.
   const waitingQuery = useQuery({
-    queryKey: [...queryKeys.waiting, route.tab, ...route.params],
+    queryKey: queryKeys.waiting,
     queryFn: () => api.getWaiting(),
   });
   const waiting = waitingQuery.isError ? null : (waitingQuery.data ?? null);
   const recentRunsQuery = useQuery({
-    queryKey: [...queryKeys.recentRuns, route.tab, ...route.params],
+    queryKey: queryKeys.recentRuns,
     queryFn: async () => [...(await listAllRuns())].sort((a, b) => (a.updated_at < b.updated_at ? 1 : -1)).slice(0, 50),
   });
   const recentRuns = recentRunsQuery.data ?? [];

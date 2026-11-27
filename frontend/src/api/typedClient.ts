@@ -18,8 +18,15 @@ const authMiddleware: Middleware = {
   },
 };
 
+function resolveBaseUrl(baseUrl: string): string {
+  if (!/^https?:\/\//i.test(baseUrl) && typeof window !== "undefined" && /^https?:\/\//i.test(window.location?.href ?? "")) {
+    return new URL(baseUrl || "/", window.location.href).href.replace(/\/$/, "");
+  }
+  return baseUrl;
+}
+
 export function createTypedClient(baseUrl = DEFAULT_API_BASE) {
-  const client = createClient<paths>({ baseUrl, fetch: (req) => globalThis.fetch(req) });
+  const client = createClient<paths>({ baseUrl: resolveBaseUrl(baseUrl), fetch: (req) => globalThis.fetch(req) });
   client.use(authMiddleware);
   return client;
 }
@@ -30,12 +37,11 @@ function formatErrorBody(error: unknown, fallback: string): string {
   if (error && typeof error === "object" && "detail" in error) {
     const detail = (error as { detail: unknown }).detail;
     if (Array.isArray(detail)) return formatValidationErrors(detail);
-    if (typeof detail === "string") return detail;
+    if (typeof detail === "string") return detail || fallback;
     return JSON.stringify(detail ?? error);
   }
-  if (error !== undefined && error !== null) {
-    return typeof error === "string" ? error : JSON.stringify(error);
-  }
+  if (typeof error === "string") return error || fallback;
+  if (error !== undefined && error !== null) return JSON.stringify(error);
   return fallback;
 }
 
