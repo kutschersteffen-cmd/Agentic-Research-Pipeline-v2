@@ -20,7 +20,7 @@ SCHEMA = DataPointSchema.model_validate({"schema_id": "s", "name": "s", "fields"
 def _fake(name, calls):
     async def start(req, **kwargs):
         calls.append((name, req, kwargs))
-        return {"run_id": f"{name}-1", "company_count": 1}
+        return {"run_id": f"{name}-{len(calls)}", "company_count": 1}
 
     return start
 
@@ -54,7 +54,7 @@ class _Store:
 def test_each_profile_reaches_its_pipeline(calls, pg):
     assert _start(profile="custom", datapoint_schema=SCHEMA)["run_type"] == "extraction"
     started = _start(profile="transition_plan")
-    assert started == {"run_id": "custom-1", "company_count": 1, "run_type": "extraction"}
+    assert started == {"run_id": "custom-2", "company_count": 1, "run_type": "extraction"}
 
     assert [c[0] for c in calls] == ["custom", "custom"]
     assert calls[0][1].datapoint_schema == SCHEMA

@@ -85,7 +85,7 @@ def test_cli_batch_run_that_crashes_is_still_marked(tmp_path, monkeypatch):
     store = RunStore(pg_dsn(), settings.runs_dir)
 
     async def crashing_run(schema, companies, *, settings, run_store, **kwargs):
-        create_extraction_run(schema, companies, settings, run_store)
+        create_extraction_run(schema, companies, settings, run_store, trial=True)
         raise RuntimeError("boom")
 
     monkeypatch.setattr(cli, "get_settings", lambda: settings)

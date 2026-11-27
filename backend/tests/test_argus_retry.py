@@ -162,17 +162,17 @@ async def test_resuming_one_company_runs_only_it_through_the_real_batch(tmp_path
     settings = _settings(tmp_path)
     store = RunStore(pg, settings.runs_dir)
     schema = DataPointSchema(schema_id="s1", name="S", fields=[])
-    run_id = create_extraction_run(schema, COMPANIES[:3], settings, store)
+    run_id = create_extraction_run(schema, COMPANIES[:3], settings, store, trial=True)
     for c in ("c2", "c3"):  # c1's row was cleared by Retry
         store.append_error(run_id, {"key": c, "error": "boom"})
     JobManager(store).record_progress(run_id, failed_delta=3)
     JobManager(store).finish_run(run_id)
     calls: list[str] = []
 
-    async def prepare(company, **_):
+    async def prepare(company, *_args, **_):
         return company
 
-    async def extract(company, **_):
+    async def extract(company, *_args, **_):
         calls.append(company.company_id)
         raise RuntimeError("still broken")
 

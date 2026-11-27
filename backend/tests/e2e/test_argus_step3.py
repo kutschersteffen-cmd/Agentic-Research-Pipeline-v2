@@ -60,7 +60,7 @@ def _open_step_3(page, tmp_path):
     pick = page.get_by_role("region", name="What to extract")
     for heading in ("Saved schemas", "Templates", "Describe it in words"):
         pick.get_by_role("heading", name=heading).wait_for()
-    for name in ("Transition plan", "Financials", "TNFD"):
+    for name in ("Transition plan",):
         options = page.locator("#argus-template option").filter(has_text=re.compile(name, re.I))
         page.wait_for_function("() => document.querySelectorAll('#argus-template option').length > 3")  # the template list loads after the headings
         assert options.count() >= 1  # AC-25

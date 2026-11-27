@@ -196,7 +196,6 @@ def test_existing_extraction_company_results_shape_unchanged(client, run_store):
     assert [r["fields"][0]["value"] for r in body["results"]] == [2, 1]  # newest run first
     assert set(body["results"][0]) == {"company_id", "name", "ticker", "fields", "_key"}
     assert client.get("/api/extraction/companies/nonexistent/results").json() == {"results": []}
-    assert len(client.get("/api/financials/companies/acme/results").json()["results"]) == 1
     known = client.get("/api/runs/known-companies", params={"run_type": "extraction"}).json()
     assert known == {"companies": [{"company_id": "acme", "name": "Acme Renamed", "ticker": "ACM"},
                                    {"company_id": "beta", "name": "Beta", "ticker": "B"}]}

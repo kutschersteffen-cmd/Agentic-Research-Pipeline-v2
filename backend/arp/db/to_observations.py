@@ -120,6 +120,27 @@ def _extraction(company_id: UUID, run_id: str, result: dict, trial: bool, errors
     return out
 
 
+def _financials(company_id: UUID, run_id: str, result: dict, trial: bool, fiscal_year_end: str | None) -> list[ObservationIn]:
+    from arp.normalise.period import resolve_period
+
+    period_end = resolve_period(result.get("fiscal_period"), fiscal_year_end=fiscal_year_end).end
+    currency = result.get("currency")
+    route = Route.REVIEW if result.get("needs_review") else Route.AUTO_ACCEPT
+    out: list[ObservationIn] = []
+    for field_id, key in (("capex_total", "capex"), ("rnd_total", "rnd")):
+        section = result.get(key) or {}
+        total = section.get("total") or {}
+        value = total.get("value")
+        out.append(ObservationIn(
+            company_id=company_id, field_id=field_id, field_version=1, source_kind=SourceKind.EXTRACTION,
+            period_end=period_end, value=value, value_state=_state(value), unit=currency,
+            confidence=section.get("confidence", 0.0), route=route, run_id=run_id,
+            conflicting_sources=bool(section.get("conflicting_sources", False)), trial=trial,
+            citations=_cited(total.get("citations")),
+        ))
+    return out
+
+
 def _theme(company_id: UUID, run_id: str, result: dict, trial: bool) -> list[ObservationIn]:
     return [
         ObservationIn(
@@ -156,9 +177,12 @@ def to_observations(
     run_type: str, company_id: UUID, run_id: str, result: dict, *, trial: bool, errors: list[dict] | None = None,
     fiscal_year_end: str | None = None,
 ) -> list[ObservationIn]:
-    """`errors` collects `{"kind": "invalid_value", "field_id", "raw"}` for values left out."""
+    """`errors` collects `{"kind": "invalid_value", "field_id", "raw"}` for values left out.
+    `fiscal_year_end` (the run's company ref, MM-DD) dates a historic financials `fiscal_period` such as "FY2024"."""
     if run_type == "extraction":
         return _extraction(company_id, run_id, result, trial, errors if errors is not None else [])
+    if run_type == "financials":
+        return _financials(company_id, run_id, result, trial, fiscal_year_end)
     if run_type == "theme":
         return _theme(company_id, run_id, result, trial)
     if run_type == "proxy_voting":
