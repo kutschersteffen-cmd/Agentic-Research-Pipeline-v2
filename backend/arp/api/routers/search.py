@@ -31,6 +31,9 @@ def _like_pattern(q: str) -> str:
 
 
 def _search_documents(session: Session, q: str, limit: int) -> list[SearchHit]:
+    q = q.strip()
+    if not q:
+        return []
     doc_text = func.concat_ws(" ", m.Document.title, m.Document.doc_type, m.Document.universe_id)
     vec = func.to_tsvector("simple", doc_text)
     tsq = func.websearch_to_tsquery("simple", q)
@@ -43,6 +46,7 @@ def _search_documents(session: Session, q: str, limit: int) -> list[SearchHit]:
                 vec.op("@@")(tsq),
                 m.Document.title.ilike(pattern, escape="\\"),
                 m.Document.doc_type.ilike(pattern, escape="\\"),
+                m.Document.universe_id.ilike(pattern, escape="\\"),
             )
         )
         .order_by(rank.desc(), m.Document.title.asc())
@@ -66,6 +70,9 @@ def _search_documents(session: Session, q: str, limit: int) -> list[SearchHit]:
 
 
 def _search_companies(session: Session, q: str, limit: int) -> list[SearchHit]:
+    q = q.strip()
+    if not q:
+        return []
     comp_text = func.concat_ws(" ", m.Company.name, m.Company.sector, m.Company.country)
     vec = func.to_tsvector("simple", comp_text)
     tsq = func.websearch_to_tsquery("simple", q)
@@ -78,7 +85,7 @@ def _search_companies(session: Session, q: str, limit: int) -> list[SearchHit]:
     stmt = (
         select(m.Company, rank.label("rank"))
         .where(
-            ~m.Company.name.op("~*")(_UUID_RE),
+            m.Company.name.op("!~*")(_UUID_RE),
             or_(
                 vec.op("@@")(tsq),
                 m.Company.name.ilike(pattern, escape="\\"),

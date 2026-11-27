@@ -35,6 +35,15 @@ def test_like_pattern_escapes_wildcards():
     assert _like_pattern("100%_a\\b") == "%100\\%\\_a\\\\b%"
 
 
+def test_whitespace_only_query_returns_empty_without_executing_sql():
+    class _ForbiddenSession:
+        def execute(self, _stmt):
+            raise AssertionError("whitespace-only query must not execute SQL")
+
+    assert search_router._search_documents(_ForbiddenSession(), "   ", 10) == []
+    assert search_router._search_companies(_ForbiddenSession(), "\t\n ", 10) == []
+
+
 def test_score_text_ranks_phrase_above_partial_tokens():
     phrase_score = _score_text(["grid", "storage"], "grid storage", [("Grid Storage Systems", 3.0)])
     partial_score = _score_text(["grid", "storage"], "grid storage", [("Smart Grid", 3.0)])
