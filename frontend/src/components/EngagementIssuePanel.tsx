@@ -1,10 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import { fmt, isDemoIssue } from "../lib/engagement";
 import { useMe } from "../lib/reviewer";
 import { SignedInAs } from "./SignedInAs";
-import { noteAnchor } from "../lib/engagement";
-import { CheckButton, ConfirmedStatus, DossierWatchList, FindCommitmentsButton, FoundCommitments, ObjectivesSection, PendingEvidence, ProofLine, WatchTopicsSection, useFocusWhenIdle, useSuggestions } from "./EngagementWatch";
 import type {
   Contact,
   EngagementIssue,
@@ -66,12 +64,6 @@ export function EngagementIssuePanel({
   // The commitment whose "Verify" was clicked: verifying asks for evidence first.
   const [verifying, setVerifying] = useState<string | null>(null);
   const [evidence, setEvidence] = useState("");
-  const closed = issue.status === "resolved" || issue.status === "closed";
-  const suggestions = useSuggestions(record.company_id);
-  const [confirmedId, setConfirmedId] = useState<string | null>(null);
-  const focusLater = useFocusWhenIdle(busy);
-  const commitmentRows = useRef(new Map<string, HTMLDivElement | null>());
-  const watch = { companyId: record.company_id, issueId: issue.issue_id, busy, run, actor, fileStore: suggestions.fileStore, confirmedId, setConfirmedId, focusLater };
 
   useEffect(() => {
     setDossier(null);
@@ -102,7 +94,6 @@ export function EngagementIssuePanel({
   async function run<T>(fn: () => Promise<T>): Promise<T | undefined> {
     setBusy(true);
     setError(null);
-    setConfirmedId(null);
     try {
       return await fn();
     } catch (err) {
@@ -290,35 +281,21 @@ export function EngagementIssuePanel({
         {issue.correspondence.length === 0 && <p className="muted">None logged yet.</p>}
         <ul className="timeline">
           {issue.correspondence.map((c) => (
-            <li key={c.entry_id} id={noteAnchor(c.entry_id)} tabIndex={-1}>
+            <li key={c.entry_id}>
               [{c.type}] {c.summary}
               <div className="timeline-meta">
                 {new Date(c.date).toLocaleString()} {c.logged_by ? `-- logged by ${c.logged_by}` : ""}
               </div>
-              {suggestions.available && ["call", "meeting"].includes(c.activity_type ?? c.type) && (
-                <FindCommitmentsButton ctx={watch} activityId={c.entry_id} onFound={suggestions.reload} />
-              )}
             </li>
           ))}
         </ul>
       </div>
 
-      <ObjectivesSection ctx={watch} issue={issue} suggestions={suggestions} closed={closed} onSaved={refreshRecord} />
-
       <div className="panel-section">
         <h3>Commitments</h3>
-        {suggestions.error && <p className="muted">Suggestions unavailable: {suggestions.error}</p>}
-        <FoundCommitments ctx={watch} issue={issue} suggestions={suggestions} closed={closed} onSaved={refreshRecord} />
         {issue.commitments.length === 0 && <p className="muted">None logged yet.</p>}
         {issue.commitments.map((c) => (
-          <div
-            className="activity-row"
-            key={c.commitment_id}
-            tabIndex={-1}
-            ref={(el) => {
-              commitmentRows.current.set(c.commitment_id, el);
-            }}
-          >
+          <div className="activity-row" key={c.commitment_id}>
             <div className="activity-main">
               {c.text}
               <div className="activity-meta">
@@ -328,21 +305,6 @@ export function EngagementIssuePanel({
                 {c.validated_by && <span>verified by {c.validated_by}</span>}
                 {c.evidence && <span>evidence: {c.evidence}</span>}
               </div>
-              <ProofLine ctx={watch} kind="commitment" id={c.commitment_id} label={c.text} proof={c.proof_statement} open={c.status === "open"} onSaved={refreshRecord} />
-              <ConfirmedStatus ctx={watch} itemId={c.commitment_id} label={c.text} />
-              {c.status === "open" && !closed && suggestions.available && (
-                <>
-                  <PendingEvidence
-                    ctx={watch}
-                    suggestions={suggestions}
-                    itemId={c.commitment_id}
-                    label={c.text}
-                    onConfirmed={() => focusLater(() => commitmentRows.current.get(c.commitment_id))}
-                    onSaved={refreshRecord}
-                  />
-                  <CheckButton ctx={watch} kind="commitment" id={c.commitment_id} label={c.text} onChecked={suggestions.reload} />
-                </>
-              )}
             </div>
             {c.status === "open" && verifying !== c.commitment_id && (
               <button onClick={() => { setVerifying(c.commitment_id); setEvidence(""); }} disabled={busy || !actor}>
@@ -367,8 +329,6 @@ export function EngagementIssuePanel({
         ))}
       </div>
 
-      <WatchTopicsSection key={issue.issue_id} ctx={watch} closed={closed} suggestions={suggestions} />
-
       <div className="panel-section">
         <h3>Research Agent</h3>
         <button onClick={draftDossier} disabled={busy}>
@@ -387,7 +347,6 @@ export function EngagementIssuePanel({
               <strong>Peer benchmark:</strong> {dossier.peer_benchmark_notes}
             </p>
             <p className="muted">Confidence: {Math.round(dossier.confidence * 100)}% &middot; {dossier.citations.length} citation(s)</p>
-            <DossierWatchList entries={dossier.watch_list ?? []} />
           </div>
         )}
       </div>

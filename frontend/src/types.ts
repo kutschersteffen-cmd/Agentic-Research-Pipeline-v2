@@ -905,12 +905,25 @@ export interface Commitment {
   proof_statement?: string | null;
 }
 
-export type Objective = Served<S["Objective"]>;
-export type WatchTopic = Served<S["WatchTopic"]>;
-export type WatchItemKind = "objective" | "commitment" | "topic";
-export type EvidenceSuggestion = Served<S["EvidenceSuggestion"]>;
-export type WatchCheckResult = Served<S["WatchCheckResult"]>;
-export type FindCommitmentsResult = Served<S["FindCommitmentsResult"]>;
+export interface Objective {
+  objective_id: string;
+  description: string;
+  objective_type: string;
+  status: string;
+  result?: string | null;
+  receptiveness?: string | null;
+  escalated?: boolean;
+  follows_objective_id?: string | null;
+  started_at?: string | null;
+  target_date?: string | null;
+  closed_at?: string | null;
+  outcome?: string | null;
+  influence_level?: string | null;
+  influence_evidence?: string | null;
+  evidence_url?: string | null;
+  source?: string | null;
+  proof_statement?: string | null;
+}
 
 export interface MilestoneTransition {
   stage: MilestoneStage;

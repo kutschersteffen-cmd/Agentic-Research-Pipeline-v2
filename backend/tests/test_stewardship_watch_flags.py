@@ -14,10 +14,11 @@ from arp.api.deps import get_engagement_store, get_registry
 from arp.api.main import app
 from arp.api.routers import engagement as engagement_router
 from arp.config import get_settings
+from arp.db.session import transaction
 from arp.engagement.drafting_agent import draft_talking_points
 from arp.engagement.research_agent import ResearchDossierDraft
 from arp.ingestion.registry import DocumentSourceRegistry
-from arp.schemas.common import DocType, SourceDocument
+from arp.schemas.common import DocType, SourceDocument, new_id
 from arp.schemas.engagement import (
     Commitment,
     EngagementIssue,
@@ -31,9 +32,18 @@ from arp.stewardship import tracking
 from arp.stewardship.tracking import triggers, watch_flags, watch_flags_by_company, watch_list
 from arp.storage.engagement_store import EngagementStore
 from arp.storage.postgres_engagement_store import PostgresEngagementStore
+from arp.storage.postgres_models import StwEvidenceSuggestionModel
 from tests.conftest import PRINCIPAL, FakeLLMClient
 from tests.test_engagement_research_agent import _FixedDocSource
-from tests.test_stewardship_watch import _suggest
+
+
+def _suggest(dsn, issue, **kw) -> str:
+    values = {"kind": "evidence", "company_id": "C1", "engagement_id": issue, "verdict": "found", "doc_id": "doc_1",
+              "doc_title": "AR2026.txt", "quote": "The board formed a climate committee in March 2026.", **kw}  # fmt: skip
+    suggestion_id = new_id("evs")
+    with transaction(dsn) as s:
+        s.add(StwEvidenceSuggestionModel(suggestion_id=suggestion_id, **values))
+    return suggestion_id
 
 TODAY = date(2026, 11, 15)  # fixed, never the clock: a run that crossed midnight UTC failed (PR #484)
 YESTERDAY = (TODAY - timedelta(days=1)).isoformat()

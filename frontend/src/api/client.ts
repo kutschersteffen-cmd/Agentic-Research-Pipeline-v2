@@ -6,12 +6,6 @@ import { filenameFromDisposition, inlineSafe } from "../lib/files";
 import { cockpitPath } from "../lib/cockpit";
 import type { Me } from "../lib/reviewKeys";
 import type {
-  Objective,
-  WatchItemKind,
-  WatchTopic,
-  EvidenceSuggestion,
-  WatchCheckResult,
-  FindCommitmentsResult,
   ArgusDraft,
   ArgusFlow,
   Cockpit,
@@ -983,29 +977,6 @@ export const api = {
       method: "POST",
       body: JSON.stringify(body),
     }),
-
-  // Watch list (spec stewardship-commitment-loop)
-  setProofStatement: (kind: WatchItemKind, id: string, body: { company_id: string; issue_id: string; proof_statement: string }) =>
-    request<unknown>(`/api/stewardship/watch-items/${kind}/${encodeURIComponent(id)}/proof-statement`, jsonBody("POST", body)),
-  listWatchTopics: (companyId: string) =>
-    request<{ topics: WatchTopic[] }>(`/api/stewardship/watch-topics?company_id=${encodeURIComponent(companyId)}`),
-  addWatchTopic: (body: { company_id: string; issue_id: string; question: string; proof_statement?: string; target_date?: string }) =>
-    request<WatchTopic>("/api/stewardship/watch-topics", jsonBody("POST", body)),
-  closeWatchTopic: (topicId: string) => request<WatchTopic>(`/api/stewardship/watch-topics/${encodeURIComponent(topicId)}/close`, { method: "POST" }),
-  recordObjectiveResult: (
-    objectiveId: string,
-    body: { company_id: string; issue_id: string; result: string; influence_level: string | null; outcome: string },
-  ) => request<Objective>(`/api/stewardship/objectives/${encodeURIComponent(objectiveId)}/result`, jsonBody("POST", body)),
-  listSuggestions: (companyId: string, status: "pending" | "confirmed" | "rejected") =>
-    request<{ suggestions: EvidenceSuggestion[] }>(`/api/stewardship/evidence-suggestions?company_id=${encodeURIComponent(companyId)}&status=${status}`),
-  confirmSuggestion: (id: string, body: { text?: string; proof_statement?: string; target_date?: string } = {}) =>
-    request<EvidenceSuggestion>(`/api/stewardship/evidence-suggestions/${encodeURIComponent(id)}/confirm`, jsonBody("POST", body)),
-  rejectSuggestion: (id: string, reason: string) =>
-    request<EvidenceSuggestion>(`/api/stewardship/evidence-suggestions/${encodeURIComponent(id)}/reject`, jsonBody("POST", { reason })),
-  checkWatchItem: (kind: WatchItemKind, id: string, companyId: string) =>
-    request<WatchCheckResult>(`/api/stewardship/watch-items/${kind}/${encodeURIComponent(id)}/check`, jsonBody("POST", { company_id: companyId })),
-  findCommitments: (activityId: string) =>
-    request<FindCommitmentsResult>(`/api/stewardship/activities/${encodeURIComponent(activityId)}/find-commitments`, { method: "POST" }),
 
   // Portfolio risk & exposure monitoring
   seedPortfolioDemo: () => request<DemoSeedSummary>("/api/portfolio/demo/seed", { method: "POST" }),
