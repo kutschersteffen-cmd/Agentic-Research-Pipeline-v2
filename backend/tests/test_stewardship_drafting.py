@@ -4,7 +4,7 @@ import pytest
 
 from arp.schemas.engagement import CorrespondenceType, EscalationStage, InteractionType, MilestoneStage
 from arp.stewardship import drafting
-from arp.stewardship.policies import PolicyStore
+from arp.stewardship.config_store import PolicyStore
 from arp.stewardship.style import check, load_blocklist
 from arp.storage.engagement_store import EngagementStore
 

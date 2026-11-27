@@ -2,9 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { api } from "../../api/client";
 import { SignedInAs } from "../../components/SignedInAs";
 import { useMe } from "../../lib/reviewer";
-import type { MetricSource, StewardPolicyId, StewardPolicyInfo, StewardshipStage } from "../../types";
-
-export const SOURCE_LABEL: Record<MetricSource, string> = { live: "live data", sample: "synthetic sample", portfolio: "portfolio holdings", not_built: "not built yet" };
+import type { StewardPolicyId, StewardPolicyInfo } from "../../types";
 
 export function fmt(v: unknown): string {
   if (v === null || v === undefined) return "not set";
@@ -15,25 +13,10 @@ export function fmt(v: unknown): string {
 
 export const words = (s: string) => s.replace(/_/g, " ");
 
-// One tab per stage of docs/STEWARDSHIP_OPERATING_MODEL.md, Part 2. Stages 1-6
-// are house truth and always show the house program; 7-8 work on a client stream.
 export const STAGE_TABS = [
-  { id: "monitoring", n: 1, label: "Monitoring" },
-  { id: "selection", n: 2, label: "Selection" },
-  { id: "workbench", n: null, label: "Workbench" },
-  { id: "drafting", n: 3, label: "Drafting" },
-  { id: "voting", n: 4, label: "Voting" },
-  { id: "checkpoint", n: 5, label: "Checkpoint" },
-  { id: "tracking", n: 6, label: "Tracking" },
-  { id: "client_policy", n: 7, label: "Client policy" },
-  { id: "reporting", n: 8, label: "Reporting" },
+  { id: "workbench", label: "Workbench" },
+  { id: "drafting", label: "Drafting" },
 ] as const;
-
-/** A stage's one name, the same on the tabs, the overview and the start page;
- * the backend's long title stays as a tooltip. */
-export const stageName = (stage: StewardshipStage) => STAGE_TABS.find((t) => t.id === stage.id)?.label ?? stage.title;
-
-export { openCount } from "../../lib/workspaceCard";
 
 /** The signed-in user's name, or "" when signed out. The server records who decided. */
 export const useActor = (): string => useMe()?.name ?? "";
@@ -42,49 +25,6 @@ export function ActorField() {
   return (
     <div className="actor-field">
       <SignedInAs compact />
-    </div>
-  );
-}
-
-export type Capability = { label: "Review" | "Design" | "Calibrate" | "Versions" | "Decide"; ready: boolean };
-
-/** Header of every stage studio: what the stage is, its numbers, and what can be done here today. */
-export function StudioHeader({ stage, capabilities, children }: { stage: StewardshipStage; capabilities: Capability[]; children?: ReactNode }) {
-  return (
-    <section className="card">
-      <div className="section-heading">
-        <h2 title={stage.title}>
-          {stage.number}. {stageName(stage)}
-        </h2>
-        <span className="chip">{stage.layer === "house" ? "House policy" : "Client overlay"}</span>
-      </div>
-      <p className="help-text">{stage.summary}</p>
-      <div className="chip-row" aria-label="What this studio does">
-        {capabilities.map((c) => (
-          <span key={c.label} className={`chip capability${c.ready ? " ready" : ""}`} title={c.ready ? "Available" : "Not built yet"}>
-            {c.ready ? "✓" : "○"} {c.label}
-          </span>
-        ))}
-      </div>
-      <MetricTiles stage={stage} />
-      {children}
-    </section>
-  );
-}
-
-export function MetricTiles({ stage }: { stage: StewardshipStage }) {
-  return (
-    <div className="metric-grid">
-      {stage.metrics.map((m) => (
-        <div key={m.label} className={`metric-tile tone-${m.tone}`}>
-          <span className="metric-tile-label">{m.label}</span>
-          <strong className="metric-tile-value">{m.value}</strong>
-          <span className="metric-tile-source">
-            <span className={`source-dot source-${m.source}`} /> {SOURCE_LABEL[m.source]}
-          </span>
-          {m.hint && <span className="muted">{m.hint}</span>}
-        </div>
-      ))}
     </div>
   );
 }
@@ -130,9 +70,7 @@ export function Section({ step, title, children, planned }: { step: string; titl
   );
 }
 
-/** The rule editor (design, preview, versions) stays folded until someone
- * means to change the rules, so a studio opens on its decisions. Closing it
- * keeps the draft: the draft lives in the studio, not in here. */
+/** The rule editor (design, preview, versions) stays folded until someone means to change the rules. */
 export function RuleEditor({ label, children }: { label: string; children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const openRef = useRef<HTMLDivElement>(null);
@@ -161,35 +99,16 @@ export function RuleEditor({ label, children }: { label: string; children: React
   );
 }
 
-/** Marks figures computed from placeholder scores (CLTI), so nobody reads them as an assessment. */
-export function SampleChip() {
-  return <span className="chip chip-sample">Sample data</span>;
-}
-
-/** Honest placeholder for a part of the studio that is designed but not built. */
-export function Planned({ items }: { items: string[] }) {
-  return (
-    <>
-      <p className="help-text">Designed in the operating model, not built yet. This part of the studio will hold:</p>
-      <ul className="planned-list">
-        {items.map((i) => (
-          <li key={i}>{i}</li>
-        ))}
-      </ul>
-    </>
-  );
-}
-
-export function usePolicy(policyId: StewardPolicyId, stream?: string) {
+export function usePolicy(policyId: StewardPolicyId) {
   const [info, setInfo] = useState<StewardPolicyInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
   const reload = useCallback(async () => {
     try {
-      setInfo(await api.getStewardPolicy(policyId, stream));
+      setInfo(await api.getStewardPolicy(policyId));
     } catch (err) {
       setError((err as Error).message);
     }
-  }, [policyId, stream]);
+  }, [policyId]);
   useEffect(() => {
     reload();
   }, [reload]);
@@ -199,7 +118,6 @@ export function usePolicy(policyId: StewardPolicyId, stream?: string) {
 /** Save the working copy as a new version; activate any version with a named approver. */
 export function VersionsPanel({
   policyId,
-  stream,
   info,
   workingCopy,
   dirty,
@@ -210,7 +128,6 @@ export function VersionsPanel({
   onActivated,
 }: {
   policyId: StewardPolicyId;
-  stream?: string;
   info: StewardPolicyInfo;
   workingCopy: unknown;
   dirty: boolean;
@@ -232,7 +149,7 @@ export function VersionsPanel({
     setError(null);
     setMessage(null);
     try {
-      const res = await api.saveStewardPolicyVersion(policyId, { content: workingCopy, note }, stream);
+      const res = await api.saveStewardPolicyVersion(policyId, { content: workingCopy, note });
       setNote("");
       setMessage(`Saved as version ${res.version}. It is not active until someone activates it.`);
       onSaved();
@@ -247,7 +164,7 @@ export function VersionsPanel({
     setError(null);
     setMessage(null);
     try {
-      await api.activateStewardPolicy(policyId, { version }, stream);
+      await api.activateStewardPolicy(policyId, { version });
       setMessage(`Version ${version} is now active.`);
       onActivated();
     } catch (err) {
@@ -261,7 +178,7 @@ export function VersionsPanel({
   return (
     <>
       <p className="help-text">
-        Saving checks that the policy runs and stores it as a new, unchangeable version. It only takes effect once a second person
+        Saving checks that the configuration runs and stores it as a new, unchangeable version. It only takes effect once a second person
         (not its author) activates it; every activation is logged, so you can always roll back.
       </p>
       <div className="inline-fields decision-controls">

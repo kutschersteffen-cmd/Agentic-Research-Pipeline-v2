@@ -36,6 +36,7 @@ from arp.storage.atomic_io import atomic_write_text
 from arp.storage.portfolio_store import PortfolioStore, portfolio_directories
 
 SOURCES = ("sample", "portfolio")
+SAMPLE_PATH = Path(__file__).parent / "data" / "examples" / "sample_meetings.json"
 FILL_WAIT_S = 60  # start-up and requests wait at most this long for the observation fill, then read the files themselves
 logger = logging.getLogger(__name__)
 
@@ -287,8 +288,6 @@ def input_version(settings) -> tuple:
     version: tuple = (paths, source, _identity(setting.path), _identity(settings.identifier_map_path.with_name("issuer_sectors.json")))
     files: dict = {}
     if source == "sample":
-        from arp.stewardship.process import SAMPLE_PATH
-
         version += (_identity(SAMPLE_PATH),)
     else:
         from sqlalchemy import text

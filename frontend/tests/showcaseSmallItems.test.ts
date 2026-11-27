@@ -54,7 +54,7 @@ test("12b: a process is as far as its steps, so one with a recorded load is not 
 
 test("12b: Monitoring & Alerts is done once a monthly run ran, never failed", () => {
   assert.equal(line(ALERTS, { feeds: [load("holdings", "failed", "x")], lastRun: { at: "2026-11-12T10:00:00+00:00" } }), "Done · 12 Nov");
-  assert.equal(stepActivity(step("Monthly monitoring", "Steward · Monitoring"), { feeds: [], lastRun: { at: "x" } }), null);
+  assert.equal(stepActivity(step("Monthly monitoring", "Steward · Workbench"), { feeds: [], lastRun: { at: "x" } }), null);
 });
 
 test("12e: findingText", () => {  // AC-151, AC-152

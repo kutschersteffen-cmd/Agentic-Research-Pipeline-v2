@@ -23,7 +23,7 @@ from arp.portfolio.monitoring.scheduler import PortfolioMonitoringScheduler
 from arp.publish.facts import PublishStore
 from arp.publish.scheduler import PublishingScheduler
 from arp.review.analytics import ReviewAnalyticsScheduler
-from arp.stewardship.process import StreamStore
+from arp.stewardship.config_store import StreamStore
 from arp.storage.document_blob_store import blob_store_for
 from arp.storage.engagement_store import EngagementStore
 from arp.storage.engagement_store_factory import build_engagement_store

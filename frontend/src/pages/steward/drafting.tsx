@@ -1,8 +1,7 @@
 import { Fragment, useEffect, useState } from "react";
 import { api } from "../../api/client";
-import type { BlocklistEntry, EngagementRecord, InteractionType, OutreachDecisionItem, OutreachDraft, StyleFlag } from "../../types";
-import { ActorField, DataTable, Section, StudioHeader, VersionsPanel, useActor, usePolicy, words } from "./common";
-import type { StudioProps } from "./studios";
+import type { BlocklistEntry, EngagementRecord, InteractionType, OutreachDraft, StyleFlag } from "../../types";
+import { ActorField, DataTable, Section, VersionsPanel, useActor, usePolicy, words } from "./common";
 
 const TAGS: InteractionType[] = ["informational", "advocacy_pressure", "other"];
 const TYPES = ["letter", "email", "call", "meeting"];
@@ -39,8 +38,8 @@ function FlagList({ flags }: { flags: StyleFlag[] }) {
   );
 }
 
-/** Stage 5: approve outreach before it is sent. A second person approves; open style flags need a note. */
-export function OutreachDecisions({ items, actor, onDone }: { items: OutreachDecisionItem[]; actor: string; onDone: () => void }) {
+/** Approve outreach before it is sent. A second person approves; open style flags need a note. */
+export function OutreachDecisions({ items, actor, onDone }: { items: OutreachDraft[]; actor: string; onDone: () => void }) {
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +59,8 @@ export function OutreachDecisions({ items, actor, onDone }: { items: OutreachDec
     <>
       {error && <p className="error-text" role="alert">{error}</p>}
       {items.map((d) => {
-        const author = d.authors.some((a) => a.trim().toLowerCase() === actor.trim().toLowerCase());
+        const authors = [...new Set([d.created_by, ...d.history.filter((h) => h.action === "edited" || h.action === "created").map((h) => h.by)])];
+        const author = authors.some((a) => a.trim().toLowerCase() === actor.trim().toLowerCase());
         return (
           <article key={d.draft_id} className="card position-card">
             <div className="section-heading">
@@ -72,7 +72,7 @@ export function OutreachDecisions({ items, actor, onDone }: { items: OutreachDec
             <FlaggedText text={d.text} flags={d.style_flags} />
             <FlagList flags={d.style_flags} />
             <p className="muted">
-              Proposed tag: {words(d.proposed_interaction_type)} ({d.proposed_because}). Written by {d.authors.join(", ")}.
+              Proposed tag: {words(d.proposed_interaction_type)} ({d.proposed_because}). Written by {authors.join(", ")}.
             </p>
             <div className="inline-fields decision-controls">
               <label className="field-label">
@@ -114,7 +114,7 @@ export function OutreachDecisions({ items, actor, onDone }: { items: OutreachDec
               </button>
               {actor && author && (
                 <span className="help-text">
-                  A second person is needed: this draft was written by {d.authors.join(", ")}, and someone who did not write it
+                  A second person is needed: this draft was written by {authors.join(", ")}, and someone who did not write it
                   approves it.
                 </span>
               )}
@@ -282,17 +282,17 @@ function BlocklistEditor({ actor, onActivated }: { actor: string; onActivated: (
   );
 }
 
-export function DraftingStudio({ stage, onChanged, onOpen }: StudioProps) {
+export function DraftingStudio({ onChanged }: { onChanged?: () => void }) {
   const actor = useActor();
   const [drafts, setDrafts] = useState<OutreachDraft[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const load = () => api.listDrafts().then((r) => setDrafts(r.drafts), (e) => setError((e as Error).message));
   useEffect(() => {
     load();
-  }, [stage]);
+  }, []);
   const refresh = () => {
     load();
-    onChanged();
+    onChanged?.();
   };
   async function sent(d: OutreachDraft) {
     setError(null);
@@ -303,25 +303,25 @@ export function DraftingStudio({ stage, onChanged, onOpen }: StudioProps) {
       setError((err as Error).message);
     }
   }
+  const pending = (drafts ?? []).filter((d) => d.status === "draft");
   return (
     <>
-      <StudioHeader
-        stage={stage}
-        capabilities={[
-          { label: "Review", ready: true },
-          { label: "Design", ready: true },
-          { label: "Versions", ready: true },
-        ]}
-      >
-        <p className="muted">
+      <section className="card">
+        <h2>Outreach drafting</h2>
+        <p className="help-text">
           Letters, talking points and meeting summaries are drafted with grounded citations on the <strong>Engagement</strong> page. Here
-          each outreach gets its interaction type (E6) and the style check (E8), and waits for approval at stage 5 before it is sent.
+          each outreach gets its interaction type (E6) and style check (E8), and waits for four-eyes approval before it is sent.
         </p>
-      </StudioHeader>
+      </section>
       <ActorField />
       <Section step="Construct" title="New outreach draft">
         <Compose actor={actor} onCreated={refresh} />
       </Section>
+      {pending.length > 0 && (
+        <Section step="Approve" title="Drafts waiting for four-eyes approval">
+          <OutreachDecisions items={pending} actor={actor} onDone={refresh} />
+        </Section>
+      )}
       <Section step="Review" title="Outreach drafts">
         {error && <p className="error-text" role="alert">{error}</p>}
         {drafts === null ? (
@@ -355,11 +355,6 @@ export function DraftingStudio({ stage, onChanged, onOpen }: StudioProps) {
                       {d.approved_by ? <span className="muted"> · approved by {d.approved_by}</span> : null}
                     </td>
                     <td>
-                      {d.status === "draft" && (
-                        <button className="link-button" onClick={() => onOpen("checkpoint")}>
-                          Approve at stage 5 →
-                        </button>
-                      )}
                       {d.status === "approved" && (
                         <button onClick={() => sent(d)} disabled={!actor} title={actor ? undefined : "Sign in above first"}>
                           Mark as sent

@@ -1,15 +1,7 @@
 {
   "_comment": "Shrinking baseline of pre-existing architecture & cycle violations. Do not add new entries manually; shrink with `python3 .github/scripts/arch_guard.py --update-allowlist` as PRs 2-5 clean them up.",
   "layer_violations": [],
-  "module_cycle_edges": [
-    "arp.stewardship.backtest -> arp.stewardship.policy_graph",
-    "arp.stewardship.policy_graph -> arp.stewardship.policy_review",
-    "arp.stewardship.policy_review -> arp.stewardship.backtest",
-    "arp.stewardship.process -> arp.stewardship.universe",
-    "arp.stewardship.process -> arp.stewardship.vote_ledger_feed",
-    "arp.stewardship.universe -> arp.stewardship.process",
-    "arp.stewardship.vote_ledger_feed -> arp.stewardship.process"
-  ],
+  "module_cycle_edges": [],
   "package_cycle_edges": [
     "arp.checks -> arp.extraction",
     "arp.checks -> arp.normalise",
@@ -201,7 +193,6 @@
     "arp.standins -> arp.discovery",
     "arp.standins -> arp.llm",
     "arp.stewardship -> arp.db",
-    "arp.stewardship -> arp.engagement",
     "arp.stewardship -> arp.portfolio",
     "arp.stewardship -> arp.reporting",
     "arp.stewardship -> arp.schemas",

@@ -24,12 +24,25 @@ def test_deps_reexports_preserve_factory_identity():
 
 
 def test_extraction_runner_hook_requires_registration_and_wires(monkeypatch):
+    import asyncio
+
+    from arp.extraction import pipeline as extraction_pipeline
+
     monkeypatch.setattr(hooks, "_extraction_runner", None)
     with pytest.raises(RuntimeError, match="not registered"):
         hooks.get_extraction_runner()
     container.wire()
     create_fn, execute_fn = hooks.get_extraction_runner()
     assert callable(create_fn) and callable(execute_fn)
+
+    monkeypatch.setattr(extraction_pipeline, "create_extraction_run", lambda *a, **k: "run-123")
+
+    async def fake_execute(*a, **k):
+        return "done-123"
+
+    monkeypatch.setattr(extraction_pipeline, "execute_extraction_run", fake_execute)
+    assert create_fn() == "run-123"
+    assert asyncio.run(execute_fn()) == "done-123"
 
 
 def test_load_saved_universe_file_checks_folder_and_readability(tmp_path):

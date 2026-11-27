@@ -17,19 +17,12 @@ from tests.test_review_decide import (
 
 pytestmark = pytest.mark.usefixtures("pg")
 
-NO_FLOW = {"stages": []}
+
+def counts(rs, pending_drafts: int = 0):
+    return waiting_counts(rs, ALICE, pending_drafts)
 
 
-def counts(rs):
-    return waiting_counts(rs, ALICE, NO_FLOW)
-
-
-@pytest.fixture
-def stub_flow(monkeypatch):
-    monkeypatch.setattr(waiting_router, "flow", lambda *a, **k: NO_FLOW)
-
-
-def test_ac1_shape(env, stub_flow):  # noqa: F811
+def test_ac1_shape(env):  # noqa: F811
     r = client(ALICE).get("/api/waiting")
     assert r.status_code == 200, r.text
     body = r.json()
@@ -38,7 +31,7 @@ def test_ac1_shape(env, stub_flow):  # noqa: F811
     assert body["total"] == body["review"] + body["decisions"] + body["ballots"]
 
 
-def test_ac2_review_equals_open_items(env, stub_flow):  # noqa: F811
+def test_ac2_review_equals_open_items(env):  # noqa: F811
     items = client(ALICE).get("/api/review/items").json()["items"]
     assert len({i["run_id"] for i in items}) >= 2
     assert client(ALICE).get("/api/waiting").json()["review"] == len(items) == len(list_open_items(env[0], ALICE))
@@ -57,24 +50,23 @@ def test_ac3b_first_of_two_unchanged(env):  # noqa: F811
     assert counts(env[0]).review == before
 
 
-def test_ac4_decisions_checkpoint_and_tracking_only(env):  # noqa: F811
-    house = {"stages": [
-        {"id": "checkpoint", "decisions": [{"kind": "tier_change"}, {"kind": "tier_change"}, {"kind": "outreach"}]},
-        {"id": "tracking", "decisions": [{"kind": "commitment_due"}]},
-        {"id": "voting", "decisions": [{}, {}, {}]},
-    ]}
-    assert waiting_counts(env[0], ALICE, house).decisions == 4
+def test_ac4_decisions_counts_pending_drafts(env):  # noqa: F811
+    c = waiting_counts(env[0], ALICE, 3)
+    assert c.decisions == 3 and c.total == c.review + 3
 
 
 def test_ac4b_ballots_always_zero(env):  # noqa: F811
     assert counts(env[0]).ballots == 0
 
 
-def test_broken_flow_is_503(env, monkeypatch):  # noqa: F811
-    def broken(*a, **k):
-        raise ValueError("bad policy")
+def test_broken_draft_store_is_503(env, monkeypatch):  # noqa: F811
+    class _Broken:
+        def __init__(self, *_a, **_k):
+            pass
 
-    monkeypatch.setattr(waiting_router, "flow", broken)
+        def list(self):
+            raise ValueError("bad store")
+
+    monkeypatch.setattr(waiting_router, "DraftStore", _Broken)
     r = client(ALICE).get("/api/waiting")
     assert r.status_code == 503 and "could not be counted" in r.text
-

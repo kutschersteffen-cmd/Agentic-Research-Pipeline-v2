@@ -1,6 +1,6 @@
 """The house program can cover the companies held in the portfolios instead
 of the synthetic sample, so stewardship shares company ids with Risk
-Monitoring, Proxy Voting and Decision Studio and their handoffs match."""
+Monitoring so their handoffs match."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ import pytest
 
 from arp.portfolio.mock_data import generate_demo_dataset
 from arp.schemas.portfolio_monitoring import Alert, AlertCategory
-from arp.stewardship import monitoring, process
+from arp.stewardship import house, monitoring, sample
 from arp.stewardship.universe import HouseUniverseSetting, from_portfolio, held_isins, latest_observations
 from arp.storage.portfolio_store import PortfolioStore
 
@@ -47,18 +47,9 @@ def test_observations_read_once_by_the_caller_give_the_same_universe(tmp_path):
 
 def test_a_portfolio_alert_reaches_stewardship_on_held_companies(universe, tmp_path):
     alert = Alert(category=AlertCategory.NEWS_CONTROVERSY, scope_id="isin_DE0005190003", company_id="isin_DE0005190003")
-    sample = process.load_sample(tmp_path / "fw", votes=[], alerts=[alert], base=json.loads(json.dumps(universe)))
-    raised = [t for t in monitoring.evaluate(monitoring.load_graph(), sample, []) if t["rule"] == "portfolio_news_controversy"]
+    loaded = sample.load_sample(tmp_path / "fw", votes=[], alerts=[alert], base=json.loads(json.dumps(universe)))
+    raised = [t for t in monitoring.evaluate(monitoring.load_graph(), loaded, []) if t["rule"] == "portfolio_news_controversy"]
     assert [t["issuer_id"] for t in raised] == ["isin_DE0005190003"]
-
-
-def test_the_flow_runs_and_labels_portfolio_figures(universe, tmp_path, monkeypatch, pg):
-    monkeypatch.setattr(process, "house_build", lambda: process.HouseBuild(json.loads(json.dumps(universe)), {}, None))
-    stages = process.flow(process.HOUSE, process.StreamStore(tmp_path / "s"), [], 45, votes=[])["stages"]
-    sources = {m["source"] for s in stages for m in s["metrics"]}
-    assert "sample" not in sources and "portfolio" in sources
-    monitored = next(m for m in stages[0]["metrics"] if m["label"] == "Companies monitored")
-    assert monitored["value"] == len(universe["issuers"])
 
 
 def test_the_setting_needs_a_known_source_and_a_name(tmp_path):
@@ -70,7 +61,6 @@ def test_the_setting_needs_a_known_source_and_a_name(tmp_path):
         setting.set("portfolio", " ")
     assert setting.set("portfolio", "A. Reviewer")["source"] == "portfolio"
     assert setting.get()["set_by"] == "A. Reviewer"
-    assert process.StreamStore(tmp_path).list() == []  # the setting is not mistaken for a client stream
 
 
 def test_default_source_is_portfolio(tmp_path):
@@ -85,10 +75,10 @@ def test_empty_portfolio_returns_note_and_no_triggers(tmp_path, monkeypatch, pg)
     monkeypatch.setenv("ARP_PORTFOLIOS_DIR", str(tmp_path / "portfolios"))
     get_settings.cache_clear()
     try:
-        universe = process.house_universe()
-        sample = process.load_sample(tmp_path / "fw", votes=[], alerts=[])
+        uni = house.house_universe()
+        loaded = sample.load_sample(tmp_path / "fw", votes=[], alerts=[])
     finally:
         get_settings.cache_clear()
-    assert universe["note"] == "No portfolio holdings loaded." and universe["source"] == "portfolio"
-    assert sample["issuers"] == [] and sample["meetings"] == []  # not the synthetic sample
-    assert monitoring.evaluate(monitoring.load_graph(), sample, []) == []
+    assert uni["note"] == "No portfolio holdings loaded." and uni["source"] == "portfolio"
+    assert loaded["issuers"] == [] and loaded["meetings"] == []  # not the synthetic sample
+    assert monitoring.evaluate(monitoring.load_graph(), loaded, []) == []

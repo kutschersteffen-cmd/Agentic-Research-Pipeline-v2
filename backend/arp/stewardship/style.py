@@ -7,11 +7,16 @@ follows the same save / four-eyes activate path as the rule graphs.
 
 from __future__ import annotations
 
+import json
 import re
+from pathlib import Path
 
-from arp.stewardship.policy_review import load
-
+DATA = Path(__file__).parent / "data"
 CATEGORIES = {"overclaiming", "unsupported_claim", "regulated_term", "legal_risk", "other"}
+
+
+def load(name: str) -> dict:
+    return json.loads((DATA / name).read_text())
 
 
 def load_blocklist() -> dict:

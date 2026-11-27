@@ -4390,17 +4390,37 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/stewardship/catalogue": {
+    "/api/stewardship/case-study/{company_id}/{issue_id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Catalogue */
-        get: operations["get_catalogue_api_stewardship_catalogue_get"];
+        /**
+         * Get Case Study
+         * @description E7: a case study compiled from a closed engagement's records, with its E8 style flags.
+         */
+        get: operations["get_case_study_api_stewardship_case_study__company_id___issue_id__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stewardship/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close Engagement */
+        post: operations["close_engagement_api_stewardship_close_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4453,7 +4473,7 @@ export interface paths {
         put?: never;
         /**
          * Approve Draft
-         * @description The stage 5 checkpoint for outreach: nothing is sent before a second person approves it.
+         * @description Four-eyes checkpoint for outreach: nothing is sent before a second person approves it.
          */
         post: operations["approve_draft_api_stewardship_drafts__draft_id__approve_post"];
         delete?: never;
@@ -4784,6 +4804,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stewardship/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get House Report */
+        get: operations["get_house_report_api_stewardship_report_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stewardship/report.pptx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get House Report Pptx
+         * @description The house stewardship summary as a PowerPoint deck, rendered on request.
+         */
+        get: operations["get_house_report_pptx_api_stewardship_report_pptx_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stewardship/selection": {
         parameters: {
             query?: never;
@@ -4829,262 +4886,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/stewardship/streams": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Streams */
-        get: operations["list_streams_api_stewardship_streams_get"];
-        put?: never;
-        /** Create Stream */
-        post: operations["create_stream_api_stewardship_streams_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/streams/{stream_id}/build": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Post Build */
-        post: operations["post_build_api_stewardship_streams__stream_id__build_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/streams/{stream_id}/decisions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Post Decision */
-        post: operations["post_decision_api_stewardship_streams__stream_id__decisions_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/streams/{stream_id}/exceptions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Decide Client Exception
-         * @description The house decides a client's escalation above its own step: adopt moves the
-         *     engagement to the client's step; decline keeps the house step. Both are logged
-         *     on the stream, so the client report can show them.
-         */
-        post: operations["decide_client_exception_api_stewardship_streams__stream_id__exceptions_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/streams/{stream_id}/flow": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Flow */
-        get: operations["get_flow_api_stewardship_streams__stream_id__flow_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/streams/{stream_id}/report": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Client Report */
-        get: operations["get_client_report_api_stewardship_streams__stream_id__report_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/streams/{stream_id}/report.pptx": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Client Report Pptx
-         * @description The same report as a PowerPoint deck, rendered on request and not stored.
-         */
-        get: operations["get_client_report_pptx_api_stewardship_streams__stream_id__report_pptx_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/streams/{stream_id}/studio/escalation/preview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Post Client Escalation Preview */
-        post: operations["post_client_escalation_preview_api_stewardship_streams__stream_id__studio_escalation_preview_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/studio/coverage/inputs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Coverage Inputs
-         * @description The per-company inputs the coverage rules see (for the rule editor's live preview).
-         */
-        get: operations["coverage_inputs_api_stewardship_studio_coverage_inputs_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/studio/coverage/preview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Post Coverage Preview */
-        post: operations["post_coverage_preview_api_stewardship_studio_coverage_preview_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/studio/escalation/client-example": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Client Escalation Example
-         * @description An example client escalation graph (stricter on climate for CLTI laggards).
-         */
-        get: operations["client_escalation_example_api_stewardship_studio_escalation_client_example_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/studio/escalation/preview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Post Escalation Preview */
-        post: operations["post_escalation_preview_api_stewardship_studio_escalation_preview_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/studio/escalation/recommendations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Escalation Recommendations
-         * @description What the active escalation rules recommend for every open engagement (sample and live).
-         */
-        get: operations["escalation_recommendations_api_stewardship_studio_escalation_recommendations_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/studio/monitoring/preview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Post Monitoring Preview */
-        post: operations["post_monitoring_preview_api_stewardship_studio_monitoring_preview_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/stewardship/studio/monitoring/triggers": {
         parameters: {
             query?: never;
@@ -5094,8 +4895,7 @@ export interface paths {
         };
         /**
          * Monitoring Triggers
-         * @description The triggers the active monitoring rules raise on company data, matched to
-         *     open engagements, followed by the tracking triggers from the engagements themselves.
+         * @description Triggers raised by the active monitoring rules on company data, matched to open engagements.
          */
         get: operations["monitoring_triggers_api_stewardship_studio_monitoring_triggers_get"];
         put?: never;
@@ -5126,23 +4926,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/stewardship/studio/voting/preview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Post Voting Preview */
-        post: operations["post_voting_preview_api_stewardship_studio_voting_preview_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/stewardship/style/check": {
         parameters: {
             query?: never;
@@ -5157,176 +4940,6 @@ export interface paths {
          * @description E8: blocklisted phrases in a text, with where they are. Flags only.
          */
         post: operations["post_style_check_api_stewardship_style_check_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/tiers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Tiers
-         * @description The tier report (E1): distribution of confirmed tiers, the latest assignment
-         *     per issuer with the rule that decided it, and the changes awaiting confirmation.
-         */
-        get: operations["get_tiers_api_stewardship_tiers_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/tiers/bilateral": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Post Bilateral Pick
-         * @description Picks a company for bilateral: while the pick stands it is the company's tier
-         *     proposal, which still needs the tier confirm at stage 5 to count.
-         */
-        post: operations["post_bilateral_pick_api_stewardship_tiers_bilateral_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/tiers/bilateral/{issuer_id}/withdraw": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Post Bilateral Withdraw */
-        post: operations["post_bilateral_withdraw_api_stewardship_tiers_bilateral__issuer_id__withdraw_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/tiers/confirm": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Post Confirm Tiers */
-        post: operations["post_confirm_tiers_api_stewardship_tiers_confirm_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/tracking": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Tracking
-         * @description Every commitment with its target date and status, and the engagements, open and closed.
-         */
-        get: operations["get_tracking_api_stewardship_tracking_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/tracking/case-study/{company_id}/{issue_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Case Study
-         * @description E7: a case study compiled from a closed engagement's records, with its E8 style flags.
-         */
-        get: operations["get_case_study_api_stewardship_tracking_case_study__company_id___issue_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/tracking/close": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Close Engagement */
-        post: operations["close_engagement_api_stewardship_tracking_close_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/tracking/commitments": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Add Commitment
-         * @description Logs a commitment the company made, as validated by the person recording it.
-         */
-        post: operations["add_commitment_api_stewardship_tracking_commitments_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/tracking/commitments/{commitment_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Set Commitment Status */
-        post: operations["set_commitment_status_api_stewardship_tracking_commitments__commitment_id__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -7686,13 +7299,6 @@ export interface components {
             /** Version */
             version: number;
         };
-        /** BilateralPickRequest */
-        BilateralPickRequest: {
-            /** Issuer Id */
-            issuer_id: string;
-            /** Reason */
-            reason: string;
-        };
         /** Body_add_fact_api_transition_barrier_cells__code___region__facts_post */
         Body_add_fact_api_transition_barrier_cells__code___region__facts_post: {
             /**
@@ -8411,33 +8017,6 @@ export interface components {
             /** Message */
             message: string;
         };
-        /** CommitmentRequest */
-        CommitmentRequest: {
-            /** Company Id */
-            company_id: string;
-            /** Issue Id */
-            issue_id: string;
-            /** Proof Statement */
-            proof_statement?: string | null;
-            /** Target Date */
-            target_date?: string | null;
-            /** Text */
-            text: string;
-        };
-        /** CommitmentStatusRequest */
-        CommitmentStatusRequest: {
-            /** Company Id */
-            company_id: string;
-            /** Evidence */
-            evidence?: string | null;
-            /** Issue Id */
-            issue_id: string;
-            /**
-             * Status
-             * @enum {string}
-             */
-            status: "verified" | "missed";
-        };
         /** CompanyActivity */
         CompanyActivity: {
             /** Activity */
@@ -8720,11 +8299,6 @@ export interface components {
          * @enum {string}
          */
         Confidence: "high" | "medium" | "low";
-        /** ConfirmTiersRequest */
-        ConfirmTiersRequest: {
-            /** Issuer Ids */
-            issuer_ids?: string[] | null;
-        };
         /** Confirmed */
         Confirmed: {
             /** Confirmed */
@@ -8843,13 +8417,6 @@ export interface components {
             /** Text */
             text: string | null;
         };
-        /** CoveragePreviewRequest */
-        CoveragePreviewRequest: {
-            /** Graph */
-            graph: {
-                [key: string]: unknown;
-            };
-        };
         /** CreateDraftRequest */
         CreateDraftRequest: {
             /** Company Id */
@@ -8870,21 +8437,6 @@ export interface components {
             name: string;
             /** Sector */
             sector?: string | null;
-        };
-        /** CreateStreamRequest */
-        CreateStreamRequest: {
-            /** Client Policy */
-            client_policy?: {
-                [key: string]: unknown;
-            } | null;
-            /** Name */
-            name: string;
-            /**
-             * Vehicle Type
-             * @default SMA
-             * @enum {string}
-             */
-            vehicle_type: "SMA" | "CCF" | "ETF";
         };
         /** CreateTaxonomyRequest */
         CreateTaxonomyRequest: {
@@ -9527,13 +9079,6 @@ export interface components {
             reason: string;
             stage: components["schemas"]["EscalationStage"];
         };
-        /** EscalationPreviewRequest */
-        EscalationPreviewRequest: {
-            /** Graph */
-            graph: {
-                [key: string]: unknown;
-            };
-        };
         /**
          * EscalationStage
          * @description Illustrative 6-step escalation ladder. Stage 4+ overlaps with the
@@ -9544,23 +9089,6 @@ export interface components {
          * @enum {string}
          */
         EscalationStage: "private_engagement" | "written_escalation_to_board" | "escalation_to_chair" | "vote_against_management" | "file_or_cofile_resolution" | "public_statement";
-        /** ExceptionDecisionRequest */
-        ExceptionDecisionRequest: {
-            /** Client Step */
-            client_step: string;
-            /**
-             * Decision
-             * @enum {string}
-             */
-            decision: "adopt" | "decline";
-            /** Issue Id */
-            issue_id: string;
-            /**
-             * Note
-             * @default
-             */
-            note: string;
-        };
         /** Exploration */
         Exploration: {
             /** Accepted At */
@@ -10555,13 +10083,6 @@ export interface components {
             source_notes: string;
             theme: components["schemas"]["ThemeDefinition"];
         };
-        /** MonitoringPreviewRequest */
-        MonitoringPreviewRequest: {
-            /** Graph */
-            graph: {
-                [key: string]: unknown;
-            };
-        };
         /** MonthlyRunRequest */
         MonthlyRunRequest: {
             /** Esg Provider */
@@ -10878,22 +10399,6 @@ export interface components {
          * @enum {string}
          */
         Pillar: "Technology" | "Regulation" | "Demand & Economics";
-        /** PolicyDecisionRequest */
-        PolicyDecisionRequest: {
-            /**
-             * Decision
-             * @enum {string}
-             */
-            decision: "adopt" | "adopt_with_modification" | "decline" | "defer" | "clarify";
-            /** Issue Id */
-            issue_id: string;
-            /** Modification */
-            modification?: {
-                [key: string]: unknown;
-            } | null;
-            /** Note */
-            note?: string | null;
-        };
         /** Portfolio */
         Portfolio: {
             /** Name */
@@ -14117,13 +13622,6 @@ export interface components {
             votes: {
                 [key: string]: unknown;
             }[];
-        };
-        /** VotingPreviewRequest */
-        VotingPreviewRequest: {
-            /** Policy */
-            policy: {
-                [key: string]: unknown;
-            };
         };
         /** WaitingCounts */
         WaitingCounts: {
@@ -22589,11 +22087,14 @@ export interface operations {
             };
         };
     };
-    get_catalogue_api_stewardship_catalogue_get: {
+    get_case_study_api_stewardship_case_study__company_id___issue_id__get: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                company_id: string;
+                issue_id: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -22607,6 +22108,50 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    close_engagement_api_stewardship_close_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloseRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -23047,9 +22592,7 @@ export interface operations {
     };
     get_policy_api_stewardship_policies__policy_id__get: {
         parameters: {
-            query?: {
-                stream?: string;
-            };
+            query?: never;
             header?: never;
             path: {
                 policy_id: string;
@@ -23082,9 +22625,7 @@ export interface operations {
     };
     activate_policy_version_api_stewardship_policies__policy_id__activate_post: {
         parameters: {
-            query?: {
-                stream?: string;
-            };
+            query?: never;
             header?: never;
             path: {
                 policy_id: string;
@@ -23121,9 +22662,7 @@ export interface operations {
     };
     save_policy_version_api_stewardship_policies__policy_id__versions_post: {
         parameters: {
-            query?: {
-                stream?: string;
-            };
+            query?: never;
             header?: never;
             path: {
                 policy_id: string;
@@ -23160,9 +22699,7 @@ export interface operations {
     };
     get_policy_version_api_stewardship_policies__policy_id__versions__version__get: {
         parameters: {
-            query?: {
-                stream?: string;
-            };
+            query?: never;
             header?: never;
             path: {
                 policy_id: string;
@@ -23375,6 +22912,48 @@ export interface operations {
             };
         };
     };
+    get_house_report_api_stewardship_report_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    get_house_report_pptx_api_stewardship_report_pptx_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
     get_selection_api_stewardship_selection_get: {
         parameters: {
             query?: {
@@ -23473,475 +23052,6 @@ export interface operations {
             };
         };
     };
-    list_streams_api_stewardship_streams_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
-    create_stream_api_stewardship_streams_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateStreamRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    post_build_api_stewardship_streams__stream_id__build_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                stream_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    post_decision_api_stewardship_streams__stream_id__decisions_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                stream_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PolicyDecisionRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    decide_client_exception_api_stewardship_streams__stream_id__exceptions_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                stream_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ExceptionDecisionRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_flow_api_stewardship_streams__stream_id__flow_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                stream_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_client_report_api_stewardship_streams__stream_id__report_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                stream_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_client_report_pptx_api_stewardship_streams__stream_id__report_pptx_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                stream_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    post_client_escalation_preview_api_stewardship_streams__stream_id__studio_escalation_preview_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                stream_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["EscalationPreviewRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    coverage_inputs_api_stewardship_studio_coverage_inputs_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
-    post_coverage_preview_api_stewardship_studio_coverage_preview_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CoveragePreviewRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    client_escalation_example_api_stewardship_studio_escalation_client_example_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
-    post_escalation_preview_api_stewardship_studio_escalation_preview_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["EscalationPreviewRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    escalation_recommendations_api_stewardship_studio_escalation_recommendations_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
-    post_monitoring_preview_api_stewardship_studio_monitoring_preview_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MonitoringPreviewRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     monitoring_triggers_api_stewardship_studio_monitoring_triggers_get: {
         parameters: {
             query?: never;
@@ -23997,41 +23107,6 @@ export interface operations {
             };
         };
     };
-    post_voting_preview_api_stewardship_studio_voting_preview_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VotingPreviewRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     post_style_check_api_stewardship_style_check_post: {
         parameters: {
             query?: never;
@@ -24042,294 +23117,6 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["StyleCheckRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_tiers_api_stewardship_tiers_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
-    post_bilateral_pick_api_stewardship_tiers_bilateral_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BilateralPickRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    post_bilateral_withdraw_api_stewardship_tiers_bilateral__issuer_id__withdraw_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                issuer_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    post_confirm_tiers_api_stewardship_tiers_confirm_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ConfirmTiersRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_tracking_api_stewardship_tracking_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
-    get_case_study_api_stewardship_tracking_case_study__company_id___issue_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                company_id: string;
-                issue_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    close_engagement_api_stewardship_tracking_close_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CloseRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    add_commitment_api_stewardship_tracking_commitments_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CommitmentRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    set_commitment_status_api_stewardship_tracking_commitments__commitment_id__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                commitment_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CommitmentStatusRequest"];
             };
         };
         responses: {

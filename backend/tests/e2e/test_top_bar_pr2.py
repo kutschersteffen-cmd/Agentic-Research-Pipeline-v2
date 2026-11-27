@@ -29,9 +29,18 @@ def test_ac25_process_state_square(page):  # noqa: F811
     assert page.locator(".hub-dot").count() == 0
 
 
+def _stub_pending_draft(pg):
+    """Give StewardIQ's Drafting step one pending draft so its Engage and draft process is open and waiting."""
+    pg.route(
+        "**/api/stewardship/drafts",
+        lambda route: route.fulfill(json={"drafts": [{"draft_id": "drf_e2e_wait", "status": "draft"}]}),
+    )
+
+
 def test_step_focus_visible(page):  # noqa: F811
+    _stub_pending_draft(page)
     _open(page, "/#/stewardiq")
-    step = page.locator("button.hub-step:visible").first  # the first process is folded; steps are buttons (top bar PR 3)
+    step = page.locator("button.hub-step:visible").first  # the waiting process is open; steps are buttons (top bar PR 3)
     step.focus()
     page.keyboard.press("Shift+Tab")
     page.keyboard.press("Tab")
@@ -81,6 +90,7 @@ def test_ac30b_drawing_shown_on_phone(page):  # noqa: F811
 
 
 def test_ac31_wait_accent(page):  # noqa: F811
+    _stub_pending_draft(page)
     _open(page, "/#/stewardiq")
     assert page.locator(f"{HEAD_DRAWING} .ws-accent-wait").count() == 1
 

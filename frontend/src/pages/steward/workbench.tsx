@@ -134,7 +134,7 @@ function Cell({ col, row, asOf, onRemove }: { col: Column; row: WorklistRow; asO
   }
 }
 
-type Dialog = null | "confirm" | "bilateral" | "programme" | "subgroup" | "funds";
+type Dialog = null | "confirm" | "programme" | "subgroup" | "funds";
 
 /** Steward Workflow → Workbench: every company of a scope in one table, the score one column among many. */
 export function WorkbenchStudio({ onRowsShown }: { onRowsShown?: () => void }) {
@@ -210,7 +210,6 @@ export function WorkbenchStudio({ onRowsShown }: { onRowsShown?: () => void }) {
   const pageRows = sorted.slice(current * PAGE_SIZE, (current + 1) * PAGE_SIZE);
   const counts = selectionCounts(rows);
   const scopeLabel = data?.scope.label ?? scopes.find((s) => s.key === scope)?.label ?? "";
-  const tickedRows = rows.filter((r) => ticked.has(r.issuer_id));
   const needName = actor ? undefined : "Sign in first";
   const gone = selection?.rows.filter((r) => !r.in_scope) ?? [];
   // The server's universe note describes the house; a fund or subgroup gets its own count of simulated values.
@@ -517,9 +516,6 @@ export function WorkbenchStudio({ onRowsShown }: { onRowsShown?: () => void }) {
                 <button className="secondary" disabled={!actor || !counts.proposed || busy} title={needName} onClick={() => setDialog("confirm")}>
                   Confirm {data.cycle} selection ({counts.proposed} proposed)
                 </button>
-                <button className="secondary" disabled={!actor || !ticked.size || busy} title={needName} onClick={() => setDialog("bilateral")}>
-                  Pick for bilateral
-                </button>
                 <MenuButton
                   label="Add to programme ▾"
                   disabled={!actor || !ticked.size || busy}
@@ -587,46 +583,6 @@ export function WorkbenchStudio({ onRowsShown }: { onRowsShown?: () => void }) {
           </div>
           {actionError && <p className="error-text" role="alert">{actionError}</p>}
         </Modal>
-      )}
-      {dialog === "bilateral" && (
-        <NameDialog
-          title={`Pick ${plural(tickedRows.length, "company", "companies")} for bilateral`}
-          label="Reason"
-          help="The pick becomes each company's tier proposal until it is withdrawn; it counts once a person confirms it at Checkpoint."
-          maxLength={500}
-          action="Pick for bilateral"
-          onCancel={() => setDialog(null)}
-          onSubmit={(reason) =>
-            act(async () => {
-              const picked: string[] = [], already: string[] = [], failed: string[] = [];
-              const ids = new Set<string>();
-              // One at a time: each pick makes the server build the house universe, so a burst would stall it for everyone.
-              for (const r of tickedRows) {
-                try {
-                  await api.pickBilateral({ issuer_id: r.issuer_id, reason });
-                  picked.push(r.company);
-                  ids.add(r.issuer_id);
-                } catch (e) {
-                  const msg = (e as Error).message;
-                  if (/already picked/.test(msg)) already.push(r.company);
-                  else failed.push(`${r.company} (${msg})`);
-                }
-              }
-              // A standing pick is the proposal of a row with no confirmed tier (the refetch below confirms it).
-              patch((rs) => rs.map((r) => (ids.has(r.issuer_id) && !r.coverage_tier_confirmed ? { ...r, coverage_tier: "bilateral" } : r)));
-              setDialog(null);
-              setTicked(new Set());
-              load(scope);
-              return [
-                picked.length && `Picked for bilateral: ${picked.join(", ")}.`,
-                already.length && `Already picked, left as they are: ${already.join(", ")}.`,
-                failed.length && `Not picked: ${failed.join(", ")}.`,
-              ]
-                .filter(Boolean)
-                .join(" ");
-            })
-          }
-        />
       )}
       {dialog === "programme" && (
         <NameDialog

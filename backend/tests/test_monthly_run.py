@@ -128,7 +128,7 @@ def test_run_follows_the_activated_monitoring_rules(store, settings):
     import copy
 
     from arp.stewardship import monitoring
-    from arp.stewardship.policies import PolicyStore
+    from arp.stewardship.config_store import PolicyStore
     from arp.stewardship.universe import from_portfolio
 
     _ready(store)

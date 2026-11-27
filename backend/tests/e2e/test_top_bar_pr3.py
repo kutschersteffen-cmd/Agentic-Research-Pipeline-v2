@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.e2e.test_top_bar_pr2 import _runs_stub
+from tests.e2e.test_top_bar_pr2 import _runs_stub, _stub_pending_draft
 from tests.e2e.test_ui_polish_2 import URL, _open, _probe, _style, page  # noqa: F401  (page is a fixture)
 
 pytestmark = [
@@ -57,6 +57,7 @@ def _route(btn, sec):
 
 
 def test_ac33_steps_are_buttons(page):  # noqa: F811
+    _stub_pending_draft(page)
     _open(page, "/#/stewardiq")
     p = _first_open_process(page)
     cards = p.locator(".hub-step:not(.hub-step-planned)")
@@ -68,6 +69,7 @@ def test_ac33_steps_are_buttons(page):  # noqa: F811
 
 
 def test_ac34_panel_contents(page):  # noqa: F811
+    _stub_pending_draft(page)
     _open(page, "/#/stewardiq")
     p = _first_open_process(page)
     n = p.locator(".hub-step").count()
@@ -88,6 +90,7 @@ def test_ac34_panel_contents(page):  # noqa: F811
 
 
 def test_ac35_moves_panel(page):  # noqa: F811
+    _stub_pending_draft(page)
     _open(page, "/#/stewardiq")
     p = _first_open_process(page)
     _steps(p).nth(1).click()
@@ -99,6 +102,7 @@ def test_ac35_moves_panel(page):  # noqa: F811
 
 
 def test_ac35b_closes(page):  # noqa: F811
+    _stub_pending_draft(page)
     _open(page, "/#/stewardiq")
     p = _first_open_process(page)
     btn = _steps(p).nth(1)
@@ -109,6 +113,7 @@ def test_ac35b_closes(page):  # noqa: F811
 
 
 def test_ac36_open_navigates(page):  # noqa: F811
+    _stub_pending_draft(page)
     _open(page, "/#/stewardiq")
     p = _first_open_process(page)
     n = p.locator(".hub-step").count()
@@ -123,6 +128,7 @@ def test_ac36_open_navigates(page):  # noqa: F811
 
 
 def test_ac37_esc(page):  # noqa: F811
+    _stub_pending_draft(page)
     _open(page, "/#/stewardiq")
     p = _first_open_process(page)
     btn = _steps(p).nth(1)
@@ -134,6 +140,7 @@ def test_ac37_esc(page):  # noqa: F811
 
 
 def test_ac39b_reached(page):  # noqa: F811
+    _stub_pending_draft(page)
     _open(page, "/#/stewardiq")
     for flow in page.locator("ol.hub-flow:visible").all():
         items = flow.locator(":scope > li").all()
@@ -144,6 +151,7 @@ def test_ac39b_reached(page):  # noqa: F811
 
 
 def test_ac40_survives_poll(page):  # noqa: F811
+    _stub_pending_draft(page)
     _open(page, "/#/stewardiq")
     p = _first_open_process(page)
     btn = _steps(p).nth(1)
@@ -154,6 +162,7 @@ def test_ac40_survives_poll(page):  # noqa: F811
 
 
 def test_ac41_phone(page):  # noqa: F811
+    _stub_pending_draft(page)
     _open(page, "/#/stewardiq", 390, 844)
     p = _first_open_process(page)
     _steps(p).nth(1).click()
@@ -242,6 +251,7 @@ def test_panel_follows_state(page):  # noqa: F811
 
 
 def test_keyboard_toggle_and_esc(page):  # noqa: F811
+    _stub_pending_draft(page)
     _open(page, "/#/stewardiq")
     p = _first_open_process(page)
     btn = _steps(p).nth(1)
@@ -257,6 +267,7 @@ def test_keyboard_toggle_and_esc(page):  # noqa: F811
 
 
 def test_step_button_looks_like_card(page):  # noqa: F811
+    _stub_pending_draft(page)
     _open(page, "/#/stewardiq")
     btn = _steps(_first_open_process(page)).first
     btn.hover()
@@ -266,6 +277,7 @@ def test_step_button_looks_like_card(page):  # noqa: F811
 
 
 def test_panels_per_process(page):  # noqa: F811
+    _stub_pending_draft(page)
     _open(page, "/#/stewardiq")
     secs = [s for s in page.locator("section.hub-process").all() if s.locator("details ol.hub-flow").count() == 0]
     if len(secs) < 2:
@@ -284,6 +296,7 @@ def test_panels_per_process(page):  # noqa: F811
 
 
 def test_step_card_keeps_body_tracking(page):  # noqa: F811
+    _stub_pending_draft(page)
     _open(page, "/#/stewardiq")
     btn = _steps(_first_open_process(page)).first
     assert _style(btn, "letterSpacing") == page.evaluate("getComputedStyle(document.body).letterSpacing")
@@ -295,7 +308,7 @@ def test_panel_opened_before_first_poll_stays_open(page):  # noqa: F811
     page.route("**/api/runs*", lambda route: held.append(route))  # hold the runs answer until the panel is open
     page.emulate_media(color_scheme="dark")
     page.goto(URL + "/#/stewardiq")
-    sec = page.locator("section.hub-process", has=page.get_by_role("heading", name="Engage and escalate"))
+    sec = page.locator("section.hub-process", has=page.get_by_role("heading", name="Engage and draft"))
     btn = sec.locator("button.hub-step").nth(1)
     btn.click()
     assert btn.get_attribute("aria-expanded") == "true"
