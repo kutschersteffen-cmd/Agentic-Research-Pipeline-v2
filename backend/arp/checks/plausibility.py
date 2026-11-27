@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from arp.checks.runner import threshold_ref
+from arp.checks.types import threshold_ref
 from arp.schemas.datapoints import (
     CheckOutcome,
     CheckResult,

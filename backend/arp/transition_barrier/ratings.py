@@ -11,7 +11,7 @@ from arp.schemas.common import JobStatus
 from arp.schemas.transition_barrier import BarrierScore
 from arp.storage.run_store import RunStore
 from arp.transition_barrier import RUN_TYPE, store
-from arp.transition_barrier.dataset import data_dir, load_criteria, load_scores
+from arp.transition_barrier.data_files import data_dir, load_criteria, load_scores
 from arp.transition_barrier.engine import Result, cell_evidence, cell_source
 from arp.transition_barrier.rule_book import CriterionRules, load_rule_book
 

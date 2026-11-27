@@ -15,7 +15,7 @@ from arp.schemas.datapoints import (
 from arp.schemas.rules import ComputedRule, FieldRule, LabelRule, RequiresRule, SeriesRule, ThresholdRule, rule_inputs
 
 if TYPE_CHECKING:
-    from arp.checks.runner import CheckContext
+    from arp.checks.types import CheckContext
 
 
 def format_value(v: bool | float | str | None) -> str:

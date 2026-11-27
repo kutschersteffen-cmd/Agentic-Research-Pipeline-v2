@@ -16,7 +16,7 @@ from arp.extraction.field_graph import extract_one_field
 from arp.schemas.common import DocType, SourceDocument
 from arp.schemas.datapoints import ExtractedField, FieldDataType, FieldDefinition, ValueState
 from arp.transition_barrier import clock
-from arp.transition_barrier.dataset import data_dir
+from arp.transition_barrier.data_files import data_dir
 from arp.transition_barrier.facts import FactRefused, _parse_value
 from arp.transition_barrier.render import _with_unit
 from arp.transition_barrier.rule_book import FactDef
