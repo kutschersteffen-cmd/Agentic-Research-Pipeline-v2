@@ -141,8 +141,9 @@ function App() {
       routerNavigate(target.slice(1), { replace: true });
       return;
     }
+    if (location.pathname === shownPath.current) return;
     // Any change of address remounts a guarded screen (its key is its params), so even a link to the same tab asks.
-    if (location.pathname !== shownPath.current && !canLeave()) {
+    if (!canLeave()) {
       routerNavigate(shownPath.current, { replace: true });
       setAgentAsk(null); // a refused move to the Agent screen must not leave its question queued
       return;
@@ -268,7 +269,7 @@ function App() {
             ))}
           </nav>
         )}
-        <ErrorBoundary>
+        <ErrorBoundary key={location.pathname}>
         <Suspense fallback={<p className="muted" role="status">Loading…</p>}>
         {active === "home" && <StartPage />}
         {active === "argus" && route.params[0] === "new" && <ArgusNew preset={route.params[1] ?? null} />}

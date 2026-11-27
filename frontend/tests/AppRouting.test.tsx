@@ -91,6 +91,14 @@ describe("App routing with HashRouter / MemoryRouter", () => {
     );
     expect(screen.getByText("Skip to content")).toBeTruthy();
     await waitFor(() => expect(document.title).toContain("Start"));
+    cleanup();
+
+    render(
+      <MemoryRouter initialEntries={["/does-not-exist"]}>
+        <AppEntry />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(document.title).toContain("Start"));
   });
 
   it("redirects retired routes and legacy aliases to their target screens", async () => {
@@ -118,8 +126,9 @@ describe("App routing with HashRouter / MemoryRouter", () => {
     await waitFor(() => expect(document.title).toContain("Argus"));
   });
 
-  it("blocks navigation when canLeave() returns false and stays on the current screen", async () => {
-    setLeaveGuard(() => false);
+  it("blocks navigation when canLeave() returns false without scrolling to top", async () => {
+    const guard = vi.fn(() => false);
+    setLeaveGuard(guard);
     render(
       <MemoryRouter initialEntries={["/home"]}>
         <AppEntry />
@@ -128,7 +137,9 @@ describe("App routing with HashRouter / MemoryRouter", () => {
     );
     await waitFor(() => expect(document.title).toContain("Start"));
     fireEvent.click(screen.getByText("Go RD"));
-    await waitFor(() => expect(document.title).toContain("Start"));
+    await waitFor(() => expect(guard).toHaveBeenCalledTimes(1));
+    expect(document.title).toContain("Start");
+    expect(window.scrollTo).not.toHaveBeenCalled();
   });
 
   it("opens command palette on Ctrl+K and navigates to Agent on Ctrl+J when allowed", async () => {
