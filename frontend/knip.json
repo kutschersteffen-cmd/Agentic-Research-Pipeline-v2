@@ -4,11 +4,12 @@
     "src/main.tsx",
     "src/boardDiagram.ts",
     "src/api/contract.ts",
-    "tests/*.test.ts"
+    "tests/*.test.ts",
+    "tests/**/*.test.tsx"
   ],
   "project": [
     "src/**/*.{ts,tsx}",
-    "tests/**/*.ts"
+    "tests/**/*.{ts,tsx}"
   ],
   "ignore": [
     "src/api/schema.gen.ts"
