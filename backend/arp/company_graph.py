@@ -11,12 +11,20 @@ import re
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-
-from neo4j import Driver, GraphDatabase
-from neo4j.exceptions import DriverError, Neo4jError
+from typing import TYPE_CHECKING
 
 from arp.config import Settings
 from arp.errors import NotConfigured
+
+if TYPE_CHECKING:
+    from neo4j import Driver
+
+try:
+    from neo4j import GraphDatabase
+    from neo4j.exceptions import DriverError, Neo4jError
+except ImportError:  # optional extra: arp[graph]
+    GraphDatabase = None  # type: ignore[assignment]
+    DriverError = Neo4jError = ()  # type: ignore[assignment,misc]
 
 NOT_CONFIGURED = "company graph not configured: set ARP_NEO4J_URI"
 COLUMNS = (
@@ -80,6 +88,8 @@ def open_graph(settings: Settings) -> Driver:
     """A connected driver with the issuer-key constraint in place; the caller closes it."""
     if not settings.neo4j_uri:
         raise CompanyGraphError(NOT_CONFIGURED)
+    if GraphDatabase is None:
+        raise CompanyGraphError("company graph requires optional extra: pip install 'arp[graph]'")
     driver = GraphDatabase.driver(settings.neo4j_uri, auth=(settings.neo4j_user, settings.neo4j_password or ""))
     try:
         driver.verify_connectivity()

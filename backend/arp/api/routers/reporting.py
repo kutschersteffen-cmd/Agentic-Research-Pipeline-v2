@@ -16,7 +16,6 @@ from arp.reporting.html_render import render_deck_html
 from arp.reporting.preview import ensure_preview_images
 from arp.reporting.service import ReportingService
 from arp.reporting.storyline import _errors as storyline_errors
-from arp.reporting.style_profile import ingest_template
 from arp.reporting.template_frame import TemplateFrameError, font_family_of, frame_preview_html
 from arp.schemas.reporting import Deck, ReportManifest, ReportPlan, ReportRequest, ReportStatus, Storyline
 from arp.storage.report_images import MAX_BYTES, ImageError, ImageTooLarge
@@ -62,6 +61,8 @@ async def upload_template(
         for name, f in zip(names, fonts, strict=True):
             (Path(tmp) / name).write_bytes(await read_capped(f, settings))
             saved.append((name, Path(tmp) / name))
+        from arp.reporting.style_profile import ingest_template
+
         style = ingest_template(store, pptx, file.filename, saved, layout_name)
     out = style.model_dump(mode="json")
     if style.frame is not None:

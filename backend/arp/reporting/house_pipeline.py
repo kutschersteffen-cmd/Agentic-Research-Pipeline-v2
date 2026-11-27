@@ -12,7 +12,6 @@ from arp.reporting.adapters import with_run_datasets
 from arp.reporting.browser import write_pdf, write_pngs
 from arp.reporting.fit import fit_deck, fit_ladder
 from arp.reporting.flow_layout import layout_flows
-from arp.reporting.house_pptx import build_house_pptx
 from arp.reporting.house_style import Mode, Tokens
 from arp.reporting.html_render import render_deck_html
 from arp.reporting.lint import lint_and_rewrite, lint_deck
@@ -52,6 +51,8 @@ async def render_house_outputs(report_id: str, deck: Deck, request: ReportReques
     images = store.load_report_images(report_id, request)
     html = render_deck_html(deck, request.datasets, tokens, mode=request.layout.theme, images=images, cover_image=request.deck.cover_image)
     await write_pdf(html, store.output_path(report_id, "output.pdf"))
+    from arp.reporting.house_pptx import build_house_pptx
+
     build_house_pptx(deck, request.datasets, store.output_path(report_id, "output.pptx"), tokens, mode=request.layout.theme, images=images,
                       cover_image=request.deck.cover_image)
     preview = store.preview_dir(report_id)

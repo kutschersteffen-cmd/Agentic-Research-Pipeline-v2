@@ -14,7 +14,6 @@ from pathlib import Path
 
 from arp.reporting.browser import write_pdf
 from arp.reporting.chart_data import deck_from_plan
-from arp.reporting.house_pptx import build_house_pptx
 from arp.reporting.html_render import render_deck_html
 from arp.schemas.engagement import EngagementRecord
 from arp.schemas.reporting import (
@@ -137,6 +136,8 @@ def render_plan(plan: ReportPlan, datasets: list[QuantitativeDataset], out_path:
     """House-renders a hand-built plan, no LLM: the pptx at `out_path`, and with `pdf` a PDF next to it
     (that one needs Chromium, so skip it where the PDF is not kept)."""
     deck = deck_from_plan(plan)
+    from arp.reporting.house_pptx import build_house_pptx
+
     build_house_pptx(deck, datasets, out_path)
     if not pdf:
         return out_path

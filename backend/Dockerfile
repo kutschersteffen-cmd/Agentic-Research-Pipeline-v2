@@ -39,7 +39,7 @@ COPY backend/pyproject.toml ./
 # cacheable across source-only changes.
 RUN mkdir -p arp && touch arp/__init__.py
 
-ARG EXTRAS=""
+ARG EXTRAS="all"
 RUN --mount=type=cache,target=/root/.cache/pip \
     if [ -n "$EXTRAS" ]; then pip install ".[${EXTRAS}]"; else pip install .; fi
 
