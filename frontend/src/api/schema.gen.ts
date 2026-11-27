@@ -1232,74 +1232,6 @@ export interface paths {
         patch: operations["patch_dossier_api_dossiers__dossier_id__patch"];
         trace?: never;
     };
-    "/api/dossiers/{dossier_id}/position": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Position */
-        get: operations["get_position_api_dossiers__dossier_id__position_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/dossiers/{dossier_id}/position/approve": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Approve Position */
-        post: operations["approve_position_api_dossiers__dossier_id__position_approve_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/dossiers/{dossier_id}/position/draft": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Draft Position */
-        post: operations["draft_position_api_dossiers__dossier_id__position_draft_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/dossiers/{dossier_id}/position/versions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Edit Position */
-        post: operations["edit_position_api_dossiers__dossier_id__position_versions_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/dossiers/{dossier_id}/research": {
         parameters: {
             query?: never;
@@ -1447,91 +1379,6 @@ export interface paths {
         put?: never;
         /** Upload Source File */
         post: operations["upload_source_file_api_dossiers__dossier_id__research_sources__source_id__file_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/dossiers/{dossier_id}/standards": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Standards */
-        get: operations["get_standards_api_dossiers__dossier_id__standards_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/dossiers/{dossier_id}/standards/activate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Activate Standards */
-        post: operations["activate_standards_api_dossiers__dossier_id__standards_activate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/dossiers/{dossier_id}/standards/check": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Check Companies */
-        post: operations["check_companies_api_dossiers__dossier_id__standards_check_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/dossiers/{dossier_id}/standards/draft": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Draft Standards */
-        post: operations["draft_standards_api_dossiers__dossier_id__standards_draft_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/dossiers/{dossier_id}/standards/versions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Edit Standards */
-        post: operations["edit_standards_api_dossiers__dossier_id__standards_versions_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4543,28 +4390,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/stewardship/benchmarks": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Benchmarks */
-        get: operations["list_benchmarks_api_stewardship_benchmarks_get"];
-        put?: never;
-        /**
-         * Upload Benchmark
-         * @description An iShares holdings export (e.g. URTH for MSCI World): equities and weights.
-         *     Uploading the same fund and date again replaces it.
-         */
-        post: operations["upload_benchmark_api_stewardship_benchmarks_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/stewardship/catalogue": {
         parameters: {
             query?: never;
@@ -4574,23 +4399,6 @@ export interface paths {
         };
         /** Get Catalogue */
         get: operations["get_catalogue_api_stewardship_catalogue_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/cockpit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Cockpit */
-        get: operations["get_cockpit_api_stewardship_cockpit_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -5106,124 +4914,6 @@ export interface paths {
         get: operations["get_flow_api_stewardship_streams__stream_id__flow_get"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/streams/{stream_id}/program": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Program
-         * @description The simulation for the saved calibration (the defaults until one is saved).
-         */
-        get: operations["get_program_api_stewardship_streams__stream_id__program_get"];
-        /** Put Program */
-        put: operations["put_program_api_stewardship_streams__stream_id__program_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/streams/{stream_id}/program/approve": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Post Program Approve
-         * @description Freezes the saved calibration as a new program version (four-eyes).
-         */
-        post: operations["post_program_approve_api_stewardship_streams__stream_id__program_approve_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/streams/{stream_id}/program/monitor": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Program Monitor */
-        get: operations["get_program_monitor_api_stewardship_streams__stream_id__program_monitor_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/streams/{stream_id}/program/proposal.pptx": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Program Proposal
-         * @description The proposal deck for the saved calibration, rendered on request.
-         */
-        get: operations["get_program_proposal_api_stewardship_streams__stream_id__program_proposal_pptx_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/streams/{stream_id}/program/runs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Post Program Run
-         * @description Records one monitoring run (a KPI snapshot) against the approved version.
-         */
-        post: operations["post_program_run_api_stewardship_streams__stream_id__program_runs_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stewardship/streams/{stream_id}/program/simulate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Post Program Simulate
-         * @description Runs a calibration without saving it.
-         */
-        post: operations["post_program_simulate_api_stewardship_streams__stream_id__program_simulate_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -7048,19 +6738,6 @@ export interface components {
             /** Version */
             version: number;
         };
-        /** Activation */
-        Activation: {
-            /** Approved At */
-            approved_at: string;
-            /** Approved By */
-            approved_by: string;
-            /** Extraction Run Id */
-            extraction_run_id: string | null;
-            /** Path */
-            path: string;
-            /** Version */
-            version: number;
-        };
         /**
          * ActivityCatalogueMapping
          * @description LLM-suggested (reviewable, never auto-applied) crosswalk from one
@@ -7738,7 +7415,6 @@ export interface components {
             answer_text: string;
             /** Answered At */
             answered_at: string;
-            benchmark_sectors?: components["schemas"]["BenchmarkCard"] | null;
             portfolio?: components["schemas"]["QAAnswer"] | null;
             /** Question */
             question: string;
@@ -7749,7 +7425,7 @@ export interface components {
              * Tool
              * @enum {string}
              */
-            tool: "portfolio" | "smart_search" | "transition_plan" | "benchmark_sectors" | "none";
+            tool: "portfolio" | "smart_search" | "transition_plan" | "none";
             transition_plan?: components["schemas"]["TransitionPlanCard"] | null;
         };
         /** AskThread */
@@ -7984,33 +7660,6 @@ export interface components {
              */
             source: string;
         };
-        /** BenchmarkCard */
-        BenchmarkCard: {
-            /** Benchmark Id */
-            benchmark_id: string | null;
-            check: components["schemas"]["BenchmarkCheck"];
-            /** Is Sample */
-            is_sample: boolean;
-            /** Name */
-            name: string;
-            /** Sectors */
-            sectors: components["schemas"]["SectorWeight"][];
-        };
-        /** BenchmarkCheck */
-        BenchmarkCheck: {
-            /** As Of */
-            as_of: string | null;
-            /** Constituents */
-            constituents: number;
-            /** Dropped */
-            dropped: number;
-            /** Source */
-            source: string;
-            /** Total Pct */
-            total_pct: number;
-            /** Unclassified Pct */
-            unclassified_pct: number;
-        };
         /** BenchmarkOut */
         BenchmarkOut: {
             /** Citation */
@@ -8025,11 +7674,6 @@ export interface components {
             url: string | null;
             /** Value */
             value: number;
-        };
-        /** BenchmarkUpload */
-        BenchmarkUpload: {
-            /** Text */
-            text: string;
         };
         /** BenchmarksOut */
         BenchmarksOut: {
@@ -8600,21 +8244,6 @@ export interface components {
              */
             sum_tolerance: number;
         };
-        /** CheckResult */
-        CheckResult: {
-            /** Company Id */
-            company_id: string;
-            /** Name */
-            name: string;
-            /** Period End */
-            period_end: string | null;
-            /** Result */
-            result: string;
-            /** Standard Id */
-            standard_id: string;
-            /** Value */
-            value: boolean | number | string | null;
-        };
         /** ChoiceRequest */
         ChoiceRequest: {
             /** Fact */
@@ -8766,268 +8395,6 @@ export interface components {
              * @enum {string}
              */
             status: "resolved" | "closed";
-        };
-        /** CockpitContributor */
-        CockpitContributor: {
-            /** Company */
-            company: string;
-            /** Company Id */
-            company_id: string;
-            /** Sector */
-            sector: string | null;
-            /** Share */
-            share: number;
-            /** Status */
-            status: string;
-            /** Tco2E */
-            tco2e: number;
-        };
-        /** CockpitControlGap */
-        CockpitControlGap: {
-            /** Company */
-            company: string;
-            /** Company Id */
-            company_id: string;
-            /** Engagement Id */
-            engagement_id: string;
-            /** Gaps */
-            gaps: string[];
-            /** Open Days */
-            open_days: number | null;
-            /** Theme */
-            theme: string;
-        };
-        /** CockpitDay */
-        CockpitDay: {
-            /**
-             * Date
-             * Format: date
-             */
-            date: string;
-            /** Engagement Meetings */
-            engagement_meetings: number;
-            /** Shareholder Meetings */
-            shareholder_meetings: number;
-        };
-        /** CockpitEmissions */
-        CockpitEmissions: {
-            /** Contributors */
-            contributors: components["schemas"]["CockpitContributor"][];
-            /** Engaged Tco2E */
-            engaged_tco2e: number;
-            /** Not Selected Tco2E */
-            not_selected_tco2e: number;
-            /** Selected Not Engaged Tco2E */
-            selected_not_engaged_tco2e: number;
-            /** Total Tco2E */
-            total_tco2e: number;
-            /** Uncovered Holding Count */
-            uncovered_holding_count: number;
-        };
-        /** CockpitEngagementMeeting */
-        CockpitEngagementMeeting: {
-            /** Company */
-            company: string;
-            /** Company Id */
-            company_id: string;
-            /**
-             * Date
-             * Format: date
-             */
-            date: string;
-            /** Engagement Id */
-            engagement_id: string;
-            /** Objective */
-            objective: string | null;
-            /** Stage */
-            stage: string;
-            /** Step */
-            step: number;
-            /** Theme */
-            theme: string;
-        };
-        /** CockpitLadderCompany */
-        CockpitLadderCompany: {
-            /** Company */
-            company: string;
-            /** Company Id */
-            company_id: string;
-        };
-        /** CockpitLadderStep */
-        CockpitLadderStep: {
-            /** Companies */
-            companies: components["schemas"]["CockpitLadderCompany"][];
-            /** Label */
-            label: string;
-            /** Stage */
-            stage: string;
-            /** Step */
-            step: number;
-        };
-        /** CockpitPortfolioOption */
-        CockpitPortfolioOption: {
-            /** Name */
-            name: string;
-            /** Portfolio Id */
-            portfolio_id: string;
-        };
-        /** CockpitProgrammeRow */
-        CockpitProgrammeRow: {
-            /** Engaged */
-            engaged: number;
-            /** Label */
-            label: string;
-            /** Name */
-            name: string;
-            /** Programme Id */
-            programme_id: string;
-            /** Proposed */
-            proposed: number;
-            /** Selected */
-            selected: number;
-        };
-        /** CockpitProgrammeTotals */
-        CockpitProgrammeTotals: {
-            /** Engaged */
-            engaged: number;
-            /** Selected */
-            selected: number;
-        };
-        /** CockpitResponse */
-        CockpitResponse: {
-            /**
-             * As Of
-             * Format: date
-             */
-            as_of: string;
-            /** Control Gaps */
-            control_gaps: components["schemas"]["CockpitControlGap"][];
-            /** Days */
-            days: components["schemas"]["CockpitDay"][];
-            /** Demo */
-            demo: boolean;
-            emissions: components["schemas"]["CockpitEmissions"] | null;
-            /** Engagement Meetings */
-            engagement_meetings: components["schemas"]["CockpitEngagementMeeting"][];
-            /** Ladder */
-            ladder: components["schemas"]["CockpitLadderStep"][];
-            /** Portfolios */
-            portfolios: components["schemas"]["CockpitPortfolioOption"][];
-            programme_totals: components["schemas"]["CockpitProgrammeTotals"];
-            /** Programmes */
-            programmes: components["schemas"]["CockpitProgrammeRow"][];
-            scope: components["schemas"]["CockpitScope"];
-            /** Shareholder Meetings */
-            shareholder_meetings: components["schemas"]["CockpitShareholderMeeting"][];
-            summary: components["schemas"]["CockpitSummary"];
-            /** Themes */
-            themes: components["schemas"]["CockpitThemeRow"][];
-            /** Tiers */
-            tiers: components["schemas"]["CockpitTierTotal"][];
-            voting: components["schemas"]["CockpitVoting"];
-        };
-        /** CockpitScope */
-        CockpitScope: {
-            /** Label */
-            label: string;
-            /** Portfolio Id */
-            portfolio_id: string | null;
-        };
-        /** CockpitShareholderMeeting */
-        CockpitShareholderMeeting: {
-            /** Action Due */
-            action_due: boolean;
-            /** Ballot State */
-            ballot_state: string;
-            /** Company */
-            company: string;
-            /** Company Id */
-            company_id: string;
-            /**
-             * Date
-             * Format: date
-             */
-            date: string;
-            /** Days To Meeting */
-            days_to_meeting: number;
-            /** Flagged */
-            flagged: number | null;
-            /** Items */
-            items: number;
-            /** Run Id */
-            run_id: string | null;
-        };
-        /** CockpitSummary */
-        CockpitSummary: {
-            /** Engaged Outside Selection */
-            engaged_outside_selection: number;
-            /** Engaged Selected */
-            engaged_selected: number;
-            /** Selected */
-            selected: number;
-        };
-        /** CockpitThemeRow */
-        CockpitThemeRow: {
-            /** Engaged */
-            engaged: number;
-            /** Selected */
-            selected: number;
-            /** Theme */
-            theme: string;
-            /** Tiers */
-            tiers: components["schemas"]["CockpitTierCount"][];
-        };
-        /** CockpitTierCount */
-        CockpitTierCount: {
-            /** Engaged */
-            engaged: number;
-            /** Selected */
-            selected: number;
-            /** Tier */
-            tier: string;
-        };
-        /** CockpitTierTotal */
-        CockpitTierTotal: {
-            /** Engaged */
-            engaged: number;
-            /** Label */
-            label: string;
-            /** Selected */
-            selected: number;
-            /** Tier */
-            tier: string;
-        };
-        /** CockpitTopicCount */
-        CockpitTopicCount: {
-            /** Abstain */
-            abstain: number;
-            /** Against Management */
-            against_management: number;
-            /** Topic */
-            topic: string;
-            /** Votes */
-            votes: number;
-        };
-        /** CockpitVoting */
-        CockpitVoting: {
-            /** Abstain */
-            abstain: number;
-            /** Against */
-            against: number;
-            /** Against Management */
-            against_management: number;
-            /** For */
-            for: number;
-            /** Meetings */
-            meetings: number;
-            /** Other */
-            other: number;
-            /** Season */
-            season: number;
-            /** Topics */
-            topics: components["schemas"]["CockpitTopicCount"][];
-            /** Votes */
-            votes: number;
         };
         /**
          * ColumnKind
@@ -10714,7 +10081,7 @@ export interface components {
              * Tool
              * @enum {string}
              */
-            tool: "portfolio" | "smart_search" | "transition_plan" | "benchmark_sectors" | "none";
+            tool: "portfolio" | "smart_search" | "transition_plan" | "none";
         };
         /**
          * HolderConfig
@@ -10882,11 +10249,6 @@ export interface components {
             source: string;
             /** Version */
             version?: number | null;
-        };
-        /** Instructions */
-        Instructions: {
-            /** Instructions */
-            instructions?: string | null;
         };
         /** IntakeReport */
         IntakeReport: {
@@ -11651,62 +11013,6 @@ export interface components {
             /** Portfolio Id */
             portfolio_id: string;
         };
-        /** PositionApproval */
-        PositionApproval: {
-            /** Approved At */
-            approved_at: string;
-            /** Approved By */
-            approved_by: string;
-            /** Version */
-            version: number;
-        };
-        /** PositionDraft */
-        PositionDraft: {
-            /** Paragraphs */
-            paragraphs: components["schemas"]["PositionParagraph"][];
-            /** Summary */
-            summary: string;
-        };
-        /** PositionParagraph */
-        PositionParagraph: {
-            /** Cites */
-            cites: string[];
-            /** Text */
-            text: string;
-        };
-        /** PositionVersion */
-        PositionVersion: {
-            /** Created At */
-            created_at: string;
-            /** Created By */
-            created_by: string;
-            /** Dossier Id */
-            dossier_id: string;
-            /** Instructions */
-            instructions?: string | null;
-            /** Note Version */
-            note_version: number;
-            /** Paragraphs */
-            paragraphs: components["schemas"]["PositionParagraph"][];
-            /**
-             * Path
-             * @enum {string}
-             */
-            path: "model_draft" | "owner_edit";
-            /** Summary */
-            summary: string;
-            /** Version */
-            version: number;
-        };
-        /** PositionView */
-        PositionView: {
-            /** Approvals */
-            approvals: components["schemas"]["PositionApproval"][];
-            /** Approved Version */
-            approved_version: number | null;
-            /** Versions */
-            versions: components["schemas"]["PositionVersion"][];
-        };
         /** PriceShockFocus */
         PriceShockFocus: {
             /** Dp Pct */
@@ -11808,82 +11114,6 @@ export interface components {
             content: {
                 [key: string]: unknown;
             };
-        };
-        /** ProgramParams */
-        ProgramParams: {
-            /**
-             * Benchmark
-             * @description 'sample', or the id of an uploaded benchmark
-             * @default sample
-             */
-            benchmark: string;
-            /**
-             * Effort Days
-             * @description Analyst days per new engagement per year
-             * @default 10
-             */
-            effort_days: number;
-            /**
-             * Free Capacity Days
-             * @description Free house analyst days per year
-             * @default 40
-             */
-            free_capacity_days: number;
-            /**
-             * Include Triggers
-             * @description Also select on medium and high monitoring triggers
-             * @default true
-             */
-            include_triggers: boolean;
-            /**
-             * Laggard Clti
-             * @description Engage on climate below this CLTI score
-             * @default 40
-             */
-            laggard_clti: number;
-            /**
-             * Leader Clti
-             * @default 70
-             */
-            leader_clti: number;
-            /**
-             * Max Targets
-             * @default 6
-             */
-            max_targets: number;
-            /**
-             * Min Weight Ratio
-             * @description Coherence: a target keeps at least this share of its benchmark weight
-             * @default 0.5
-             */
-            min_weight_ratio: number;
-            /**
-             * Normalisation
-             * @default rank_percentile
-             * @enum {string}
-             */
-            normalisation: "rank_percentile" | "zscore" | "max";
-            /**
-             * Objective
-             * @default Tilt an MSCI World portfolio towards CLTI leaders and engage the laggards it keeps.
-             */
-            objective: string;
-            /**
-             * Tilt Ceiling
-             * @description Weight multiplier for the best CLTI score
-             * @default 1.5
-             */
-            tilt_ceiling: number;
-            /**
-             * Tilt Floor
-             * @description Weight multiplier for the worst CLTI score
-             * @default 0.5
-             */
-            tilt_floor: number;
-        };
-        /** ProgramRequest */
-        ProgramRequest: {
-            params: components["schemas"]["ProgramParams"];
         };
         /** Programme */
         Programme: {
@@ -13372,13 +12602,6 @@ export interface components {
              */
             system: "ISIC" | "NACE" | "NAICS" | "SIC" | "GICS";
         };
-        /** SectorWeight */
-        SectorWeight: {
-            /** Sector */
-            sector: string;
-            /** Weight Pct */
-            weight_pct: number;
-        };
         /** SelectedElsewhere */
         SelectedElsewhere: {
             /** Label */
@@ -13695,40 +12918,6 @@ export interface components {
             /** Total */
             total: number;
         };
-        /** Standard */
-        Standard: {
-            /**
-             * Data
-             * @enum {string}
-             */
-            data: "existing" | "new";
-            /** Definition */
-            definition: string;
-            /** Expectation */
-            expectation: string;
-            /** Field Id */
-            field_id: string;
-            /**
-             * Operator
-             * @enum {string}
-             */
-            operator: ">=" | "<=" | ">" | "<" | "==";
-            /** Rests On */
-            rests_on: number[];
-            /**
-             * Severity
-             * @enum {string}
-             */
-            severity: "low" | "medium" | "high";
-            /** Standard Id */
-            standard_id: string;
-            /** Title */
-            title: string;
-            /** Value */
-            value: boolean | number | string;
-            /** Where Reported */
-            where_reported: string;
-        };
         /**
          * StandardCodeMatch
          * @description One code from an external classification standard, derived via a
@@ -13744,52 +12933,6 @@ export interface components {
              * @default
              */
             label: string;
-        };
-        /** StandardsCheck */
-        StandardsCheck: {
-            /** Checked At */
-            checked_at: string;
-            /** Flagged */
-            flagged: number;
-            /** Results */
-            results: components["schemas"]["CheckResult"][];
-        };
-        /** StandardsDraft */
-        StandardsDraft: {
-            /**
-             * New Fields
-             * @default []
-             */
-            new_fields: components["schemas"]["FieldDefinition"][];
-            /** Standards */
-            standards: components["schemas"]["Standard"][];
-        };
-        /** StandardsSaved */
-        StandardsSaved: {
-            /** Version */
-            version: number;
-        };
-        /** StandardsView */
-        StandardsView: {
-            /** Activations */
-            activations: {
-                [key: string]: unknown;
-            }[];
-            /** Active */
-            active: {
-                [key: string]: unknown;
-            };
-            /** Active Version */
-            active_version: number;
-            /** Field Names */
-            field_names: {
-                [key: string]: string;
-            };
-            latest_check: components["schemas"]["StandardsCheck"] | null;
-            /** Versions */
-            versions: {
-                [key: string]: unknown;
-            }[];
         };
         /**
          * StartRequest
@@ -14933,11 +14076,6 @@ export interface components {
             commitment_id: string;
             /** Evidence */
             evidence?: string | null;
-        };
-        /** VersionRef */
-        VersionRef: {
-            /** Version */
-            version: number;
         };
         /** Vote */
         Vote: {
@@ -17644,142 +16782,6 @@ export interface operations {
             };
         };
     };
-    get_position_api_dossiers__dossier_id__position_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                dossier_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PositionView"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    approve_position_api_dossiers__dossier_id__position_approve_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                dossier_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VersionRef"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PositionApproval"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    draft_position_api_dossiers__dossier_id__position_draft_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                dossier_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Instructions"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PositionVersion"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    edit_position_api_dossiers__dossier_id__position_versions_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                dossier_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PositionDraft"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PositionVersion"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     get_research_api_dossiers__dossier_id__research_get: {
         parameters: {
             query?: never;
@@ -18062,173 +17064,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResearchSource"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_standards_api_dossiers__dossier_id__standards_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                dossier_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StandardsView"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    activate_standards_api_dossiers__dossier_id__standards_activate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                dossier_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VersionRef"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Activation"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    check_companies_api_dossiers__dossier_id__standards_check_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                dossier_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StandardsCheck"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    draft_standards_api_dossiers__dossier_id__standards_draft_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                dossier_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Instructions"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StandardsSaved"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    edit_standards_api_dossiers__dossier_id__standards_versions_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                dossier_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["StandardsDraft"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StandardsSaved"];
                 };
             };
             /** @description Validation Error */
@@ -23754,63 +22589,6 @@ export interface operations {
             };
         };
     };
-    list_benchmarks_api_stewardship_benchmarks_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
-    upload_benchmark_api_stewardship_benchmarks_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BenchmarkUpload"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     get_catalogue_api_stewardship_catalogue_get: {
         parameters: {
             query?: never;
@@ -23829,38 +22607,6 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
-                };
-            };
-        };
-    };
-    get_cockpit_api_stewardship_cockpit_get: {
-        parameters: {
-            query?: {
-                portfolio_id?: string | null;
-                as_of?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CockpitResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -24901,243 +23647,6 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_program_api_stewardship_streams__stream_id__program_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                stream_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    put_program_api_stewardship_streams__stream_id__program_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                stream_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ProgramRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    post_program_approve_api_stewardship_streams__stream_id__program_approve_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                stream_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_program_monitor_api_stewardship_streams__stream_id__program_monitor_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                stream_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_program_proposal_api_stewardship_streams__stream_id__program_proposal_pptx_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                stream_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    post_program_run_api_stewardship_streams__stream_id__program_runs_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                stream_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    post_program_simulate_api_stewardship_streams__stream_id__program_simulate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                stream_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ProgramRequest"];
-            };
-        };
         responses: {
             /** @description Successful Response */
             200: {

@@ -50,10 +50,6 @@ class IdentityResolution(_Step):
     companies: list[str] | None = None
 
 
-class BenchmarkSectorsArgs(_Step):
-    benchmark_id: str | None = None
-
-
 class TransitionPlanArgs(_Step):
     company: str | None = None
 
@@ -85,8 +81,6 @@ def _read(id: str, summary: str, model: type[BaseModel], output: str) -> Capabil
 
 
 CATALOG: list[Capability] = [
-    _read("benchmark_sectors", "Sector weights of an uploaded benchmark index.", BenchmarkSectorsArgs,
-          "BenchmarkCard"),
     _read("transition_plan", "A company's newest transition plan assessment.", TransitionPlanArgs,
           "TransitionPlanCard"),
     _read("portfolio_exposure", "Exposures, weights or counts over the portfolio holdings.", PortfolioExposureArgs,

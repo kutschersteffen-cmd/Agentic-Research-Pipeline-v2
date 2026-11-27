@@ -32,7 +32,6 @@ const AuthorityTaxonomyRun = lazy(() => import("./pages/AuthorityTaxonomyRun").t
 const TaxonomyLibrary = lazy(() => import("./pages/TaxonomyLibrary").then((x) => ({ default: x.TaxonomyLibrary })));
 const BackgroundAgents = lazy(() => import("./pages/BackgroundAgents").then((x) => ({ default: x.BackgroundAgents })));
 const EngagementDashboard = lazy(() => import("./pages/EngagementDashboard").then((x) => ({ default: x.EngagementDashboard })));
-const StewardCockpit = lazy(() => import("./pages/StewardCockpit").then((x) => ({ default: x.StewardCockpit })));
 const StewardWorkflow = lazy(() => import("./pages/StewardWorkflow").then((x) => ({ default: x.StewardWorkflow })));
 const PortfolioRiskMonitoringTool = lazy(() => import("./pages/PortfolioRiskMonitoringTool").then((x) => ({ default: x.PortfolioRiskMonitoringTool })));
 const ReportBuilder = lazy(() => import("./pages/ReportBuilder").then((x) => ({ default: x.ReportBuilder })));
@@ -286,8 +285,7 @@ function App() {
         {active === "home" && <StartPage />}
         {active === "argus" && route.params[0] === "new" && <ArgusNew preset={route.params[1] ?? null} />}
         {active === "argus" && route.params[0] !== "new" && (route.params[0] ? <ArgusFlow key={route.params[0]} flowId={route.params[0]} step={stepFromUrl(route.params[1])} /> : <ArgusStart />)}
-        {isWorkspace(active) && active !== "argus" && !(active === "stewardiq" && route.params[0] === "cockpit") && <WorkspaceOverview key={active} id={active} onAsk={canAsk ? askAgent : undefined} />}
-        {active === "stewardiq" && route.params[0] === "cockpit" && <StewardCockpit key={route.params[1] ?? "today"} asOf={route.params[1]} />}
+        {isWorkspace(active) && active !== "argus" && <WorkspaceOverview key={active} id={active} onAsk={canAsk ? askAgent : undefined} />}
         {active === "search" && <Search />}
         {active === "securityMaster" && <SecurityMaster />}
         {active === "feeds" && <Feeds />}

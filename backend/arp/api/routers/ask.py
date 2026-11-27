@@ -17,7 +17,6 @@ from arp.api.deps import (
     get_portfolio_store,
     get_reporting_store,
     get_run_store,
-    get_stream_store,
     get_taxonomy_store,
     settings_dep,
 )
@@ -25,8 +24,6 @@ from arp.api.routers.security_master import datahub_lists
 from arp.config import Settings
 from arp.llm.base import LLMClient
 from arp.portfolio import qa_agent, qa_audit
-from arp.stewardship.benchmark import BenchmarkStore
-from arp.stewardship.process import StreamStore
 from arp.storage.identifier_map import IdentifierMapStore
 from arp.storage.portfolio_store import portfolio_directories
 from arp.storage.run_store import RunStore
@@ -46,8 +43,6 @@ tool:
   feeds that failed or are behind.
 - "transition_plan": a company's newest transition plan assessment. Set company to the company exactly as the user
   wrote it.
-- "benchmark_sectors": the sector distribution or sector weights of a benchmark index such as MSCI World. Set
-  benchmark_id to one id from the uploaded benchmarks below, or null if none fits.
 - "none": anything else (what a document says, why something was flagged, how to use the tool).
 
 standalone_question: the question rewritten so it reads on its own, using the earlier questions for anything it
@@ -55,10 +50,9 @@ leaves out (a follow-up like "now only equities" becomes the full earlier questi
 """
 
 
-def _prompt(req: ask.AskRequest, benchmarks: list[dict]) -> str:
-    listed = "\n".join(f"- {b['benchmark_id']}: {b['name']} (as of {b['as_of']})" for b in benchmarks) or "(none uploaded)"
+def _prompt(req: ask.AskRequest) -> str:
     earlier = "\n".join(f"- {t.standalone_question} [{t.tool}]" for t in req.history) or "(none)"
-    return f"Uploaded benchmarks:\n{listed}\n\nEarlier questions, oldest first:\n{earlier}\n\nQuestion: {req.question}"
+    return f"Earlier questions, oldest first:\n{earlier}\n\nQuestion: {req.question}"
 
 
 @dataclass
@@ -71,7 +65,6 @@ class AskDeps:
     run_store: RunStore
     taxonomy: object
     reports: object
-    streams: StreamStore
     llm: LLMClient
     principal: Principal
 
@@ -80,10 +73,10 @@ def ask_deps(
     settings: Settings = Depends(settings_dep), store=Depends(get_portfolio_store),
     idmap: IdentifierMapStore = Depends(get_identifier_map), run_store: RunStore = Depends(get_run_store),
     taxonomy=Depends(get_taxonomy_store),
-    reports=Depends(get_reporting_store), streams: StreamStore = Depends(get_stream_store),
+    reports=Depends(get_reporting_store),
     llm: LLMClient = Depends(get_llm_client), principal: Principal = Depends(current_user),
 ) -> AskDeps:
-    return AskDeps(settings, store, idmap, run_store, taxonomy, reports, streams, llm, principal)
+    return AskDeps(settings, store, idmap, run_store, taxonomy, reports, llm, principal)
 
 
 async def answer(req: ask.AskRequest, d: AskDeps) -> ask.AskResponse:
@@ -91,8 +84,7 @@ async def answer(req: ask.AskRequest, d: AskDeps) -> ask.AskResponse:
     call leaves one audit row, under `ask.<routed tool>` once the model has routed, else `ask.error`."""
     tool, response, error = None, None, None
     try:
-        benchmarks = await run_in_threadpool(BenchmarkStore(d.streams.root).list)
-        routing, _usage = await d.llm.complete_structured(system=ROUTING_SYSTEM_PROMPT, prompt=_prompt(req, benchmarks), output_model=ask.AskRouting)
+        routing, _usage = await d.llm.complete_structured(system=ROUTING_SYSTEM_PROMPT, prompt=_prompt(req), output_model=ask.AskRouting)
         tool = routing.tool
         out = {"tool": tool, "question": req.question, "standalone_question": routing.standalone_question}
         if tool == "portfolio":
@@ -106,9 +98,6 @@ async def answer(req: ask.AskRequest, d: AskDeps) -> ask.AskResponse:
         elif tool == "transition_plan":
             card, text = await run_in_threadpool(ask.newest_transition_plan, d.run_store, d.principal, routing.company)
             out |= {"transition_plan": card, "answer_text": text}
-        elif tool == "benchmark_sectors":
-            card, text = await run_in_threadpool(ask.benchmark_sectors, d.streams.root, routing.benchmark_id)
-            out |= {"benchmark_sectors": card, "answer_text": text}
         else:
             out["answer_text"] = ask.NONE_TEXT
         response = ask.AskResponse(**out, answered_at=datetime.now(UTC).isoformat())

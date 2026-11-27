@@ -9,7 +9,7 @@ from arp.cli import plan as plan_cli
 from arp.orchestration.plan_api import STEPS
 from arp.orchestration.plan_planner import SYSTEM, step_stubs
 
-SANDBOX = ["benchmark_sectors", "portfolio_exposure", "smart_search", "transition_plan"]
+SANDBOX = ["portfolio_exposure", "smart_search", "transition_plan"]
 PLAN = ["document_discovery", "extraction", "identity_resolution",
         "report_render", "universe_build", "xbrl_facts"]
 
@@ -19,12 +19,12 @@ def test_route_orders_sandbox_then_plan():  # AC-11, AC-12
     assert resp.status_code == 200
     body = resp.json()
     assert [c["id"] for c in body] == SANDBOX + PLAN
-    assert all(c["lane"] == "sandbox" and c["effect"] == "read" for c in body[:4])
-    assert all(c["lane"] == "plan" and c["effect"] == "run" for c in body[4:])
+    assert all(c["lane"] == "sandbox" and c["effect"] == "read" for c in body[:3])
+    assert all(c["lane"] == "plan" and c["effect"] == "run" for c in body[3:])
     ext = next(c for c in body if c["id"] == "extraction")
     assert ext["input_schema"]["required"] == ["universe_run_id", "schema_id"]
-    bench = next(c for c in body if c["id"] == "benchmark_sectors")
-    assert "required" not in bench["input_schema"]  # an omitted benchmark_id means null
+    tp = next(c for c in body if c["id"] == "transition_plan")
+    assert "required" not in tp["input_schema"]  # an omitted company means null
 
 
 def test_steps_are_the_plan_lane():

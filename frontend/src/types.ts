@@ -34,7 +34,6 @@ export type Exploration = Served<S["Exploration"]>;
 export type DocumentPassage = DocumentPassages["passages"][number];
 export type ArgusFlow = Served<S["ArgusFlowView"]>;
 export type ArgusDraft = Served<S["ArgusFlow"]>; // as GET /api/argus/flows lists it, without rows
-export type Cockpit = Served<S["CockpitResponse"]>; // GET /api/stewardship/cockpit
 export type FlowRow = Served<S["FlowRow"]>;
 export type FlowFile = Served<S["FlowFile"]>;
 export type RepeatRow = Served<S["RepeatRow"]>;
@@ -49,26 +48,6 @@ export type ResearchSource = Served<S["ResearchSource"]>;
 export type ResearchNote = NonNullable<ResearchRound["note"]>;
 export type SourceCategory = ResearchSource["category"];
 export type ProposalStarted = Served<S["ProposalStarted"]>;
-export type PositionView = Served<S["PositionView"]>;
-export type PositionVersion = Served<S["PositionVersion"]>;
-export type PositionDraft = Served<S["PositionDraft"]>;
-export type Standard = Served<S["Standard"]>;
-export type StandardsDraft = S["StandardsDraft"];
-export type StandardsCheck = Served<S["StandardsCheck"]>;
-export type StandardsActivation = Served<S["Activation"]>;
-export type StandardsSaved = Served<S["StandardsSaved"]>;
-// The backend serves versions as plain dicts (a policy version's meta plus its content); version 0 has no
-// dossier_id, position_version or path.
-export interface StandardsVersion {
-  version: number;
-  created_by: string;
-  created_at: string | null;
-  position_version?: number;
-  path?: "model_draft" | "owner_edit";
-  standards: Standard[];
-  schema: Served<S["DataPointSchema"]> | null;
-}
-export type StandardsView = Omit<Served<S["StandardsView"]>, "versions"> & { versions: StandardsVersion[] };
 export type RunStarted = Served<S["RunStarted"]>;
 export type PriorRun = Served<S["PriorRun"]>;
 
@@ -1870,81 +1849,6 @@ export interface ClientReport {
   exceptions: Record<string, string>[];
   policy_decisions: Record<string, string>[];
   notes: string[];
-}
-
-export type ProgramParams = Served<S["ProgramParams"]>;
-
-export interface ProgramTarget {
-  issuer_id: string;
-  company: string;
-  theme: string;
-  reason: string;
-  portfolio_pct: number;
-  leverage: number;
-  tier: string | null;
-  origin: "house" | "client_only";
-  weight_ratio: number;
-  step_now: string;
-  house_step: string;
-  client_step: string;
-  above_house: boolean;
-  max_step: string;
-  at_vote_step: boolean;
-}
-
-export interface ProgramSimulation {
-  client: string;
-  benchmark: string;
-  vehicle: string;
-  voting_policy: string;
-  escalation_rules: string;
-  params: ProgramParams;
-  kpis: Record<string, number>;
-  holdings: { company: string; sector: string; clti: number | null; benchmark_pct: number; portfolio_pct: number; active_pct: number; role: string }[];
-  candidates: number;
-  targets: ProgramTarget[];
-  votes: { company: string; resolution: string; house: string; client: string; sanction: string }[];
-  checks: { check: string; value: string; status: "green" | "amber" | "red"; note: string }[];
-  data_note: string;
-  constituents: number;
-  score_note: string | null;
-}
-
-export interface ProgramVersion {
-  version: number;
-  params: ProgramParams;
-  targets: { issuer_id: string; company: string; theme: string; client_step: string; origin: string }[];
-  kpis: Record<string, number>;
-  proposed_by: string;
-  approved_by: string;
-  approved_at: string;
-}
-
-export interface ProgramRun {
-  as_of: string;
-  version: number;
-  kpis: Record<string, number>;
-  alerts: number;
-  recorded_by: string;
-}
-
-export interface ProgramMonitor {
-  approved: { version: number; proposed_by: string; approved_by: string; approved_at: string; kpis: Record<string, number> } | null;
-  calibration_changed?: boolean;
-  kpis?: Record<string, number>;
-  alerts?: { kpi: string; status: "green" | "amber" | "red" | "not_built"; detail: string }[];
-  targets?: Record<string, string>[];
-}
-
-export interface BenchmarkInfo {
-  benchmark_id: string;
-  name: string;
-  as_of: string;
-  source: string;
-  constituents: number;
-  dropped: number;
-  uploaded_by: string;
-  uploaded_at: string;
 }
 
 export interface VotingPreview {

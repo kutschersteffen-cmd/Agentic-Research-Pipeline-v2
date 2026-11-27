@@ -86,9 +86,6 @@ async def call_capability(capability_id: str, args: BaseModel, principal: Princi
     from arp import ask
     from arp.api import deps
 
-    if capability_id == "benchmark_sectors":
-        card, _text = await run_in_threadpool(ask.benchmark_sectors, deps.get_stream_store().root, args.benchmark_id)
-        return card.model_dump(mode="json") if card else None
     if capability_id == "transition_plan":
         card, _text = await run_in_threadpool(ask.newest_transition_plan, deps.get_run_store(), principal, args.company)
         return card.model_dump(mode="json") if card else None

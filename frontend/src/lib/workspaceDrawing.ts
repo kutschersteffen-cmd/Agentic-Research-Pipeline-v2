@@ -84,13 +84,6 @@ const DRAW: Record<WorkspaceId, (acc: Accent | null, out: number) => Shape[]> = 
   dataHub: (acc, out) => Array.from({ length: 4 }, (_, i) => disc(i * 20 + (i === 3 ? out * 7 : 0), 44, 14, i === 3 && acc !== null)).flat(),
 };
 
-/** The cockpit's drawing: a console of three upright panels on one base, read at a glance. No accent: the
- * cockpit shows state, it never waits on anyone. */
-export const cockpitDrawing = (): Shape[] => [
-  ...box(-62, -26, 0, 124, 52, 5),
-  ...[-56, -16, 24].flatMap((x, i) => box(x, -14, 5, 32, 5, i === 1 ? 54 : 44)),
-];
-
 /** Whether two lit statuses light the same part: everywhere but Transition Intel, whose fin differs. */
 export const samePart = (id: WorkspaceId, a: Accent, b: Accent) => id !== "transitionIntel" || a === b;
 

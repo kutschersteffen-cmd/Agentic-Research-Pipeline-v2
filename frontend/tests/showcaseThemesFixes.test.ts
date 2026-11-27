@@ -5,8 +5,7 @@ import { canAddSource, proposalFailedText } from "../src/lib/research.ts";
 import { builtUniverseLine, fundSearchEmptyText } from "../src/lib/universeBuilder.ts";
 import { savedDraftLine, webSourceUrl } from "../src/lib/themeBuilder.ts";
 import { runGone } from "../src/lib/runs.ts";
-import { FIND_COMPANIES_FIRST, companiesFound } from "../src/lib/position.ts";
-import type { Dossier, ResearchRound } from "../src/types.ts";
+import type { ResearchRound } from "../src/types.ts";
 
 const round = (over: Partial<ResearchRound>): ResearchRound => ({
   round: 1, taxonomy_version: 1, plan_status: "proposal_failed", proposal_run_id: null, plan_approved_by: null,
@@ -51,12 +50,4 @@ test("a citation links to its web source only for http(s) and only without a sto
 test("a 404 poll means the run is gone; other errors are not", () => {  // AC-45, AC-116
   assert.equal(runGone("404: Run not found"), true);
   assert.equal(runGone("500: Internal Server Error"), false);
-});
-
-test("standards wait for step 4", () => {  // AC-94, AC-117
-  const steps = (state: string) => [{ number: 4, title: "Find companies", state, detail: "", href: null }] as Dossier["steps"];
-  assert.equal(companiesFound(steps("waiting")), false);
-  assert.equal(companiesFound(steps("open")), false);
-  assert.equal(companiesFound(steps("done")), true);
-  assert.equal(FIND_COMPANIES_FIRST, "Find companies first: finish step 4 of the dossier.");
 });

@@ -94,14 +94,14 @@ def test_tool_calls_and_the_limit_come_from_the_tool_route(client, standins, san
     def reply(body):  # the host worker spends the token as the code calls capabilities
         execution = sandbox.execution_for(body["token"])
         for _ in range(51):
-            sandbox.reserve_call(execution, "benchmark_sectors", {"benchmark_id": None})
+            sandbox.reserve_call(execution, "transition_plan", {"company": None})
         return {"status": "done", "result": "caught it", "error": None}
 
     sandbox_service["reply"] = reply
     body = _explore(client, standins, "q4", "loop").json()
     assert (body["status"], body["result"], body["error"]) == ("failed", None, "capability call limit 50 exceeded")
     assert len(body["tool_calls"]) == 50
-    assert body["tool_calls"][0] == {"capability_id": "benchmark_sectors", "args": {"benchmark_id": None}, "result_bytes": 0}
+    assert body["tool_calls"][0] == {"capability_id": "transition_plan", "args": {"company": None}, "result_bytes": 0}
 
 
 def test_sandbox_down_is_a_failed_exploration(client, standins, monkeypatch):
@@ -173,7 +173,7 @@ def test_real_model_gets_the_declarations_and_the_parse_error(pg, sandbox_servic
     assert (row["status"], row["result"], row["model"]) == ("done", 1, "claude-sonnet-5-5")
     assert row["cost_usd"] > 0  # both attempts are priced
     first, second = llm.prompts
-    assert "benchmark_sectors(args: { benchmark_id?: string | null })" in first
+    assert "transition_plan(args: { company?: string | null })" in first
     assert "universe_build" not in first
     assert first.endswith("Question: weights?")
     assert "return (" in second and "code does not parse: Unexpected token (3:0)" in second
@@ -251,9 +251,9 @@ def test_golden_case_passes_on_done_with_every_expected_capability(monkeypatch):
                                       "tool_calls": [{"capability_id": c, "args": {}, "result_bytes": 1} for c in called]}
         return fake
 
-    case = {"id": "x", "question": "q", "expected_capabilities": ["benchmark_sectors", "transition_plan"]}
-    for fake, why in [(runs("done", ["transition_plan", "benchmark_sectors"]), None),
-                      (runs("done", ["benchmark_sectors"]), "did not call transition_plan"),
+    case = {"id": "x", "question": "q", "expected_capabilities": ["smart_search", "transition_plan"]}
+    for fake, why in [(runs("done", ["transition_plan", "smart_search"]), None),
+                      (runs("done", ["smart_search"]), "did not call transition_plan"),
                       (runs("failed", [], "boom"), "failed: boom")]:
         monkeypatch.setattr(golden, "run_question", fake)
         assert asyncio.run(golden.run_case(None, None, case)) == why
@@ -262,10 +262,10 @@ def test_golden_case_passes_on_done_with_every_expected_capability(monkeypatch):
 ZERO = "00000000-0000-0000-0000-000000000000"
 
 
-def _ask(pg, question="Sector weights?") -> dict:
+def _ask(pg, question="Transition plan?") -> dict:
     from arp.orchestration.ask_store import AskStore
 
-    return AskStore(pg).add(thread_id=None, question=question, asked_by="alice", tool="benchmark_sectors",
+    return AskStore(pg).add(thread_id=None, question=question, asked_by="alice", tool="transition_plan",
                             standalone_question=question)
 
 

@@ -59,6 +59,26 @@ def _add(codes: list[SectorCode], new: SectorCode) -> None:
         codes.append(new)
 
 
+def _attach_sector_codes(
+    theme: ThemeDefinition,
+    *,
+    io: LeontiefModel | None,
+    value_chain: bool,
+    value_chain_model: LeontiefModel | None,
+) -> None:
+    for act in theme.activities:
+        for isic in act.core_isic_codes:
+            _add(act.sector_codes, SectorCode(system="ISIC", code=_isic(io, isic), origin="map_standards"))
+        if m := act.standards_mapping:
+            for system, matches in (("NACE", m.nace_codes), ("NAICS", m.naics_codes), ("SIC", m.sic_codes), ("GICS", m.gics)):
+                for match in matches:
+                    _add(act.sector_codes, SectorCode(system=system, code=match.code, origin="map_standards"))
+        if value_chain and value_chain_model is not None:
+            for isic in act.core_isic_codes:
+                for up in _upstream(value_chain_model, isic):
+                    _add(act.sector_codes, SectorCode(system="ISIC", code=_isic(value_chain_model, up), origin="exiobase"))
+
+
 async def consolidate(
     extractions: list[SourceExtraction],
     *,
@@ -116,15 +136,5 @@ async def consolidate(
     notes: list[str] = []
     if value_chain and value_chain_model is None:
         notes.append("no IO model: sector codes not widened with EXIOBASE upstream industries")
-    for act in theme.activities:
-        for isic in act.core_isic_codes:
-            _add(act.sector_codes, SectorCode(system="ISIC", code=_isic(io, isic), origin="map_standards"))
-        if m := act.standards_mapping:
-            for system, matches in (("NACE", m.nace_codes), ("NAICS", m.naics_codes), ("SIC", m.sic_codes), ("GICS", m.gics)):
-                for match in matches:
-                    _add(act.sector_codes, SectorCode(system=system, code=match.code, origin="map_standards"))
-        if value_chain and value_chain_model is not None:
-            for isic in act.core_isic_codes:
-                for up in _upstream(value_chain_model, isic):
-                    _add(act.sector_codes, SectorCode(system="ISIC", code=_isic(value_chain_model, up), origin="exiobase"))
+    _attach_sector_codes(theme, io=io, value_chain=value_chain, value_chain_model=value_chain_model)
     return theme, "\n".join(notes)

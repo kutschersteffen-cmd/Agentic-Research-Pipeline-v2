@@ -30,7 +30,6 @@ from arp.api.routers import (
     desk,
     discovery,
     documents,
-    dossier_position,
     dossier_research,
     dossiers,
     emerging_themes,
@@ -53,7 +52,6 @@ from arp.api.routers import (
     search,
     security_master,
     stewardship,
-    stewardship_cockpit,
     stewardship_intake,
     stewardship_worklist,
     taxonomies,
@@ -156,7 +154,6 @@ app.include_router(overlap.router, dependencies=[Depends(authorize)])
 app.include_router(revenue_catalogue.router, dependencies=[Depends(authorize)])
 app.include_router(engagement.router, dependencies=[Depends(authorize)])
 app.include_router(stewardship.router, dependencies=[Depends(authorize)])
-app.include_router(stewardship_cockpit.router, dependencies=[Depends(authorize)])
 app.include_router(stewardship_intake.router, dependencies=[Depends(authorize)])
 app.include_router(stewardship_worklist.router, dependencies=[Depends(authorize)])
 app.include_router(transition_plan.router, dependencies=[Depends(authorize)])
@@ -171,7 +168,6 @@ app.include_router(search.router, dependencies=[Depends(authorize)])
 app.include_router(emerging_themes.router, dependencies=[Depends(authorize)])
 app.include_router(dossiers.router, dependencies=[Depends(authorize)])
 app.include_router(dossier_research.router, dependencies=[Depends(authorize)])
-app.include_router(dossier_position.router, dependencies=[Depends(authorize)])
 app.include_router(taxonomy_researcher.router, dependencies=[Depends(authorize)])
 app.include_router(calibration.router, dependencies=[Depends(authorize)])
 app.include_router(reporting.router, dependencies=[Depends(authorize)])

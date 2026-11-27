@@ -69,10 +69,9 @@ def test_a_topic_dossier_starts_with_nothing_to_show(env):
     assert d["dossier_id"].startswith("dos_") and len(d["dossier_id"]) == 16
     assert (d["origin"], d["taxonomy_id"], d["status"], d["created_by"]) == ("topic", None, "active", "Test")
     steps = client.get(f"/api/dossiers/{d['dossier_id']}").json()["steps"]
-    assert [s["title"] for s in steps] == ["Spot", "Define", "Research", "Find companies", "Position and standards"]
-    assert [s["state"] for s in steps] == ["skipped", "not_started", "not_started", "not_started", "not_started"]
-    assert steps[4]["detail"] == "research note not approved"
-    assert [s["href"] for s in steps] == [None, None, None, "#/theme", f"#/themes/{d['dossier_id']}/position"]
+    assert [s["title"] for s in steps] == ["Spot", "Define", "Research", "Find companies"]
+    assert [s["state"] for s in steps] == ["skipped", "not_started", "not_started", "not_started"]
+    assert [s["href"] for s in steps] == [None, None, None, "#/theme"]
     assert client.get("/api/dossiers").json()["items"][0]["current_step"] == 2
 
 
@@ -143,7 +142,7 @@ def test_attach_shelve_and_errors(env):
     s = client.patch(f"/api/dossiers/{d2}", json={"status": "shelved", "reason": "No data"}).json()
     assert (s["status"], s["shelve_reason"], s["shelved_by"]) == ("shelved", "No data", "Test")
     datetime.fromisoformat(s["shelved_at"])
-    assert len(client.get(f"/api/dossiers/{d2}").json()["steps"]) == 5
+    assert len(client.get(f"/api/dossiers/{d2}").json()["steps"]) == 4
     assert {i["dossier_id"]: i["status"] for i in client.get("/api/dossiers").json()["items"]}[d2] == "shelved"
     for call in (client.get, lambda u: client.patch(u, json={"taxonomy_id": a})):
         r = call("/api/dossiers/dos_000000000000")

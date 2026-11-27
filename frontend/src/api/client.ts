@@ -3,16 +3,13 @@ import { clearToken, getToken } from "../lib/auth";
 import type { Plan } from "../lib/plans";
 import type { Board, BoardBlock } from "../lib/board";
 import { filenameFromDisposition, inlineSafe } from "../lib/files";
-import { cockpitPath } from "../lib/cockpit";
 import type { Me } from "../lib/reviewKeys";
 import type {
   ArgusDraft,
   ArgusFlow,
-  Cockpit,
   FlowProgress,
   WorkbenchResponse,
   ClientEscalationPreview,
-  BenchmarkInfo,
   CaseStudy,
   ClientReport,
   TrackedCommitment,
@@ -20,11 +17,6 @@ import type {
   InteractionType,
   OutreachDraft,
   StyleFlag,
-  ProgramMonitor,
-  ProgramParams,
-  ProgramRun,
-  ProgramSimulation,
-  ProgramVersion,
   CoveragePreview,
   EscalationPreview,
   EscalationRecommendation,
@@ -98,20 +90,12 @@ import type { RunFailure } from "../types";
 import type {
   Dossier,
   DossierItem,
-  PositionDraft,
-  PositionVersion,
-  PositionView,
   ProposalStarted,
   ResearchRound,
   ResearchSource,
   ResearchView,
   RunStarted,
   SourceCategory,
-  StandardsActivation,
-  StandardsCheck,
-  StandardsDraft,
-  StandardsSaved,
-  StandardsView,
 } from "../types";
 import type { AgentAsk, AskThread, Exploration, InboxRow, ItemContext, ItemDecisionBody, ItemSource, ItemState, PageBox, ReviewItem, SimilarDecision, WaitingCounts, Walkthrough } from "../types";
 import type { DocType, DocumentPassages, Readiness } from "../types";
@@ -233,7 +217,6 @@ export async function openFile(url: string, fallbackName: string): Promise<void>
 
 const rfpQuestion = (projectId: number, qid: number, action = "") => `/api/rfp/projects/${projectId}/questions/${qid}${action}`;
 const research = (dossierId: string, action = "") => `/api/dossiers/${encodeURIComponent(dossierId)}/research${action}`;
-const step5 = (dossierId: string, path: string) => `/api/dossiers/${encodeURIComponent(dossierId)}/${path}`;
 const jsonBody = (method: string, body: unknown): RequestInit => ({ method, body: JSON.stringify(body) });
 export type BoardKind = "plan" | "exploration";
 const board = (id: string, rest = "", kind: BoardKind = "plan") => `/api/agent/boards/${kind}/${encodeURIComponent(id)}${rest}`;
@@ -708,18 +691,6 @@ export const api = {
   writeNote: (id: string) => request<RunStarted>(research(id, "/note"), { method: "POST" }),
   approveNote: (id: string) => request<ResearchRound>(research(id, "/note/approve"), { method: "POST" }),
   rejectNote: (id: string, reason: string) => request<ResearchRound>(research(id, "/note/reject"), jsonBody("POST", { reason })),
-  getPosition: (id: string) => request<PositionView>(step5(id, "position")),
-  draftPosition: (id: string, instructions: string | null) =>
-    request<PositionVersion>(step5(id, "position/draft"), jsonBody("POST", { instructions })),
-  savePosition: (id: string, body: PositionDraft) => request<PositionVersion>(step5(id, "position/versions"), jsonBody("POST", body)),
-  approvePosition: (id: string, version: number) => request(step5(id, "position/approve"), jsonBody("POST", { version })),
-  getStandards: (id: string) => request<StandardsView>(step5(id, "standards")),
-  draftStandards: (id: string, instructions: string | null) =>
-    request<StandardsSaved>(step5(id, "standards/draft"), jsonBody("POST", { instructions })),
-  saveStandards: (id: string, body: StandardsDraft) => request<StandardsSaved>(step5(id, "standards/versions"), jsonBody("POST", body)),
-  activateStandards: (id: string, version: number) =>
-    request<StandardsActivation>(step5(id, "standards/activate"), jsonBody("POST", { version })),
-  checkStandards: (id: string) => request<StandardsCheck>(step5(id, "standards/check"), { method: "POST" }),
   newTaxonomyVersion: (taxonomyId: string, body: unknown) =>
     request(`/api/taxonomies/${taxonomyId}/versions`, { method: "POST", body: JSON.stringify(body) }),
   ratifyTaxonomy: (taxonomyId: string, body: { version: number }) =>
@@ -775,7 +746,6 @@ export const api = {
     request<{ triggers: UnifiedTrigger[] }>(`/api/stewardship/triggers${status ? `?status=${status}` : ""}`),
   transitionTrigger: (triggerId: string, body: { status: UnifiedTrigger["status"]; decided_by: string; reason?: string }) =>
     request<UnifiedTrigger>(`/api/stewardship/triggers/${encodeURIComponent(triggerId)}/transition`, { method: "POST", body: JSON.stringify(body) }),
-  getCockpit: (asOf?: string, portfolioId?: string | null) => request<Cockpit>(cockpitPath(asOf, portfolioId)),
   listStewardshipStreams: () => request<{ streams: StewardshipStream[] }>("/api/stewardship/streams"),
   createStewardshipStream: (body: { name: string; vehicle_type: string; client_policy?: unknown }) =>
     request<{ stream_id: string }>("/api/stewardship/streams", { method: "POST", body: JSON.stringify(body) }),
@@ -800,34 +770,6 @@ export const api = {
     }),
   activateStewardPolicy: (policyId: StewardPolicyId, body: { version: number }, stream?: string) =>
     request(`/api/stewardship/policies/${policyId}/activate${streamQuery(stream)}`, { method: "POST", body: JSON.stringify(body) }),
-  listBenchmarks: () => request<{ benchmarks: BenchmarkInfo[] }>("/api/stewardship/benchmarks"),
-  uploadBenchmark: (text: string) =>
-    request<BenchmarkInfo>("/api/stewardship/benchmarks", { method: "POST", body: JSON.stringify({ text }) }),
-  getProgram: (streamId: string) =>
-    request<{
-      saved: { params: ProgramParams; updated_by: string; updated_at: string } | null;
-      versions: ProgramVersion[];
-      runs: ProgramRun[];
-      simulation: ProgramSimulation;
-    }>(
-      `/api/stewardship/streams/${encodeURIComponent(streamId)}/program`,
-    ),
-  simulateProgram: (streamId: string, params: ProgramParams) =>
-    request<ProgramSimulation>(`/api/stewardship/streams/${encodeURIComponent(streamId)}/program/simulate`, {
-      method: "POST",
-      body: JSON.stringify({ params }),
-    }),
-  saveProgram: (streamId: string, params: ProgramParams) =>
-    request(`/api/stewardship/streams/${encodeURIComponent(streamId)}/program`, {
-      method: "PUT",
-      body: JSON.stringify({ params }),
-    }),
-  approveProgram: (streamId: string) =>
-    request<ProgramVersion>(`/api/stewardship/streams/${encodeURIComponent(streamId)}/program/approve`, { method: "POST", body: "{}" }),
-  monitorProgram: (streamId: string) => request<ProgramMonitor>(`/api/stewardship/streams/${encodeURIComponent(streamId)}/program/monitor`),
-  recordProgramRun: (streamId: string) =>
-    request<ProgramRun>(`/api/stewardship/streams/${encodeURIComponent(streamId)}/program/runs`, { method: "POST" }),
-  programProposalUrl: (streamId: string) => `${API_BASE}/api/stewardship/streams/${encodeURIComponent(streamId)}/program/proposal.pptx`,
   checkStyle: (text: string) =>
     request<{ flags: StyleFlag[] }>("/api/stewardship/style/check", { method: "POST", body: JSON.stringify({ text }) }),
   listDrafts: () => request<{ drafts: OutreachDraft[] }>("/api/stewardship/drafts"),

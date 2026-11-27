@@ -27,7 +27,6 @@ export const STAGE_TABS = [
   { id: "tracking", n: 6, label: "Tracking" },
   { id: "client_policy", n: 7, label: "Client policy" },
   { id: "reporting", n: 8, label: "Reporting" },
-  { id: "program", n: null, label: "Client program" },
 ] as const;
 
 /** A stage's one name, the same on the tabs, the overview and the start page;

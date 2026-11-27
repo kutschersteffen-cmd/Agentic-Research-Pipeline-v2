@@ -7,6 +7,7 @@ import pytest
 from arp.config import Settings
 
 URL = os.environ.get("ARP_E2E_URL")
+API = os.environ.get("ARP_E2E_API_URL", "http://127.0.0.1:8000")  # the stack's API (e2e_stack.sh)
 pytestmark = [
     pytest.mark.e2e,
     pytest.mark.skipif(not URL, reason="ARP_E2E_URL not set -- start backend/scripts/e2e_stack.sh"),
@@ -188,7 +189,8 @@ def test_ac9c_badge_solid(page, scheme):
 
 def test_small_card_title_keeps_600(page):
     # Final review: `.card h2` went to 500, but 16px card titles keep 600.
-    _open(page, "/#/stewardiq/cockpit")
-    h2 = page.locator(".cockpit-card-head h2").first
+    fid = page.request.post(f"{API}/api/argus/flows").json()["flow_id"]
+    _open(page, f"/#/argus/{fid}/3")
+    h2 = page.locator(".argus-schema-pick h2").first
     h2.wait_for()
     assert float(_style(h2, "fontSize")[:-2]) < 20 and _style(h2, "fontWeight") == "600"

@@ -11,8 +11,9 @@ from sqlalchemy.orm import aliased
 from arp.db import models as m
 from arp.db.companies import normalise_identifier
 from arp.db.session import transaction
-from arp.stewardship.cockpit import DEMO_SOURCES
 from arp.storage.postgres_models import VoteDecisionModel, VoteItemModel, VoteMeetingModel
+
+DEMO_SOURCES = ("mock_voice_seed", "npx_urth_demo", "cockpit_demo")
 
 
 def ledger_rows(dsn: str, window_days: int, house_issuers: list[dict] | None = None, held_isins: dict | None = None) -> list[dict]:

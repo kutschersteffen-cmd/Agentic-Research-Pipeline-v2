@@ -15,7 +15,6 @@ from arp.api.deps import get_engagement_store, get_stream_store, settings_dep
 from arp.config import Settings
 from arp.engagement.tracking_agent import MissingEvidence, check_evidence
 from arp.schemas.engagement import (
-    OLD_STAGES,
     Commitment,
     CommitmentStatus,
     CorrespondenceType,
@@ -26,7 +25,6 @@ from arp.schemas.engagement import (
     TriggerSource,
 )
 from arp.stewardship import drafting, escalation, monitoring, tracking
-from arp.stewardship.benchmark import BenchmarkStore, parse_ishares_holdings
 from arp.stewardship.client_report import build_pptx, client_report
 from arp.stewardship.policies import PolicyStore, coverage_preview, voting_preview
 from arp.stewardship.policy_review import load
@@ -45,9 +43,8 @@ from arp.stewardship.process import (
     record_decision,
     tier_review,
 )
-from arp.stewardship.program import ProgramParams, approve, build_proposal, monitor, record_run, simulate
 from arp.stewardship.style import check as style_check
-from arp.stewardship.tiers import PickStore, TierStore, map_tier, tier_contexts
+from arp.stewardship.tiers import PickStore, TierStore, tier_contexts
 from arp.stewardship.trigger_store import TriggerStore, trigger_id
 from arp.stewardship.universe import HouseUniverseSetting
 from arp.storage.engagement_store import EngagementStore
@@ -595,137 +592,6 @@ def get_client_report_pptx(
     return _deck_response(build_pptx, report, f"{stream_id}-stewardship-report.pptx", background)
 
 
-# --- Client program (Part 5): calibrate, compare with the house, propose -----
-
-
-@router.get("/streams/{stream_id}/program")
-def get_program(
-    stream_id: str,
-    settings: Settings = Depends(settings_dep),
-    streams: StreamStore = Depends(get_stream_store),
-    engagements: EngagementStore = Depends(get_engagement_store),
-) -> dict:
-    """The simulation for the saved calibration (the defaults until one is saved)."""
-    stream = _stream_or_404(streams, stream_id)
-    return {
-        "saved": stream.get("program"),
-        "versions": [  # approved before the three tiers or the six-step ladder: old keys mapped on read, never rewritten
-            {
-                **v,
-                "targets": [
-                    {
-                        **t,
-                        "tier": map_tier(t.get("tier")),
-                        "client_step": OLD_STAGES.get(t.get("client_step"), t.get("client_step")),
-                    }
-                    for t in v.get("targets", [])
-                ],
-            }
-            for v in stream.get("program_versions", [])
-        ],
-        "runs": stream.get("program_runs", []),
-        "simulation": simulate(streams.root, stream, engagements.list_all(), settings.engagement_sla_days),
-    }
-
-
-class ProgramRequest(BaseModel):
-    params: ProgramParams
-
-
-@router.post("/streams/{stream_id}/program/simulate")
-def post_program_simulate(
-    stream_id: str,
-    body: ProgramRequest,
-    settings: Settings = Depends(settings_dep),
-    streams: StreamStore = Depends(get_stream_store),
-    engagements: EngagementStore = Depends(get_engagement_store),
-) -> dict:
-    """Runs a calibration without saving it."""
-    stream = _stream_or_404(streams, stream_id)
-    try:
-        return simulate(streams.root, stream, engagements.list_all(), settings.engagement_sla_days, body.params.model_dump())
-    except ValueError as exc:
-        raise HTTPException(422, str(exc)) from exc
-
-
-@router.put("/streams/{stream_id}/program")
-def put_program(
-    stream_id: str, body: ProgramRequest, streams: StreamStore = Depends(get_stream_store), principal: Principal = Depends(current_user)
-) -> dict:
-    stream = _stream_or_404(streams, stream_id)
-    if body.params.benchmark != "sample":
-        try:
-            BenchmarkStore(streams.root).get(body.params.benchmark)
-        except KeyError as exc:
-            raise HTTPException(422, f"Unknown benchmark: {body.params.benchmark}") from exc
-    program = {"params": body.params.model_dump(), "updated_by": principal.user_id, "updated_at": datetime.now(UTC).isoformat()}
-    streams.save({**stream, "program": program})
-    return program
-
-
-@router.get("/streams/{stream_id}/program/proposal.pptx")
-def get_program_proposal(
-    stream_id: str,
-    background: BackgroundTasks,
-    settings: Settings = Depends(settings_dep),
-    streams: StreamStore = Depends(get_stream_store),
-    engagements: EngagementStore = Depends(get_engagement_store),
-) -> FileResponse:
-    """The proposal deck for the saved calibration, rendered on request."""
-    stream = _stream_or_404(streams, stream_id)
-    sim = simulate(streams.root, stream, engagements.list_all(), settings.engagement_sla_days)
-    return _deck_response(build_proposal, sim, f"{stream_id}-program-proposal.pptx", background)
-
-
-@router.post("/streams/{stream_id}/program/approve")
-def post_program_approve(
-    stream_id: str,
-    settings: Settings = Depends(settings_dep),
-    streams: StreamStore = Depends(get_stream_store),
-    engagements: EngagementStore = Depends(get_engagement_store),
-    principal: Principal = Depends(current_user),
-) -> dict:
-    """Freezes the saved calibration as a new program version (four-eyes)."""
-    stream = _stream_or_404(streams, stream_id)
-    try:
-        stream = approve(streams.root, stream, engagements.list_all(), settings.engagement_sla_days, principal.user_id)
-    except ValueError as exc:
-        raise HTTPException(422, str(exc)) from exc
-    streams.save(stream)
-    return stream["program_versions"][-1]
-
-
-@router.get("/streams/{stream_id}/program/monitor")
-def get_program_monitor(
-    stream_id: str,
-    settings: Settings = Depends(settings_dep),
-    streams: StreamStore = Depends(get_stream_store),
-    engagements: EngagementStore = Depends(get_engagement_store),
-) -> dict:
-    stream = _stream_or_404(streams, stream_id)
-    return monitor(streams.root, stream, engagements.list_all(), settings.engagement_sla_days)
-
-
-@router.post("/streams/{stream_id}/program/runs")
-def post_program_run(
-    stream_id: str,
-    principal: Principal = Depends(current_user),
-    settings: Settings = Depends(settings_dep),
-    streams: StreamStore = Depends(get_stream_store),
-    engagements: EngagementStore = Depends(get_engagement_store),
-) -> dict:
-    """Records one monitoring run (a KPI snapshot) against the approved version."""
-    stream = _stream_or_404(streams, stream_id)
-    try:
-        stream = record_run(
-            stream, monitor(streams.root, stream, engagements.list_all(), settings.engagement_sla_days), principal.name
-        )
-    except ValueError as exc:
-        raise HTTPException(422, str(exc)) from exc
-    streams.save(stream)
-    return stream["program_runs"][-1]
-
-
 # --- Stage 3: outreach drafts (E6 tags, E8 style check), approved at stage 5 ---
 
 
@@ -959,30 +825,3 @@ def get_case_study(
         raise HTTPException(404, "Unknown engagement") from exc
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
-
-
-# --- Benchmarks for client programs ----------------------------------------------
-
-
-@router.get("/benchmarks")
-def list_benchmarks(streams: StreamStore = Depends(get_stream_store)) -> dict:
-    return {"benchmarks": BenchmarkStore(streams.root).list()}
-
-
-class BenchmarkUpload(BaseModel):
-    text: str
-
-
-@router.post("/benchmarks")
-def upload_benchmark(
-    body: BenchmarkUpload, streams: StreamStore = Depends(get_stream_store), principal: Principal = Depends(current_user)
-) -> dict:
-    """An iShares holdings export (e.g. URTH for MSCI World): equities and weights.
-    Uploading the same fund and date again replaces it."""
-    if len(body.text) > 5_000_000:
-        raise HTTPException(413, "File too large for a holdings export")
-    try:
-        record = BenchmarkStore(streams.root).save(parse_ishares_holdings(body.text), principal.name)
-    except ValueError as exc:
-        raise HTTPException(422, str(exc)) from exc
-    return {k: v for k, v in record.items() if k != "constituents"} | {"constituents": len(record["constituents"])}

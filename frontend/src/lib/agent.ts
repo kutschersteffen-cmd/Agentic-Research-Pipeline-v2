@@ -103,7 +103,7 @@ export const composerModes = (canAsk: boolean): { modes: Mode[]; initial: Mode }
 /** The composer's label, submit button (and its text while sending) and help line per mode. */
 export const COMPOSER_COPY: Record<Mode, { label: string; submit: string; sending: string; help: string; placeholder: string }> = {
   Ask: { label: "Question", submit: "Ask", sending: "Asking…", help: "Enter asks ARP; Shift+Enter adds a line.",
-    placeholder: "What are the sector weights of MSCI World?" },
+    placeholder: "What is our portfolio exposure to Germany?" },
   Plan: { label: "Research brief", submit: "Draft plan", sending: "Drafting…",
     help: "Enter drafts a plan; Shift+Enter adds a line. Name a saved universe in the brief.",
     placeholder: 'Grid-storage companies in the saved universe "eu listed": extract green capex, score, report' },

@@ -205,22 +205,16 @@ class _Parser:
         )
 
 
-def _limits(steps: list[dict], actors: list[str], arrows: list[tuple[str, str, str]], unknown: list[str]):
-    k = len(steps)
-    if k > 12:
-        raise MermaidError(f"flow has {k} steps; at most 12")
-    if k < 2:
-        raise MermaidError(f"flow has {k} {'step' if k == 1 else 'steps'}; at least 2")
-    if len(actors) > 4:
-        raise MermaidError(f"flow has {len(actors)} actors; at most 4")
-    if len(arrows) > 20:
-        raise MermaidError(f"flow has {len(arrows)} arrows; at most 20")
+def _check_step_text_limits(steps: list[dict]) -> None:
     for s in steps:
         if (w := len(s["label"].split())) > 5:
             raise MermaidError(f"step {s['id']}: label has {w} words; at most 5")
     for s in steps:
         if (c := len(s["tag"])) > 24:
             raise MermaidError(f"step {s['id']}: tag has {c} characters; at most 24")
+
+
+def _check_arrow_limits(arrows: list[tuple[str, str, str]]) -> None:
     for a, b, label in arrows:
         if (w := len(label.split())) > 3:
             raise MermaidError(f"arrow {a}→{b}: label has {w} words; at most 3")
@@ -232,6 +226,9 @@ def _limits(steps: list[dict], actors: list[str], arrows: list[tuple[str, str, s
         if (a, b) in seen:
             raise MermaidError(f"arrow {a}→{b} appears twice")
         seen.add((a, b))
+
+
+def _check_actor_limits(steps: list[dict], actors: list[str]) -> None:
     for s in steps:
         if len(s["actors"]) > 1:
             raise MermaidError(f"step {s['id']} is in {len(s['actors'])} actors; at most 1")
@@ -239,6 +236,21 @@ def _limits(steps: list[dict], actors: list[str], arrows: list[tuple[str, str, s
         for s in steps:
             if not s["actors"]:
                 raise MermaidError(f"step {s['id']} has no actor; give every step an actor or none")
+
+
+def _limits(steps: list[dict], actors: list[str], arrows: list[tuple[str, str, str]], unknown: list[str]):
+    k = len(steps)
+    if k > 12:
+        raise MermaidError(f"flow has {k} steps; at most 12")
+    if k < 2:
+        raise MermaidError(f"flow has {k} {'step' if k == 1 else 'steps'}; at least 2")
+    if len(actors) > 4:
+        raise MermaidError(f"flow has {len(actors)} actors; at most 4")
+    if len(arrows) > 20:
+        raise MermaidError(f"flow has {len(arrows)} arrows; at most 20")
+    _check_step_text_limits(steps)
+    _check_arrow_limits(arrows)
+    _check_actor_limits(steps, actors)
     if sum(s["emphasis"] for s in steps) > 1:
         raise MermaidError("only one step can have class emphasis")
     if unknown:

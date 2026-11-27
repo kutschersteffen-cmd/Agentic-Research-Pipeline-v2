@@ -2,7 +2,6 @@
 
 import json
 import os
-import re
 import uuid
 
 import httpx
@@ -86,41 +85,7 @@ def test_scan_says_which_signals_were_skipped(page):  # AC-111
     page.get_by_text("3 signals skipped: their companies are not in the list (C2, C3).").wait_for()
 
 
-# --- Steward Workflow: chips and four-eyes (AC-141, AC-144) ---
-
-
-@pytest.fixture
-def sample_house_universe():
-    """The client program needs house weights; an empty portfolio universe left by another test has none."""
-    before = httpx.get(f"{API}/api/stewardship/universe").json()["source"]
-    httpx.put(f"{API}/api/stewardship/universe", json={"source": "sample"}).raise_for_status()
-    yield
-    httpx.put(f"{API}/api/stewardship/universe", json={"source": before}).raise_for_status()
-
-
-def test_client_program_marks_placeholder_scores(page, sample_house_universe):  # AC-141
-    name = f"Client {uuid.uuid4().hex[:4]}"
-    httpx.post(f"{API}/api/stewardship/streams", json={"name": name}).raise_for_status()
-    note = "CLTI scores are placeholders, not an assessment of these companies. Do not share this as a view on them."
-
-    def program(route):  # the sample benchmark has no score note; portfolio holdings do
-        if route.request.method != "GET":
-            return route.fallback()
-        response = route.fetch()
-        body = response.json()
-        if "simulation" in body:  # the house stream has no client program
-            body["simulation"]["score_note"] = note
-        route.fulfill(response=response, json=body)
-
-    page.route(re.compile(r".*/api/stewardship/streams/[^/]+/program$"), program)
-    page.goto(f"{URL}/#/stewardship/program")
-    page.get_by_label("Program", exact=True).select_option(label=name)  # ui-trim-workspaces: one Program select
-    page.locator(".warning-banner", has_text="CLTI scores are placeholders").wait_for()
-    banner = page.locator(".warning-banner", has_text="CLTI scores are placeholders")
-    assert banner.locator(".chip-sample").count() == 1 and banner.inner_text().startswith("Sample data")
-    tile = lambda label: page.locator(".metric-tile", has_text=label)  # noqa: E731
-    assert tile("Weighted CLTI").locator(".chip-sample").count() == 1
-    assert tile("Active share").locator(".chip-sample").count() == 0
+# --- Steward Workflow: four-eyes (AC-144) ---
 
 
 def test_outreach_draft_by_the_signed_in_author_says_a_second_person_is_needed(page):  # AC-144
