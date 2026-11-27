@@ -69,3 +69,17 @@ def test_json_document_repo_isolates_namespaces(pg):
     assert schemas.get("shared-key") == {"kind": "schema"}
     assert notes.delete("shared-key") is True
     assert schemas.get("shared-key") == {"kind": "schema"}
+
+
+def test_json_document_repo_put_if_absent_and_update(pg):
+    repo = JsonDocumentRepo(pg, "atomic_ops")
+
+    assert repo.put_if_absent("v1", {"val": 1}) is True
+    assert repo.put_if_absent("v1", {"val": 2}) is False
+    assert repo.get("v1") == {"val": 1}
+
+    first = repo.update("counter", lambda cur: {"count": (cur or {}).get("count", 0) + 1})
+    second = repo.update("counter", lambda cur: {"count": (cur or {}).get("count", 0) + 1})
+    assert first == {"count": 1}
+    assert second == {"count": 2}
+    assert repo.get_with_version("counter") == ({"count": 2}, 2)
