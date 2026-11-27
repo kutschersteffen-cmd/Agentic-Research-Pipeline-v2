@@ -8,7 +8,6 @@ from pydantic import BaseModel
 from arp.api.auth import Principal, current_user
 from arp.api.deps import get_engagement_store, get_llm_client, get_registry, settings_dep
 from arp.config import Settings
-from arp.db.session import require_dsn
 from arp.engagement.drafting_agent import draft_meeting_summary, draft_outreach_letter, draft_talking_points
 from arp.engagement.orchestrator import decide_next_action
 from arp.engagement.reporting_agent import compile_report
@@ -25,7 +24,6 @@ from arp.schemas.common import CompanyRef
 from arp.schemas.engagement import Contact, EscalationStage, IssueSeverity, IssueStatus, TriggerSource
 from arp.stewardship.tracking import watch_list
 from arp.storage.engagement_store import EngagementStore
-from arp.voting.pipeline import get_ballots
 
 router = APIRouter(prefix="/api/engagement", tags=["engagement"])
 
@@ -298,19 +296,6 @@ def verify_commitment_endpoint(
 
 
 @router.get("/report")
-def report(period_label: str, run_id: str | None = None, store: EngagementStore = Depends(get_engagement_store)) -> dict:
-    """Reporting Agent: compiles a stewardship report for `period_label`.
-    Pass `run_id` to include a voting run's cast votes in the same report;
-    omitted, the report covers engagement activity only."""
-    from arp.storage.run_store import RunStore
-
-    vote_records = []
-    if run_id:
-        run_store = RunStore(require_dsn(settings_dep()), settings_dep().runs_dir)
-        for ballot in get_ballots(run_store, run_id):
-            vote_records.extend(ballot.votes)
-        from arp.voting.pipeline import get_cast_votes
-
-        cast_by_id = {v.vote_record_id: v for v in get_cast_votes(run_store, run_id)}
-        vote_records = [cast_by_id.get(v.vote_record_id, v) for v in vote_records]
-    return compile_report(store.list_all(), vote_records, period_label).model_dump(mode="json")
+def report(period_label: str, store: EngagementStore = Depends(get_engagement_store)) -> dict:
+    """Reporting Agent: compiles a stewardship report for `period_label`."""
+    return compile_report(store.list_all(), period_label).model_dump(mode="json")

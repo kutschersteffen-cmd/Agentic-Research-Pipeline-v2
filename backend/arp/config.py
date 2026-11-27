@@ -128,7 +128,6 @@ class Settings(BaseSettings):
     engagement_store: Literal["file", "postgres"] = Field(default="file", description="Where engagement records live: JSON files under engagements_dir, or Postgres (needs postgres_dsn).")
     vote_monitoring_window_days: int = Field(default=365, description="Days a vote stays in the monitoring window.")
     stewardship_streams_dir: Path = Field(default=REPO_ROOT / "stewardship_streams", description="Stewardship process page: one JSON file per client stream (envisioned policy, review decisions, built policy).")
-    ballots_dir: Path = Field(default=REPO_ROOT / "ballots", description="Where the manual-instruction ballot platform writes vote instruction files, absent a real custodian/proxy-platform integration.")
     reports_dir: Path = Field(default=REPO_ROOT / "reports", description="Presentation/Reporting Tool: one directory per generated report (manifest, request, plan, rendered output file).")
     report_templates_dir: Path = Field(default=REPO_ROOT / "report_templates", description="Presentation/Reporting Tool: ingested .pptx template style profiles + the original template file each is cloned from.")
     report_images_dir: Path = Field(default=REPO_ROOT / "report_images", description="House deck: uploaded images staged until a report request names them (POST /api/reports/images).")
@@ -606,7 +605,6 @@ class Settings(BaseSettings):
             self.event_refresh_state_dir,
             self.engagements_dir,
             self.stewardship_streams_dir,
-            self.ballots_dir,
             self.reports_dir,
             self.report_templates_dir,
             self.report_images_dir,

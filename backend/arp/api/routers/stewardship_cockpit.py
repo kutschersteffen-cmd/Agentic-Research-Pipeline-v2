@@ -6,17 +6,16 @@ from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from arp.api.deps import get_run_store, settings_dep
+from arp.api.deps import settings_dep
 from arp.config import Settings
 from arp.db.session import require_dsn
 from arp.portfolio.climate import metrics as climate_metrics
 from arp.schemas.cockpit import CockpitResponse
-from arp.stewardship import cockpit, voting_feed
+from arp.stewardship import cockpit
 from arp.stewardship.programmes import ProgrammeLog
 from arp.stewardship.tiers import TierStore
 from arp.storage.portfolio_store import portfolio_directories
 from arp.storage.portfolio_store_factory import build_portfolio_store
-from arp.storage.run_store import RunStore
 
 router = APIRouter(prefix="/api/stewardship", tags=["stewardship"])
 
@@ -26,7 +25,6 @@ def get_cockpit(
     portfolio_id: str | None = None,
     as_of: date | None = None,
     settings: Settings = Depends(settings_dep),
-    run_store: RunStore = Depends(get_run_store),
 ) -> dict:
     as_of = as_of or datetime.now(UTC).date()
     store = build_portfolio_store(settings)
@@ -46,7 +44,7 @@ def get_cockpit(
         held = {sec.company_id for h in holdings if (sec := securities.get(h.security_id)) and sec.company_id}
     per_company, uncovered = climate_metrics.financed_emissions_by_company(store, holdings, securities, as_of=as_of.isoformat())
     body = cockpit.build(
-        require_dsn(settings), as_of, voting_feed.items(run_store), TierStore(settings.stewardship_streams_dir).latest(), held,
+        require_dsn(settings), as_of, [], TierStore(settings.stewardship_streams_dir).latest(), held,
         (per_company, uncovered, companies), ProgrammeLog(settings.stewardship_streams_dir)._fold(),
     )  # fmt: skip
     return {**body, "scope": scope, "portfolios": [{"portfolio_id": p.portfolio_id, "name": p.name} for p in portfolios]}

@@ -25,7 +25,6 @@ from arp.storage.reporting_store import ReportingStore
 from arp.storage.run_store import RunStore
 from arp.storage.taxonomy_store import TaxonomyStore
 from arp.storage.topic_store import TopicStateStore
-from arp.voting.ballot_casting import ManualInstructionBallotPlatform
 
 
 async def _and_drain(coro):
@@ -48,11 +47,6 @@ def _engagement_store() -> EngagementStore | PostgresEngagementStore:
 def _reporting_store() -> ReportingStore:
     settings = get_settings()
     return ReportingStore(settings.reports_dir, settings.report_templates_dir, settings.report_images_dir)
-
-
-
-def _ballot_platform() -> ManualInstructionBallotPlatform:
-    return ManualInstructionBallotPlatform(get_settings().ballots_dir)
 
 
 

@@ -61,16 +61,6 @@ def test_ac28_running_status_is_run_blue(page):  # noqa: F811
     assert pill.inner_text().strip() == "running"
 
 
-def test_status_pill_in_phone_card(page):  # noqa: F811
-    _runs_stub(page, [{"run_id": "e2e-vote-pill", "run_type": "proxy_voting", "status": "completed", "company_count": 3, "completed_count": 3}], "**/api/runs*")
-    _open(page, "/#/voting", 390, 844)
-    row = page.locator("table.stack-on-phone tbody tr").first
-    row.wait_for()
-    pill, card = _box(row.locator(".status-pill").first), _box(row)
-    assert pill["x"] + pill["width"] <= card["x"] + card["width"] + 0.5
-    assert page.evaluate("() => document.documentElement.scrollWidth") <= 390
-
-
 # expressive-ui-orb slice 3 supersedes the 120 px header drawing (app-wide-top-bar AC-30, AC-30b): the drawing sits in
 # a 300 x 240 px figure box right of the title, and on phones full width under the status line.
 HEAD_DRAWING = ".hub-ws-fig > svg.ws-drawing"

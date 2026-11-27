@@ -60,7 +60,6 @@ export const RUN_TYPE_LABEL: Record<string, string> = {
   theme: "Thematic universe",
   extraction: "Data extraction",
   discovery: "Document discovery",
-  proxy_voting: "Proxy voting",
   transition_plan: "Transition plan assessment",
   transition_barrier_refresh: "Transition barrier source refresh",
   transition_barrier_derivation: "Transition barrier derivation",
@@ -86,10 +85,9 @@ export function runTypeLabel(runType: string): string {
   return RUN_TYPE_LABEL[runType] ?? runType.replace(/_/g, " ");
 }
 
-/** Items in this run that wait on a person: flagged figures, or ballot items
- * for a voting run. Other run types have no queue, so they count zero. */
+/** Items in this run that wait on a person: flagged figures. Other run types have no queue, so they count zero. */
 export function waitingCount(r: RunManifest): number {
-  return REVIEWABLE_RUN_TYPES.has(r.run_type) || r.run_type === "proxy_voting" ? r.review_count : 0;
+  return REVIEWABLE_RUN_TYPES.has(r.run_type) ? r.review_count : 0;
 }
 
 /** The wait line for a run parked on an Anthropic message batch. */
@@ -105,18 +103,6 @@ export function ago(iso: string, now: Date = new Date()): string {
   if (min < 60) return `${Math.max(min, 1)} min ago`;
   if (min < 48 * 60) return `${Math.round(min / 60)} h ago`;
   return `${Math.round(min / 1440)} days ago`;
-}
-
-/** One row per proxy voting run with ballots waiting on a person, for the start page's Needs you list. */
-export function ballotRows(runs: RunManifest[]): { runId: string; count: number; what: string; href: string }[] {
-  return runs
-    .filter((r) => r.run_type === "proxy_voting" && r.review_count > 0)
-    .map((r) => ({
-      runId: r.run_id,
-      count: r.review_count,
-      what: `Decide ${r.review_count === 1 ? "1 ballot" : `${r.review_count} ballots`}`,
-      href: `#/voting/${encodeURIComponent(r.run_id)}`,
-    }));
 }
 
 const NOT_FOUND_LABELS = { no_passage: "no passage", passages_silent: "passages silent", held: "held" } as const;

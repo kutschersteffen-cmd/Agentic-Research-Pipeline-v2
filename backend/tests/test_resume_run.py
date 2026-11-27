@@ -25,7 +25,6 @@ from arp.schemas.taxonomy import DerivationMethod
 from arp.schemas.thematic import ActivityDefinition, ThemeDefinition
 from arp.storage.run_store import RunStore
 from arp.storage.taxonomy_store import TaxonomyStore
-from arp.voting.pipeline import create_voting_run
 from tests.postgres_helpers import forget_companies, pg_dsn
 from tests.taxonomy_schema_helpers import registered_schema
 
@@ -394,14 +393,6 @@ def test_theme_cli_batch_flag(tmp_path, monkeypatch, pg):
     registry.release(saved.schema_id, saved.version, released_by="own")
     monkeypatch.setattr(cli_theme, "_taxonomy_store", lambda: taxonomies)
     (plain, batched), params = _batch_cli(tmp_path, monkeypatch, cli_theme, "run_thematic_universe", cli_theme.theme_app, ["run"], create_theme_run, ["--taxonomy", tax.taxonomy_id])
-    assert not isinstance(plain, BatchingLLMClient) and isinstance(batched, BatchingLLMClient)
-    assert params == [None, True]
-
-
-def test_voting_cli_batch_flag(tmp_path, monkeypatch, pg):
-    import arp.cli.voting as cli_voting
-
-    (plain, batched), params = _batch_cli(tmp_path, monkeypatch, cli_voting, "run_voting", cli_voting.voting_app, ["run"], create_voting_run)
     assert not isinstance(plain, BatchingLLMClient) and isinstance(batched, BatchingLLMClient)
     assert params == [None, True]
 

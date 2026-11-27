@@ -1,30 +1,10 @@
-"""stewardship-commitment-loop PR 3 in the browser: the ballot banner (AC-94) and the dossier watch list (AC-109, AC-110),
+"""stewardship-commitment-loop PR 3 in the browser: the dossier watch list (AC-109, AC-110),
 with the named API routes stubbed."""
 
 from tests.e2e import test_showcase_stewardship_side as side
-from tests.e2e.test_showcase_stewardship_side import RUN_ID, URL, _engagement_issue, _run, _vote, pytestmark  # noqa: F401
+from tests.e2e.test_showcase_stewardship_side import URL, _engagement_issue, pytestmark  # noqa: F401
 
 page = side.page  # the shared browser fixture
-
-FLAG = 'Objective overdue: "Set a 2030 science-based target" was due 2026-11-12.'
-
-
-def test_watch_flag_banner_on_every_item_of_the_company(page):  # AC-94
-    flag = {"item_kind": "objective", "item_id": "obj_1", "engagement_id": "iss_1", "kind": "overdue",
-            "text": "Set a 2030 science-based target", "target_date": "2026-11-12", "since": "2026-11-12", "message": FLAG}
-    b_vote = {**_vote(3), "proposal": {**_vote(3)["proposal"], "company_id": "BETA"}}
-    ballots = [
-        {"company_id": "ACME", "name": "Acme", "meeting_id": "m1", "meeting_date": "2026-12-01", "votes": [_vote(1), _vote(2)], "watch_flags": [flag]},
-        {"company_id": "BETA", "name": "Beta", "meeting_id": "m2", "meeting_date": "2026-12-01", "votes": [b_vote], "watch_flags": []},
-    ]
-    page.route(f"**/api/voting/runs/{RUN_ID}/ballots", lambda r: r.fulfill(json={"ballots": ballots}))
-    page.route(f"**/api/voting/runs/{RUN_ID}/review-queue", lambda r: r.fulfill(json={"pending": [], "decided": []}))
-    page.route(f"**/api/voting/runs/{RUN_ID}/cast", lambda r: r.fulfill(json={"votes": []}))
-    page.route(f"**/api/runs/{RUN_ID}", lambda r: r.fulfill(json=_run(company_count=2, done=2)))
-    page.goto(f"{URL}/#/voting/{RUN_ID}")
-    page.locator(".proposal-card").first.wait_for()
-    assert page.locator(".banner-warning", has_text=FLAG).count() == 2
-    assert page.locator(".proposal-card").count() == 3
 
 
 def _dossier(company, issue_id, watch_list):

@@ -173,16 +173,6 @@ def test_ac14_argus_card_frame(page):  # noqa: F811
     assert _box(second)["y"] >= _box(first)["y"] + _box(first)["height"] + 8 - 0.5
 
 
-def test_ac14b_voting_card_frame(page):  # noqa: F811
-    _runs_stub(page, [{"run_id": "e2e-vote-1", "run_type": "proxy_voting", "status": "completed", "company_count": 3, "completed_count": 3}], "**/api/runs*")
-    _open(page, "/#/voting", 390, 844)
-    row = page.locator("table.stack-on-phone tbody tr").first
-    row.wait_for()
-    _row_frame(page, row)
-    label = row.locator("td[data-label]").first.evaluate("e => getComputedStyle(e, '::before').content")
-    assert label not in ("none", "normal", '""'), label
-
-
 def test_ac15_argus_compact_card(page):  # noqa: F811
     _three_runs(page)
     _open(page, "/#/argus", 390, 844)
@@ -290,19 +280,6 @@ def test_focus_ring_over_highlighted_neighbour(page):  # noqa: F811
     page.keyboard.press("Tab")
     assert int(_style(tiles.nth(1), "zIndex")) > int(_style(tiles.nth(2), "zIndex"))
 
-
-def test_unbreakable_name_stays_inside_the_card(page):  # noqa: F811
-    # Final review: content that cannot wrap (like the nowrap file-name buttons of ArgusDocuments) must not
-    # widen a stacked table's cards past the phone, where the page clips them.
-    _runs_stub(page, [{"run_id": "e2e-vote-wide", "run_type": "proxy_voting", "status": "completed", "company_count": 3, "completed_count": 3}], "**/api/runs*")
-    _open(page, "/#/voting", 390, 844)
-    row = page.locator("table.stack-on-phone tbody tr").first
-    row.wait_for()
-    row.locator("td").first.evaluate(
-        "td => { const s = document.createElement('span'); s.style.whiteSpace = 'nowrap'; s.textContent = 'Unilever_Annual_Report_and_Accounts_2025_final_v2.pdf'; td.append(s); }")
-    wrap = page.locator(".table-wrap:has(> table.stack-on-phone)").first
-    assert _box(row)["x"] + _box(row)["width"] <= _box(wrap)["x"] + _box(wrap)["width"] + 0.5
-    assert page.evaluate("() => document.documentElement.scrollWidth") <= 390
 
 def test_long_name_clears_pill_at_large_text(page):  # noqa: F811
     # Final review: with a larger browser font the pill grows; the name must still clear it.

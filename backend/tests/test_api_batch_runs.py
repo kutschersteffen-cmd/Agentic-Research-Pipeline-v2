@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 from arp.api import deps, run_scheduling
 from arp.api.auth import Principal, current_user
-from arp.api.routers import extraction, financials, identity, themes, tnfd, voting
+from arp.api.routers import extraction, financials, identity, themes, tnfd
 from arp.config import Settings
 from arp.db.fields import SchemaRegistry
 from arp.llm.batching_client import BatchingLLMClient
@@ -38,7 +38,6 @@ ROUTES = {
     "financials": (financials, "/api/financials/runs", "create_financials_extraction_run", "execute_financials_extraction_run", {}),
     "tnfd": (tnfd, "/api/tnfd/runs", "create_tnfd_extraction_run", "execute_tnfd_extraction_run", {"as_of": "FY2025"}),
     "themes": (themes, "/api/themes/runs", "create_theme_run", "execute_theme_run", {}),
-    "voting": (voting, "/api/voting/runs", "create_voting_run", "execute_voting_run", {}),
     "identity": (identity, "/api/identity/runs", "create_identity_run", "execute_identity_run", {}),
 }
 
@@ -99,7 +98,7 @@ def test_batch_true_marks_run_and_batches_clients(start, name):
     params, seen = start(name, batch=True)
     assert params["batch"] is True
     assert isinstance(seen["llm"], BatchingLLMClient)
-    if name not in ("voting", "identity"):
+    if name != "identity":
         assert isinstance(seen["verifier"], BatchingLLMClient)
     assert seen["settings"].llm_batch and seen["settings"].max_concurrent_llm_calls == 1000
 

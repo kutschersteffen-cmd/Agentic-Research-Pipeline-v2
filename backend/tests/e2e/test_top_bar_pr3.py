@@ -175,14 +175,14 @@ def test_ac42_lede(page):  # noqa: F811
     assert page.get_by_text("typed in by hand, not passed on.").count() == 1
 
 
-def _proxy(pg):
-    return pg.locator("section.hub-process", has=pg.get_by_role("heading", name="Proxy season"))
+def _thematic(pg):
+    return pg.locator("section.hub-process", has=pg.get_by_role("heading", name="Build a thematic portfolio"))
 
 
 def test_running_step_blue(page):  # noqa: F811
-    _runs_stub(page, [{"run_id": "e2e-pr3-run", "run_type": "proxy_voting", "status": "running", "review_count": 0}], "**/api/runs*")
-    _open(page, "/#/stewardiq")
-    btn = _steps(_proxy(page)).first
+    _runs_stub(page, [{"run_id": "e2e-pr3-run", "run_type": "emerging_themes", "status": "running", "review_count": 0}], "**/api/runs*")
+    _open(page, "/#/rdLab")
+    btn = _steps(_thematic(page)).first
     assert _state(btn) == "now"
     assert _style(btn, "borderTopColor") == _probe(page, "--run")
     assert _style(btn, "boxShadow") != "none"
@@ -192,12 +192,12 @@ def test_running_step_blue(page):  # noqa: F811
 
 
 def test_pulse_off_under_reduced_motion(page):  # noqa: F811
-    _runs_stub(page, [{"run_id": "e2e-pr3-still", "run_type": "proxy_voting", "status": "running", "review_count": 0}], "**/api/runs*")
+    _runs_stub(page, [{"run_id": "e2e-pr3-still", "run_type": "emerging_themes", "status": "running", "review_count": 0}], "**/api/runs*")
     page.emulate_media(reduced_motion="reduce")
     page.set_viewport_size({"width": 1440, "height": 900})
-    page.goto(URL + "/#/stewardiq")
+    page.goto(URL + "/#/rdLab")
     page.wait_for_load_state("networkidle")
-    btn = _steps(_proxy(page)).first
+    btn = _steps(_thematic(page)).first
     assert _state(btn) == "now"  # else every square reads "none" and this proves nothing
     assert btn.locator(".hub-step-status").evaluate("e => getComputedStyle(e, '::before').animationName") == "none"
 
@@ -225,18 +225,18 @@ def test_panel_follows_state(page):  # noqa: F811
         real = body.get("runs", [])
         base = {**(real[0] if real else {"review_count": 0, "params": {}, "estimated_cost_usd": 0.0}), "company_count": 1, "completed_count": 0}
         status = "completed" if flip["done"] else "running"
-        body["runs"] = [{**base, "review_count": 0, "run_id": "e2e-pr3-flip", "run_type": "proxy_voting", "status": status, "updated_at": "2026-11-16T00:00:00Z", "created_at": "2026-11-16T00:00:00Z"}] + real
+        body["runs"] = [{**base, "review_count": 0, "run_id": "e2e-pr3-flip", "run_type": "emerging_themes", "status": status, "updated_at": "2026-11-16T00:00:00Z", "created_at": "2026-11-16T00:00:00Z"}] + real
         route.fulfill(response=resp, json=body)
 
     page.route("**/api/runs*", handle)
-    _open(page, "/#/stewardiq")
-    sec = _proxy(page)
+    _open(page, "/#/rdLab")
+    sec = _thematic(page)
     btn = _steps(sec).first
     btn.click()
     panel = _panel(sec)
     assert STATE_LABEL["now"] in panel.inner_text()
     flip["done"] = True
-    page.wait_for_function("() => document.querySelector('#step-panel-proxy')?.innerText.includes('has a finished run')", timeout=20_000)
+    page.wait_for_function("() => document.querySelector('#step-panel-thematic')?.innerText.includes('has a finished run')", timeout=20_000)
     assert btn.get_attribute("aria-expanded") == "true"
     assert "e2e-pr3-flip" in panel.inner_text()
 

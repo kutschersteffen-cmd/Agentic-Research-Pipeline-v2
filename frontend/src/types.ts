@@ -1025,80 +1025,6 @@ export interface MeetingSummaryDraft {
   follow_up_actions: string[];
 }
 
-// --- Voting (proxy) ---
-
-export type ProposalType =
-  | "director_election"
-  | "say_on_pay"
-  | "auditor_ratification"
-  | "shareholder_resolution"
-  | "merger_acquisition"
-  | "capital_action"
-  | "other";
-
-export type VotePosition = "for" | "against" | "abstain" | "withhold";
-export type CastStatus = "confirmed" | "failed";
-
-export interface Proposal {
-  proposal_id: string;
-  company_id: string;
-  meeting_id: string;
-  meeting_date?: string | null;
-  proposal_number: string;
-  type: ProposalType;
-  sponsor: string;
-  resolution_text: string;
-  management_recommendation?: VotePosition | null;
-  supporting_data: Record<string, string>;
-  citations: Citation[];
-  confidence: number;
-  source_doc_id?: string | null;
-}
-
-export interface PolicyRecommendation {
-  vote: VotePosition;
-  rationale: string;
-  policy_rule_id?: string | null;
-  confidence: number;
-  engagement_alignment_flag: boolean;
-  engagement_alignment_note?: string | null;
-}
-
-export interface HumanVoteDecision {
-  vote: VotePosition;
-  decided_by: string;
-  decided_at: string;
-  override_note?: string | null;
-  co_signed_by?: string | null;
-}
-
-export interface CastConfirmation {
-  platform: string;
-  cast_at: string;
-  confirmation_id: string;
-  status: CastStatus;
-  detail?: string | null;
-}
-
-export interface VoteRecord {
-  vote_record_id: string;
-  run_id: string;
-  proposal: Proposal;
-  policy_recommendation?: PolicyRecommendation | null;
-  human_decision?: HumanVoteDecision | null;
-  cast_confirmation?: CastConfirmation | null;
-}
-
-export interface CompanyBallot {
-  company_id: string;
-  name: string;
-  meeting_id: string;
-  meeting_date?: string | null;
-  votes: VoteRecord[];
-  generated_at: string;
-  watch_flags?: WatchFlag[];
-}
-
 /** An overdue or broken commitment or objective of the company (spec stewardship-commitment-loop, PR 3). */
 export interface WatchFlag {
   item_kind: "commitment" | "objective";
@@ -1109,15 +1035,6 @@ export interface WatchFlag {
   target_date: string | null;
   since: string | null;
   message: string;
-}
-
-export interface VoteReviewDecision {
-  item_key: string;
-  decision: "approve" | "edit" | "reject";
-  reviewer?: string | null;
-  edited_value?: { vote?: string | null; co_signed_by?: string | null } | null;
-  comment?: string | null;
-  decided_at: string;
 }
 
 // --- Portfolio risk & exposure monitoring ---

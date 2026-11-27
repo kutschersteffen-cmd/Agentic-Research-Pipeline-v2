@@ -335,7 +335,7 @@ def test_legacy_review_routes_refuse_workbench_runs_and_keys(env):
     rs, c = env[0], client(CAROL)
     for url, key in [
         ("/api/financials/runs/ext1/review", KEY), ("/api/financials/runs/ext1/review", "rst_1"),
-        ("/api/financials/runs/idn1/review", "C1"), ("/api/voting/runs/ext1/review", KEY),
+        ("/api/financials/runs/idn1/review", "C1"),
     ]:
         r = c.post(url, json={"item_key": key, "decision": "approve", "reviewer": "X"})
         assert r.status_code == 400, (url, key)
@@ -349,7 +349,7 @@ def test_legacy_review_routes_refuse_holdings_runs(env):
     rs, c = env[0], client(CAROL)
     rs.save_manifest(RunManifest(run_id="hold1", run_type="holdings"))
     rs.append_review_item("hold1", {"item_key": "isin:US0378331005", "isin": "US0378331005"})
-    for url in ("/api/financials/runs/hold1/review", "/api/voting/runs/hold1/review"):
+    for url in ("/api/financials/runs/hold1/review",):
         for key in ("isin:US0378331005", "other"):
             r = c.post(url, json={"item_key": key, "decision": "approve", "reviewer": "X"})
             assert r.status_code == 400, (url, key)

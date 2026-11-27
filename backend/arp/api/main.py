@@ -68,7 +68,6 @@ from arp.api.routers import (
     universe,
     universe_workbench,
     value_chain,
-    voting,
     waiting,
     walkthrough,
 )
@@ -159,7 +158,6 @@ app.include_router(authority_taxonomy.router, dependencies=[Depends(authorize)])
 app.include_router(overlap.router, dependencies=[Depends(authorize)])
 app.include_router(revenue_catalogue.router, dependencies=[Depends(authorize)])
 app.include_router(engagement.router, dependencies=[Depends(authorize)])
-app.include_router(voting.router, dependencies=[Depends(authorize)])
 app.include_router(stewardship.router, dependencies=[Depends(authorize)])
 app.include_router(stewardship_cockpit.router, dependencies=[Depends(authorize)])
 app.include_router(stewardship_intake.router, dependencies=[Depends(authorize)])

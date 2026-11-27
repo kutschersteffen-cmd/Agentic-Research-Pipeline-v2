@@ -11,44 +11,9 @@ from fastapi.testclient import TestClient
 
 from arp.api import deps
 from arp.api.routers import calibration, taxonomy_researcher, universe
-from arp.api.routers import voting as voting_router
 from arp.config import Settings
 from arp.schemas.calibration import CalibrationScheduleConfig
-from arp.storage.run_store import RunStore
 from tests.test_interval_scheduler import _Scheduler, _settings
-
-# --- G8: an override needs a reason (AC-134..136) ---
-
-
-@pytest.fixture
-def voting(tmp_path, pg):
-    run_store = RunStore(pg, tmp_path / "runs")
-    app = FastAPI()
-    app.include_router(voting_router.router)
-    app.dependency_overrides[deps.get_run_store] = lambda: run_store
-    with TestClient(app) as c:
-        yield c, run_store
-
-
-@pytest.mark.parametrize("comment", [None, "  "])
-def test_override_without_reason_is_refused(voting, comment):  # AC-134
-    client, run_store = voting
-    body = {"item_key": "SHEL:1", "decision": "edit", "reviewer": "Ana", "vote": "against"}
-    if comment is not None:
-        body["comment"] = comment
-    before = client.get("/api/voting/runs/r1/review-queue").json()
-    res = client.post("/api/voting/runs/r1/review", json=body)
-    assert (res.status_code, res.json()["detail"]) == (400, "An override needs a reason.")
-    assert client.get("/api/voting/runs/r1/review-queue").json() == before
-
-
-def test_override_with_reason_and_plain_approve_are_recorded(voting):  # AC-135, 136
-    client, _ = voting
-    edit = {"item_key": "SHEL:1", "decision": "edit", "reviewer": "Ana", "vote": "against", "comment": "Board lacks independence"}
-    assert client.post("/api/voting/runs/r1/review", json=edit).json() == {"status": "recorded"}
-    approve = {"item_key": "SHEL:2", "decision": "approve", "reviewer": "Ana"}
-    assert client.post("/api/voting/runs/r1/review", json=approve).json() == {"status": "recorded"}
-
 
 # --- G13: schedule interval of at least 1 hour (AC-156..161, 172) ---
 

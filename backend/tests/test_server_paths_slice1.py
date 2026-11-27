@@ -19,7 +19,6 @@ from arp.api.routers import (
     identity,
     taxonomies,
     tnfd,
-    voting,
 )
 from arp.config import Settings
 from arp.discovery.scheduler import DiscoveryScheduler
@@ -33,7 +32,6 @@ UNIVERSE = "company_id,name\nc1,Acme\n"
 
 ROUTES = [  # (route, body) as in the spec's table
     ("/api/themes/runs", {"taxonomy_id": "none"}),
-    ("/api/voting/runs", {}),
     ("/api/tnfd/runs", {"as_of": "FY2025"}),
     ("/api/discovery/runs", {}),
     ("/api/emerging-themes/runs", {}),
@@ -67,7 +65,7 @@ def env(pg, tmp_path, monkeypatch):
         recorded.append("x")
         raise HTTPException(409, "recorded")
 
-    for mod in (voting, tnfd, extraction, identity, financials):
+    for mod in (tnfd, extraction, identity, financials):
         monkeypatch.setattr(mod, "schedule_llm_run", record)
     monkeypatch.setattr(discovery, "create_discovery_run", record)
     monkeypatch.setattr(emerging_themes, "create_emerging_themes_run", record)
@@ -95,12 +93,12 @@ def test_ac7_a_symlink_leaving_the_universes_folder_is_refused(env):
 
 def test_ac12_a_saved_universe_still_starts_each_run(env):
     client, u, _outside, recorded = env
-    for route, body in ROUTES[:10]:
+    for route, body in ROUTES[:-1]:
         r = client.post(route, json={**body, "universe_path": str(u)})
         assert r.status_code < 500, (route, r.status_code, r.text)
         assert r.json() != SAVED_ONLY, route
-    # route 1 stops at the unknown taxonomy after the universe step; the other nine reach the recorder
-    assert len(recorded) == 9
+    # route 1 stops at the unknown taxonomy after the universe step; the rest reach the recorder
+    assert len(recorded) == len(ROUTES) - 2
 
 
 def _put(router, scheduler_dep, scheduler, settings, path):

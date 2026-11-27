@@ -20,7 +20,6 @@ test("safeDecode keeps a malformed sequence and still decodes a good one", () =>
 test("runItem: a run without a review screen opens its own row in Run History", () => {
   assert.equal(runItem(M("es 1", "emerging_themes")).href, "#/history/es%201");
   assert.equal(runItem(M("x1", "extraction")).href, "#/review/extraction/x1");
-  assert.equal(runItem(M("v1", "proxy_voting")).href, "#/voting/v1");
   const r = runItem(M("es1", "emerging_themes"));
   assert.equal(r.label, `${runTypeLabel("emerging_themes")} es1`);
   assert.equal(r.hint, "Run");

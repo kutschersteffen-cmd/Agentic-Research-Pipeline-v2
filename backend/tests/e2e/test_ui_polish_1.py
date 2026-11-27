@@ -1,12 +1,10 @@
 """UI polish 1 (docs/superpowers/specs/2026-11-15-ui-polish-1-design.md) against the running app."""
 
-import json
 import os
 
 import pytest
 
 from arp.config import Settings
-from tests.e2e.test_showcase_stewardship_side import _vote, open_voting
 
 URL = os.environ.get("ARP_E2E_URL")
 pytestmark = [
@@ -59,25 +57,6 @@ def test_ac1c_signed_out_keeps_field(page):
     page.route("**/api/me", lambda r: r.fulfill(status=401, json={"detail": "Not signed in"}))
     _open(page, "/#/history")
     assert _user_menu(page).get_by_label("Reviewing as").count() == 1
-
-
-def test_ac1d_vote_records_the_signed_in_name(page):
-    page.add_init_script("localStorage.setItem('arp.reviewer', 'Ana')")
-    posted = []
-
-    def review(route):
-        posted.append(json.loads(route.request.post_data))
-        route.fulfill(json={"status": "recorded"})
-
-    open_voting(page, [_vote(3)], on_review=review)
-    page.wait_for_function("() => localStorage.getItem('arp.reviewer') === 'dev'")  # /api/me has answered
-    page.get_by_role("button", name="Approve 1 routine…").click()
-    dialog = page.get_by_role("dialog")
-    assert "not verified by a login" not in dialog.inner_text()
-    assert "Recorded against your sign-in: dev" in dialog.inner_text()
-    page.get_by_role("button", name="Approve 1", exact=True).click()
-    page.wait_for_timeout(500)
-    assert [p["reviewer"] for p in posted] == ["dev"]
 
 
 def test_reviewer_field_returns_after_sign_out(page):

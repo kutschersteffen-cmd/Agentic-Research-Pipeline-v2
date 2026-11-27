@@ -26,7 +26,7 @@ from typing import Any
 from arp.db.session import require_dsn
 from arp.engagement.orchestrator import is_stalled
 from arp.schemas.engagement import EngagementRecord, MilestoneStage
-from arp.stewardship import alerts_feed, escalation, monitoring, tracking, vote_ledger_feed, voting_feed
+from arp.stewardship import alerts_feed, escalation, monitoring, tracking, vote_ledger_feed
 from arp.stewardship.backtest import attach_impact, build_contexts
 from arp.stewardship.drafting import DraftStore
 from arp.stewardship.policies import PolicyStore
@@ -43,25 +43,19 @@ from arp.stewardship.universe import (
     latest_observations,
 )
 from arp.storage.atomic_io import atomic_write_text
-from arp.storage.run_store import RunStore
 
 SAMPLE_PATH = DATA / "examples" / "sample_meetings.json"
 HOUSE = "house"
 
 
 def vote_items(runs_dir: Path | None = None, house_issuers: list[dict] | None = None, held: dict | None = None) -> list[dict]:
-    """Every ballot item from the Proxy Voting runs (see voting_feed) plus the vote ledger's decisions (vote_ledger_feed).
+    """Every decision from the vote ledger (`vote_ledger_feed`).
     `house_issuers`: the house universe's issuers, when the caller already has them."""
     from arp.config import get_settings
 
-    if runs_dir is None:
-        runs_dir = get_settings().runs_dir
     settings = get_settings()
     dsn = require_dsn(settings)
-    ledger = vote_ledger_feed.ledger_rows(dsn, settings.vote_monitoring_window_days, house_issuers, held)
-    seen = {(r["run_id"], r["company_id"], r["item"]) for r in ledger if r["run_id"] is not None}
-    runs = [r for r in voting_feed.items(RunStore(dsn, runs_dir)) if (r["run_id"], r["company_id"], r["item"]) not in seen]
-    return runs + ledger
+    return vote_ledger_feed.ledger_rows(dsn, settings.vote_monitoring_window_days, house_issuers, held)
 
 
 def portfolio_alerts() -> list:
@@ -130,7 +124,7 @@ def load_sample(
     if votes is None:
         votes = vote_items(house_issuers=sample["issuers"] if base is None else None, held=held)
     merged = [
-        voting_feed.issuer_fields(votes),
+        vote_ledger_feed.issuer_fields(votes),
         alerts_feed.issuer_fields(portfolio_alerts() if alerts is None else alerts),
     ]
     for fields in merged:

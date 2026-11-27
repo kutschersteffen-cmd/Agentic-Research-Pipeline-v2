@@ -51,12 +51,11 @@ export const WORKSPACES: Workspace[] = [
     id: "stewardiq",
     name: "StewardIQ",
     purpose: "Engage companies, vote, and track what they commit to.",
-    runTypes: ["proxy_voting"],
+    runTypes: [],
     screens: [
       ["#/stewardiq/cockpit", "Cockpit"],
       ["#/stewardship", "Steward Workflow"],
       ["#/engagement", "Engagement"],
-      ["#/voting", "Proxy Voting"],
       ["#/rfp", "RFP Answers"],
     ],
     processes: [
@@ -79,9 +78,7 @@ export const WORKSPACES: Workspace[] = [
         cadence: "Per meeting, peaks March–June",
         outcome: "Voting intentions published, votes cast checked against policy, outcomes fed into engagement.",
         steps: [
-          { tab: "voting", label: "Proxy Voting", does: "Start a run from meeting agendas; the policy drafts a vote per resolution, a person decides.", handsOn: "Decided ballots", carried: true, runTypes: ["proxy_voting"] },
-          // Ballots are counted on the Proxy Voting step, so this stage carries no `stage` (no double count).
-          { tab: "stewardship", sub: "voting", label: "Decided votes", does: "Decided ballots next to the house policy behind them.", handsOn: "Votes against policy", carried: true },
+          { tab: "stewardship", sub: "voting", label: "Decided votes", does: "Stored vote ledger decisions next to the house policy behind them.", handsOn: "Votes against policy", carried: true },
           { tab: "stewardship", sub: "checkpoint", stage: "checkpoint", label: "Checkpoint", does: "Review every vote decided against the policy's recommendation, with its reason.", handsOn: "Votes against management", carried: true },
           { tab: "engagement", label: "Engagement", does: "A vote against management opens a trigger in Monitoring." },
         ],

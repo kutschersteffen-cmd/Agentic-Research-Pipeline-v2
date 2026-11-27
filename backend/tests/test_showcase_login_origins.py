@@ -43,27 +43,27 @@ def showcase_local(tmp_path, pg):
     real_app.dependency_overrides.clear()
 
 
-def test_foreign_origin_cannot_cast(showcase_local):  # AC-1
-    r = showcase_local("10.1.2.3", **OLD_LINES).post("/api/voting/runs/ac1_none/cast", headers=EVIL)
+def test_foreign_origin_cannot_mutate(showcase_local):  # AC-1
+    r = showcase_local("10.1.2.3", **OLD_LINES).post("/api/runs/ac1_none/resume", headers=EVIL)
     assert (r.status_code, r.headers["WWW-Authenticate"]) == (401, "Bearer")
 
 
 def test_foreign_origin_cannot_read(showcase_local):  # AC-2
-    r = showcase_local("10.1.2.3", **OLD_LINES).get("/api/voting/runs/ac2_none/review-queue", headers=EVIL)
+    r = showcase_local("10.1.2.3", **OLD_LINES).get("/api/runs", headers=EVIL)
     assert r.status_code == 401
 
 
 @pytest.mark.parametrize(("host", "run"), [("127.0.0.1", "ac3_none"), ("10.1.2.3", "ac11_none")])  # AC-3, AC-11
-def test_no_token_no_origin_cannot_cast(showcase_local, host, run):
-    assert showcase_local(host, **OLD_LINES).post(f"/api/voting/runs/{run}/cast").status_code == 401
+def test_no_token_no_origin_cannot_mutate(showcase_local, host, run):
+    assert showcase_local(host, **OLD_LINES).post(f"/api/runs/{run}/resume").status_code == 401
 
 
-def test_presenter_token_casts_from_the_hub(showcase_local):  # AC-4
+def test_presenter_token_reaches_route_from_the_hub(showcase_local):  # AC-4
     r = showcase_local("10.1.2.3").post(
-        "/api/voting/runs/ac4_none/cast",
+        "/api/runs/ac4_none/resume",
         headers={"Origin": "https://hub.example", "Authorization": "Bearer tok_presenter"},
     )
-    assert (r.status_code, r.json()) == (200, {"cast_count": 0, "votes": []})
+    assert (r.status_code, r.json()["detail"]) == (404, "Run not found")
 
 
 def section(text, heading):

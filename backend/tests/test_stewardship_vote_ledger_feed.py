@@ -5,19 +5,17 @@ import json
 from pathlib import Path
 
 import pytest
-from sqlalchemy import update
 
 pytest.importorskip("zen")
 
 from arp.api.routers.stewardship import monitoring_triggers  # noqa: E402
 from arp.config import Settings  # noqa: E402
 from arp.db.session import transaction  # noqa: E402
-from arp.stewardship import process, voting_feed  # noqa: E402
+from arp.stewardship import process, vote_ledger_feed  # noqa: E402
 from arp.stewardship.npx_load import load_npx  # noqa: E402
 from arp.stewardship.process import SAMPLE_PATH, StreamStore  # noqa: E402
 from arp.stewardship.vote_ledger_feed import ledger_rows  # noqa: E402
 from arp.storage.engagement_store import EngagementStore  # noqa: E402
-from arp.storage.postgres_models import VoteDecisionModel  # noqa: E402
 
 FIXTURE = Path(__file__).parent / "fixtures" / "npx" / "fixture.csv"
 SOCGEN = "isin_FR0000130809"  # in the house universe, no stw_companies row
@@ -67,22 +65,11 @@ def test_rows_carry_every_voting_feed_key(tmp_path, pg):
     assert {r["meeting_date"] for r in rows if r["company_id"] == SOCGEN} == {"2026-05-23"}
 
 
-def test_ac40_run_row_with_same_key_is_not_counted_twice(tmp_path, pg, monkeypatch):
-    _load(tmp_path, pg, lines=[1])
-    with transaction(pg) as s:
-        s.execute(update(VoteDecisionModel).values(run_id="run_1"))
-    [ledger] = ledger_rows(pg, 365)
-    run = {**ledger, "decided_by": "pm", "policy": "for", "type": "routine"}
-    monkeypatch.setattr(voting_feed, "items", lambda _store: [run])
-    assert len(process.vote_items()) == 1
-    assert process.load_sample()["issuers"][0]["fields"]["vote.decided"] == 1
-
-
 def test_null_against_counts_decided_only(tmp_path, pg):
     _load(tmp_path, pg, lines=[10])  # Apple, "ONE YEAR": against_management is null
     [row] = ledger_rows(pg, 365)
     assert row["against_management"] is False
-    fields = voting_feed.issuer_fields([row])[row["company_id"]]
+    fields = vote_ledger_feed.issuer_fields([row])[row["company_id"]]
     assert (fields["vote.decided"], fields["vote.against_management"]) == (1, 0)
 
 
