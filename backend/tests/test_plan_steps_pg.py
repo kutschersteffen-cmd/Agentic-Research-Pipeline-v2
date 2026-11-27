@@ -59,6 +59,37 @@ def test_report_gate_until_storyline_approved(run_store, monkeypatch):
     assert reviewed({"result_ref": "report:rep_1"}) is True
 
 
+def test_report_step_starts_and_finishes(monkeypatch):
+    from types import SimpleNamespace as NS
+
+    import arp.api.deps as deps
+    import arp.reporting.service as reporting_service
+    from arp.schemas.reporting import ReportStatus
+
+    rendered = []
+
+    class FakeService:
+        def __init__(self, _store):
+            pass
+
+        async def create_and_plan(self, req, _llm):
+            assert [r.ref_id for r in req.run_refs] == ["r1"]
+            return NS(report_id="rep_42")
+
+        async def render_from_plan(self, report_id):
+            rendered.append(report_id)
+            return NS(report_id=report_id, status=ReportStatus.COMPLETED)
+
+    monkeypatch.setattr(reporting_service, "ReportingService", FakeService)
+    monkeypatch.setattr(deps, "get_reporting_store", lambda: NS(load_manifest=lambda rid: NS(report_id=rid, status=ReportStatus.PLAN_READY)))
+    step = build_steps(get_settings(), None)["report_render"]  # type: ignore[arg-type]
+    rid = step.start(None, source_ids=["r1"])
+    assert rid == "rep_42"
+    out = step.finish(rid)
+    assert rendered == ["rep_42"]
+    assert out == {"id": "rep_42", "run_id": None, "result_ref": "report:rep_42", "companies": [], "gate": False}
+
+
 class _Recorder:
     """Stands in for a run type's create/execute pair; records which companies each got."""
 
