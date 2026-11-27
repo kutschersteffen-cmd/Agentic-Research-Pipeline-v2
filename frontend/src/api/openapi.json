@@ -15916,7 +15916,6 @@
    "OutputFormat": {
     "enum": [
      "pptx",
-     "docx",
      "pdf",
      "house_deck"
     ],

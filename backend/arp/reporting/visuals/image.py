@@ -3,7 +3,7 @@ Spec: docs/superpowers/specs/2026-11-18-house-deck-image-slides.md, "Geometry" a
 
 from math import ceil
 
-from arp.reporting.render_model import (
+from arp.reporting.primitives import (
     S16,
     S24,
     S32,

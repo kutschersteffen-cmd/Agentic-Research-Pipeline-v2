@@ -1,6 +1,6 @@
 """`two_column` (mockup 6): an optional KPI strip on `ground`, then two titled columns of numbered points."""
 
-from arp.reporting.render_model import S8, S12, S16, S24, S32, S40, S64, VISUALS, Line, Primitive, Rect, Text, palette
+from arp.reporting.primitives import S8, S12, S16, S24, S32, S40, S64, VISUALS, Line, Primitive, Rect, Text, palette
 from arp.reporting.visuals._common import LEADING, fonts, lines, size
 
 KPI_VALUE = 72

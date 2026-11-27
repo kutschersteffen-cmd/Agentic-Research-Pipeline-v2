@@ -1,4 +1,4 @@
-from arp.reporting.deck_compat import deck_from_plan
+from arp.reporting.chart_data import deck_from_plan
 from arp.reporting.house_style import get_variant
 from arp.reporting.html_render import render_deck_html
 from arp.schemas.reporting import ChartSpec, Deck, ReportPlan, ReportSection, SlideContent

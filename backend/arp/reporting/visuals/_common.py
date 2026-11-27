@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from math import ceil, isfinite
 
-from arp.reporting.render_model import (
+from arp.reporting.primitives import (
     S4,
     S12,
     S16,

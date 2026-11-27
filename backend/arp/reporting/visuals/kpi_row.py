@@ -1,6 +1,6 @@
 """`kpi_row` (mockup 2): equal tiles, 24 px gaps, full body; label top, value and delta bottom, 40 px padding."""
 
-from arp.reporting.render_model import S24, S32, S40, VISUALS, Primitive, Rect, Text, palette
+from arp.reporting.primitives import S24, S32, S40, VISUALS, Primitive, Rect, Text, palette
 from arp.reporting.visuals._common import LEADING, fonts, size
 
 

@@ -67,7 +67,7 @@ async def test_run_end_to_end_renders_pptx(tmp_path, fake_llm):
     assert store.output_path(manifest.report_id, manifest.output_filename).exists()
 
 
-async def test_run_end_to_end_renders_docx_with_dataset_chart(tmp_path, fake_llm):
+async def test_run_end_to_end_renders_pptx_with_dataset_chart(tmp_path, fake_llm):
     store = _store(tmp_path)
     service = ReportingService(store)
     ds = QuantitativeDataset(
@@ -81,12 +81,12 @@ async def test_run_end_to_end_renders_docx_with_dataset_chart(tmp_path, fake_llm
         sections=[ReportSection(heading="Chart", chart=ChartSpec(dataset_id=ds.dataset_id, chart_type=ChartType.BAR, category_column="segment", value_columns=["revenue"]))],
     )
     llm = fake_llm({"ReportPlan": [plan]})
-    request = ReportRequest(title="T", qualitative_notes="notes", datasets=[ds], layout=LayoutInstructions(output_format=OutputFormat.DOCX))
+    request = ReportRequest(title="T", qualitative_notes="notes", datasets=[ds], layout=LayoutInstructions(output_format=OutputFormat.PPTX))
 
     manifest = await service.run(request, llm)
 
     assert manifest.status == ReportStatus.COMPLETED
-    assert manifest.output_filename == "output.docx"
+    assert manifest.output_filename == "output.pptx"
 
 
 async def test_render_from_plan_raises_when_no_plan_exists(tmp_path):

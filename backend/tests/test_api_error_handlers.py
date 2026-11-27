@@ -181,7 +181,7 @@ _400 = [
     ("arp.snapshots.build", "SnapshotSettling"), ("arp.publish.release", "WithdrawalError"),
     ("arp.publish.facts", "LicenceRefused"), ("arp.transition_alignment.benchmarks", "BenchmarksError"),
     ("arp.holdings.intake", "IntakeError"), ("arp.holdings.security_master", "MasterRejected"),
-    ("arp.transition_barrier.rule_book", "RuleBookError"), ("arp.reporting.chart_builder", "ChartDataError"),
+    ("arp.transition_barrier.rule_book", "RuleBookError"), ("arp.reporting.chart_data", "ChartDataError"),
 ]
 _503 = [
     ("arp.transition_barrier.refresh.pipeline", "RefreshDisabledError"),

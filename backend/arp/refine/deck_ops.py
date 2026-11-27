@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import re
 
-from arp.reporting.chart_builder import build_native_chart_data, is_native, render_chart_svg
+from arp.reporting.chart_data import build_native_chart_data, is_native
 from arp.reporting.house_style import get_variant, load_layouts, load_tokens
 from arp.reporting.html_render import theme_from_tokens
 from arp.reporting.vega import layout_spec, to_svg
@@ -37,10 +37,7 @@ def _fits(slide: SlideContent, chart_type: str, datasets: list[QuantitativeDatas
     try:
         if is_native(spec):
             build_native_chart_data(spec, datasets)
-        if spec.chart_type in (ChartType.RADAR, ChartType.TABLE):
-            render_chart_svg(spec, datasets, width_px=800, height_px=450, theme=theme)
-        else:
-            to_svg(layout_spec(spec, datasets, 800, 450, theme, tokens, "light"), tokens)
+        to_svg(layout_spec(spec, datasets, 800, 450, theme, tokens, "light"), tokens)
     except Exception:  # noqa: BLE001 -- any failure to build or draw means the type does not fit
         return False
     return True

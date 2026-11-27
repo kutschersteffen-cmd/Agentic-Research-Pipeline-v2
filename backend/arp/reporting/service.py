@@ -7,14 +7,12 @@ from arp.config import Settings
 from arp.llm.base import LLMClient, LLMUsage
 from arp.reporting.adapters import with_run_datasets
 from arp.reporting.browser import write_pdf
+from arp.reporting.chart_data import deck_from_plan
 from arp.reporting.content_planner import draft_report_plan
-from arp.reporting.deck_compat import deck_from_plan
-from arp.reporting.design import theme_from_template
 from arp.reporting.house_pipeline import build_house_deck, render_house_outputs
 from arp.reporting.house_pptx import build_house_pptx
 from arp.reporting.html_render import render_deck_html
 from arp.reporting.lint import lint_deck
-from arp.reporting.report_builder import build_docx
 from arp.reporting.storyline import draft_storyline
 from arp.reporting.template_frame import house_tokens
 from arp.schemas.reporting import (
@@ -30,7 +28,7 @@ from arp.schemas.reporting import (
 from arp.storage.report_images import ImageError, check_focus, check_known, check_name, check_unique_and_count
 from arp.storage.reporting_store import ReportingStore
 
-_EXTENSION = {OutputFormat.PPTX: "pptx", OutputFormat.DOCX: "docx", OutputFormat.PDF: "pdf"}
+_EXTENSION = {OutputFormat.PPTX: "pptx", OutputFormat.PDF: "pdf"}
 
 
 class ReportingService:
@@ -244,10 +242,8 @@ class ReportingService:
 
     @staticmethod
     async def _render(output_format: OutputFormat, plan: ReportPlan, datasets, layout, template_style, out_path: Path) -> Path:
+        del layout, template_style
         # The builders are sync and chart-heavy: run them in a thread so a render doesn't block the API's event loop.
-        if output_format == OutputFormat.DOCX:
-            # An ingested pptx template's colors/fonts carry over, so the Word report reads as the same branded system.
-            return await asyncio.to_thread(build_docx, plan, datasets, layout, out_path, theme=theme_from_template(template_style))
         deck = deck_from_plan(plan)
         if output_format == OutputFormat.PPTX:
             return await asyncio.to_thread(build_house_pptx, deck, datasets, out_path)

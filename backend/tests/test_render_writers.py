@@ -9,7 +9,7 @@ from pptx.enum.text import PP_ALIGN
 
 from arp.reporting import render_model
 from arp.reporting.browser import _page
-from arp.reporting.deck_compat import deck_from_plan
+from arp.reporting.chart_data import deck_from_plan
 from arp.reporting.house_pptx import build_house_pptx
 from arp.reporting.house_style import load_tokens, with_frame
 from arp.reporting.html_render import render_deck_html

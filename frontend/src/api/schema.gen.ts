@@ -15082,7 +15082,7 @@ export interface components {
          * OutputFormat
          * @enum {string}
          */
-        OutputFormat: "pptx" | "docx" | "pdf" | "house_deck";
+        OutputFormat: "pptx" | "pdf" | "house_deck";
         /** OutreachLetterRequest */
         OutreachLetterRequest: {
             /** Company Name */

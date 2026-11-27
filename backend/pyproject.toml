@@ -36,16 +36,13 @@ dependencies = [
     "openpyxl==3.1.5",
     "fastembed>=0.9,<1.0",
     "google-auth>=2.40,<3.0",  # ID tokens for the Cloud Run compute services
-    # Presentation & Reporting Tool (arp/reporting/): deterministic pptx/
-    # docx/pdf rendering of an LLM-drafted ReportPlan. matplotlib backs
-    # chart types with no native pptx chart object (waterfall, heatmap)
-    # and every chart in the docx path (it has no live chart object at
-    # all); reportlab draws the PDFs of `arp compute` and the test fixtures.
+    # Presentation & Reporting Tool (arp/reporting/): deterministic house-deck
+    # pptx/pdf rendering. python-docx backs RFP document parsing/filling;
+    # reportlab draws the PDFs of `arp compute` and test fixtures.
     "python-pptx>=1.0,<2.0",
     # House-deck images (arp/storage/report_images.py): checks, EXIF rotation, downscaling.
     "Pillow>=10.0,<13.0",
     "python-docx>=1.1,<2.0",
-    "matplotlib>=3.8,<4.0",
     "reportlab>=4.0,<5.0",
     # House-deck charts in the HTML/PDF (arp/reporting/vega.py): Vega-Lite rendered in-process, no browser.
     "vl-convert-python>=1.9,<2",
@@ -197,7 +194,6 @@ max-complexity = 15
 "arp/orchestration/plan_steps.py" = ["C901"]
 "arp/publish/candidates.py" = ["C901"]
 "arp/refine/deck_ops.py" = ["C901"]
-"arp/reporting/chart_builder.py" = ["C901"]
 "arp/reporting/mermaid_flow.py" = ["C901"]
 "arp/reporting/pptx_writer.py" = ["C901"]
 "arp/research/authority_taxonomy/consolidate.py" = ["C901"]

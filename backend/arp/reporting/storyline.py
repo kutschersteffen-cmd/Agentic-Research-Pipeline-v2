@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from arp.llm.base import LLMClient, LLMUsage
-from arp.reporting.content_planner import _datasets_context
+from arp.reporting.chart_data import datasets_context as _datasets_context
 from arp.reporting.slide_fill import DESIGN_GUIDE, WRITING_GUIDE, add_usage, image_lines
 from arp.schemas.reporting import ReportRequest, Storyline
 

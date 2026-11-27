@@ -1288,7 +1288,7 @@ export type Tone = "formal" | "conversational" | "persuasive" | "neutral_analyti
 
 export type AudienceProfile = Served<S["AudienceProfile"]>;
 
-export type OutputFormat = "pptx" | "docx" | "pdf" | "house_deck";
+export type OutputFormat = "pptx" | "pdf" | "house_deck";
 
 export type LayoutInstructions = Served<S["LayoutInstructions"]>;
 

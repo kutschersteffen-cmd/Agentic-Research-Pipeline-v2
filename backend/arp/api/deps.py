@@ -25,7 +25,6 @@ from arp.llm.factory import batch_settings, build_llm_client, build_verifier_llm
 from arp.portfolio.monitoring.scheduler import PortfolioMonitoringScheduler
 from arp.publish.facts import PublishStore
 from arp.publish.scheduler import PublishingScheduler
-from arp.reporting.scheduler import ReportScheduler
 from arp.retrieval.content_store_factory import content_store_for
 from arp.review.analytics import ReviewAnalyticsScheduler
 from arp.stewardship.process import StreamStore
@@ -230,11 +229,6 @@ def get_publishing_scheduler() -> PublishingScheduler:
 @lru_cache
 def get_review_analytics_scheduler() -> ReviewAnalyticsScheduler:
     return ReviewAnalyticsScheduler(get_settings(), get_run_store())
-
-
-@lru_cache
-def get_report_scheduler() -> ReportScheduler:
-    return ReportScheduler(get_settings(), llm_factory=get_llm_client)
 
 
 @lru_cache

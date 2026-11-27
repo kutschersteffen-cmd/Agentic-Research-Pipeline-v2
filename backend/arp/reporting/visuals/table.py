@@ -2,7 +2,7 @@
 
 from statistics import fmean
 
-from arp.reporting.render_model import VISUALS, TablePrim, VisualDataError
+from arp.reporting.primitives import VISUALS, TablePrim, VisualDataError
 from arp.reporting.visuals._common import dataset, number, signed
 
 ROW_H, MAX_ROWS = 72, 8

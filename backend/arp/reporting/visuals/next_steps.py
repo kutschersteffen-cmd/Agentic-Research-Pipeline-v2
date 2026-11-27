@@ -1,6 +1,6 @@
 """`next_steps` (mockup 7): numbered rows with owner and a `when` pill; the emphasised action is set at weight 600."""
 
-from arp.reporting.render_model import VISUALS
+from arp.reporting.primitives import VISUALS
 from arp.reporting.visuals._common import numbered_rows
 
 

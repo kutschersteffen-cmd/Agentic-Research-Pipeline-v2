@@ -3,7 +3,6 @@ import pytest
 
 from arp.config import Settings
 from arp.reporting import adapters
-from arp.reporting.scheduler import ReportScheduleConfig, ReportScheduler
 from arp.reporting.service import ReportingService
 from arp.reporting.visual_qa import QAResult
 from arp.schemas.common import RunManifest
@@ -95,29 +94,9 @@ async def test_rerun_stops_when_headline_number_no_longer_in_data(tmp_path, fake
     assert store.load_deck(new.report_id) is None
 
 
-async def test_scheduler_continues_after_one_failing_report(tmp_path, fake_llm):
-    s, store, rid = _setup(tmp_path, 42.5)
-    scheduler = ReportScheduler(s, llm_factory=lambda: _llm(fake_llm))
-    assert scheduler._config_path == s.reports_dir / "_schedule" / "schedule.json"
-    await scheduler._run(ReportScheduleConfig(enabled=True, report_ids=["rpt_missing", rid]))
-    done = [m for m in store.list_reports() if m.report_id != rid]
-    assert [m.status for m in done] == [ReportStatus.COMPLETED]
-
-
 async def test_create_and_plan_drafts_storyline_on_loaded_run_data(tmp_path, fake_llm):
     s, store, rid = _setup(tmp_path, 42.5)
     llm = fake_llm({"Storyline": [Storyline(title="Deck", slides=[])]})
     m = await ReportingService(store, s).create_and_plan(store.load_request(rid), llm)
     assert "run_run_1" in llm.prompts[0] and "revenue" in llm.prompts[0]
     assert [d.dataset_id for d in store.load_request(m.report_id).datasets] == ["run_run_1"]
-
-
-async def test_scheduler_skips_lineage_with_rerun_awaiting_approval(tmp_path, fake_llm, caplog):
-    s, store, rid = _setup(tmp_path, 51.0)  # the headline number moved: the rerun stops for approval
-    scheduler = ReportScheduler(s, llm_factory=lambda: fake_llm({}))
-    config = ReportScheduleConfig(enabled=True, report_ids=[rid])
-    await scheduler._run(config)
-    [waiting] = [m for m in store.list_reports() if m.report_id != rid]
-    assert waiting.status == ReportStatus.STORYLINE_READY and waiting.report_id in caplog.text
-    await scheduler._run(config)  # next tick: nothing new while that one waits
-    assert len(store.list_reports()) == 2
