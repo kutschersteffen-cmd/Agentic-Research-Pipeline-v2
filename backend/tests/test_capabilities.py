@@ -10,7 +10,7 @@ from arp.orchestration.plan_api import STEPS
 from arp.orchestration.plan_planner import SYSTEM, step_stubs
 
 SANDBOX = ["benchmark_sectors", "portfolio_exposure", "smart_search", "transition_plan"]
-PLAN = ["decision_score", "document_discovery", "extraction", "financials_extraction", "identity_resolution",
+PLAN = ["document_discovery", "extraction", "financials_extraction", "identity_resolution",
         "report_render", "tnfd_extraction", "universe_build", "xbrl_facts"]
 
 

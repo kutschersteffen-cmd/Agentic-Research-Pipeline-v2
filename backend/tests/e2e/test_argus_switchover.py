@@ -208,7 +208,7 @@ ALL_SCREENS = [  # the sidebar and the All screens list (App.tsx TABS), minus th
     "home", "stewardiq", "argus", "argusWalkthrough", "transitionIntel", "rdLab", "dataHub", "search", "securityMaster", "feeds",
     "issues", "smartSearch", "outputs", "theme", "taxonomy", "emergingThemes", "themes", "backgroundAgents", "transitionBarrier",
     "portfolio-monitoring", "review", "history", "plans", "stewardship", "engagement", "voting", "reporting",
-    "valueChain", "decision", "rfp", "library",
+    "valueChain", "rfp", "library",
 ]
 
 

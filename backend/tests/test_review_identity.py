@@ -103,16 +103,3 @@ def test_draft_sent_by_comes_from_principal(tmp_path):
     drafting.approve(drafts, d["draft_id"], "approver_x")
     out = mark_draft_sent(d["draft_id"], SentRequest(**{"sent_by": "Mallory"}), streams, eng, PRINCIPAL)
     assert out["history"][-1]["by"] == "u_test"
-
-
-def test_cli_decision_import_has_no_by_option_and_uses_principal(tmp_path, monkeypatch):
-    from typer.testing import CliRunner
-
-    from arp.cli.decision import decision_app
-
-    monkeypatch.delenv("ARP_CLI_TOKEN", raising=False)
-    f = tmp_path / "t.json"
-    f.write_text("{}")
-    assert CliRunner().invoke(decision_app, ["import", str(f), "--by", "x"]).exit_code != 0  # option gone
-    res = CliRunner().invoke(decision_app, ["import", str(f)])
-    assert res.exit_code == 1 and "ARP_CLI_TOKEN" in res.output

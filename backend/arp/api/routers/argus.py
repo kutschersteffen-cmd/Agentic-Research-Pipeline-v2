@@ -13,7 +13,6 @@ from pydantic import BaseModel, Field
 
 from arp.api.auth import Principal, current_user, require_role
 from arp.api.deps import (
-    get_decision_store,
     get_document_content_store,
     get_edgar_source,
     get_identifier_map,
@@ -51,7 +50,6 @@ from arp.orchestration.jobs import NotResumable, RunBusy, check_resumable, get_j
 from arp.orchestration.step_tally import running_cost, step_counts
 from arp.review.items import list_open_items
 from arp.schemas.common import CompanyRef, DocType, JobStatus, now_iso
-from arp.storage.decision_store import DecisionStore
 from arp.storage.document_store import DocumentContentStore
 from arp.storage.identifier_map import IdentifierMapStore
 from arp.storage.run_store import RunStore
@@ -353,7 +351,7 @@ def decide_files(
 async def start_flow(
     flow_id: str, store: FlowStore = Depends(get_flow_store), settings: Settings = Depends(settings_dep),
     run_store: RunStore = Depends(get_run_store), registry: DocumentSourceRegistry = Depends(get_registry),
-    decision_store: DecisionStore = Depends(get_decision_store), xbrl_source=Depends(get_xbrl_source),
+    xbrl_source=Depends(get_xbrl_source),
     principal: Principal = Depends(require_role("analyst")), view: Viewer = Depends(),
 ) -> ArgusFlowView:
     """Starts the flow's run through the same path as `/api/extraction/start`, reading only the kept files."""
@@ -388,7 +386,7 @@ async def start_flow(
     try:
         started = await extraction.start_extraction(
             extraction.StartRequest(**body), settings=settings, run_store=run_store, registry=KeptDocuments(registry, only, kept_names(files)),
-            decision_store=decision_store, xbrl_source=xbrl_source, principal=principal)
+            xbrl_source=xbrl_source, principal=principal)
     except BaseException:
         store.update(flow_id, lambda f: setattr(f, "starting", False))
         raise

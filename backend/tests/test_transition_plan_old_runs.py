@@ -3,7 +3,6 @@ reviewable, but nothing starts, resumes or restarts them (spec
 2026-10-21-retire-transition-plan-pipeline-design, sections 4 and 5)."""
 
 import json
-from pathlib import Path
 
 import pytest
 import typer
@@ -11,20 +10,13 @@ from fastapi.testclient import TestClient
 from typer.testing import CliRunner
 
 from arp.api import run_scheduling
-from arp.api.deps import get_decision_store, get_registry, get_run_store, get_xbrl_source, settings_dep
+from arp.api.deps import get_registry, get_run_store, get_xbrl_source, settings_dep
 from arp.api.main import app
 from arp.api.routers import extraction, runs
 from arp.cli import app as cli
 from arp.config import Settings
-from arp.decision import sources
-from arp.decision.indicator_list import build_framework, parse_indicator_list
-from arp.decision.mechanism import apply_mechanism
-from arp.decision.parsing import load_table
-from arp.decision.templates import attach_to_run, import_template
 from arp.orchestration.job_manager import JobManager
 from arp.schemas.common import CompanyRef
-from arp.schemas.decision import MechanismConfig
-from arp.storage.decision_store import DecisionStore
 from arp.storage.run_store import RunStore
 from arp.transition_plan.indicators import load_indicators
 
@@ -42,19 +34,19 @@ class _NoLaunch:
 def api(tmp_path, monkeypatch, pg):
     """The real app over test stores; nothing launched in the background."""
     settings = Settings(anthropic_api_key="x", runs_dir=tmp_path / "runs", cache_dir=tmp_path / "cache")
-    store, decisions = RunStore(pg, settings.runs_dir), DecisionStore(tmp_path / "frameworks")
+    store = RunStore(pg, settings.runs_dir)
     monkeypatch.setattr(run_scheduling, "get_job_launcher", _NoLaunch)
     monkeypatch.setattr(run_scheduling, "build_llm_client", lambda s: object())
     monkeypatch.setattr(run_scheduling, "build_verifier_llm_client", lambda s: object())
     monkeypatch.setattr(runs, "get_job_launcher", _NoLaunch)
     monkeypatch.setattr(extraction, "get_registry", lambda: None)
     overrides = {
-        settings_dep: lambda: settings, get_run_store: lambda: store, get_decision_store: lambda: decisions,
+        settings_dep: lambda: settings, get_run_store: lambda: store,
         get_registry: lambda: None, get_xbrl_source: lambda: None,
     }
     app.dependency_overrides.update(overrides)
     client = TestClient(app)
-    client.store, client.decisions, client.pg = store, decisions, pg
+    client.store, client.pg = store, pg
     yield client
     for dep in overrides:
         app.dependency_overrides.pop(dep, None)
@@ -142,7 +134,7 @@ def _release_preset(pg):
     return reg.release(saved.schema_id, saved.version)
 
 
-def test_preset_run_restarts_from_start_and_rescores_from_rules(api):  # AC-63, AC-64
+def test_preset_run_restarts_from_start(api):  # AC-63
     _release_preset(api.pg)
     started = api.post("/api/extraction/start", json={"profile": "transition_plan", "companies": [{"company_id": "c1", "name": "Acme"}]})
     assert started.status_code == 200, started.text
@@ -156,11 +148,6 @@ def test_preset_run_restarts_from_start_and_rescores_from_rules(api):  # AC-63, 
     assert api.store.load_manifest(new_id).params["schema_id"] == "transition_plan_indicators"
     assert api.store.load_manifest(new_id).params["schema_id"] == api.store.load_manifest(run_id).params["schema_id"]
 
-    attach_to_run(api.store, run_id, MechanismConfig(name="TP", criteria=[], gates=[]))
-    rescored = api.post(f"/api/extraction/runs/{run_id}/restart", json={"from_step": "rules"})
-    assert rescored.status_code == 200, rescored.text
-    assert rescored.json()["rescored"] is True
-
 
 def test_completed_old_run_cannot_be_resumed(api, old_run):
     # Both companies have results: any other run type would say "already completed".
@@ -168,40 +155,3 @@ def test_completed_old_run_cannot_be_resumed(api, old_run):
     res = api.post(f"/api/runs/{old_run}/resume")
     assert res.status_code == 400
     assert RESUME in res.text
-
-
-# --- the shipped example framework still scores transition-plan runs (ported from the deleted
-# test_transition_plan_demo.py, which ran them on the synthetic demo run) ---
-
-TP_LIST = Path(__file__).resolve().parents[2] / "docs/decision-studio/example-framework/transition-plan/indicators.csv"
-
-
-def _datasets(tmp_path, pg):
-    """An old transition_plan run (main's stored records) and a preset run, as Decision Studio reads them."""
-    from tests.test_decision_sources import old_run_o, preset_run_r
-
-    store = RunStore(pg, tmp_path)
-    return {kind: sources.from_transition_plan_run(store, make(store), include_indicators=True)
-            for kind, make in (("old", old_run_o), ("preset", preset_run_r))}
-
-
-def test_the_transition_plan_indicator_list_scores_the_run(tmp_path, pg):
-    config, _ = build_framework(parse_indicator_list(load_table(TP_LIST)), name="TP")
-    expected = {
-        "old": {"Acme": "Tier 3", "c2": "Tier 3"},  # 22 and 21 of 64 disclosed: between the 0.25 and 0.5 cuts
-        "preset": {"X": "Tier 3", "Y": "Tier 4"},  # X: the whole Targets group (1 of 4 balanced groups); Y: one target
-    }
-    for kind, dataset in _datasets(tmp_path, pg).items():
-        result = apply_mechanism(dataset, config)
-        assert not result.missing_columns
-        tiers = {e.name: e.tier_name for e in result.entities}
-        assert tiers == expected[kind], kind
-
-
-def test_the_exported_framework_file_scores_the_run_the_same(tmp_path, pg):
-    built, _ = build_framework(parse_indicator_list(load_table(TP_LIST)), name="TP")
-    imported, _ = import_template(json.loads((TP_LIST.parent / "framework.json").read_text()))
-    for kind, dataset in _datasets(tmp_path, pg).items():
-        assert not apply_mechanism(dataset, imported).missing_columns, kind
-        tiers = lambda config, dataset=dataset: {e.name: e.tier_name for e in apply_mechanism(dataset, config).entities}  # noqa: E731
-        assert tiers(imported) == tiers(built)

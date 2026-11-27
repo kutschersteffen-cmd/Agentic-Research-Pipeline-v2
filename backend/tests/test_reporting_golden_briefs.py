@@ -16,7 +16,6 @@ from arp.reporting.lint import lint_deck
 from arp.reporting.service import ReportingService
 from arp.reporting.visual_qa import QAResult
 from arp.schemas.common import RunManifest
-from arp.schemas.decision import PublishedDecision, PublishedRow
 from arp.schemas.reporting import (
     LayoutInstructions,
     OutputFormat,
@@ -27,14 +26,13 @@ from arp.schemas.reporting import (
     Storyline,
     StorylineSlide,
 )
-from arp.storage.decision_store import DecisionStore
 from arp.storage.reporting_store import ReportingStore
 from arp.storage.run_store import RunStore
 from tests.postgres_helpers import replace_results
 
 
 def _settings(tmp_path) -> Settings:
-    return Settings(runs_dir=tmp_path / "runs", frameworks_dir=tmp_path / "frameworks", reports_dir=tmp_path / "reports", report_templates_dir=tmp_path / "tpl")
+    return Settings(runs_dir=tmp_path / "runs", reports_dir=tmp_path / "reports", report_templates_dir=tmp_path / "tpl")
 
 
 def _storyline(*headlines: str) -> Storyline:
@@ -69,29 +67,6 @@ async def test_free_form_brief(tmp_path, fake_llm):
     ]
     manifest = await service.approve_storyline(manifest.report_id, fake_llm({"SlideContent": fills, "QAResult": [QAResult(edits=[])]}))
     assert manifest.status == ReportStatus.COMPLETED
-    _assert_clean_deck(store, manifest.report_id)
-
-
-def _published(settings: Settings) -> str:
-    pub = DecisionStore(settings.frameworks_dir).save_published(PublishedDecision(
-        framework_id="fw", framework_version=1, framework_name="Climate tiers", dataset_id="d", dataset_name="D",
-        as_of="2026-06-30", id_column="id", published_by="A",
-        rows=[PublishedRow(entity_id="e1", name="Acme", score=72.5, tier=1), PublishedRow(entity_id="e2", name="Beta", score=40.0, tier=2)],
-    ))
-    return pub.snapshot_id
-
-
-async def test_pipeline_brief_from_a_published_decision(tmp_path, fake_llm):
-    s = _settings(tmp_path)
-    store = ReportingStore(s.reports_dir, s.report_templates_dir)
-    service = ReportingService(store, s)
-    request = ReportRequest(title="Tiers", qualitative_notes="Acme leads Beta.", layout=LayoutInstructions(output_format=OutputFormat.HOUSE_DECK),
-                            run_refs=[RunRef(kind="decision", ref_id=_published(s))])
-    story = _storyline("Acme scores 72.5 and Beta scores 40.0.")
-    manifest = await service.create_and_plan(request, fake_llm({"Storyline": [story]}))
-    manifest = await service.approve_storyline(manifest.report_id, fake_llm({"SlideContent": [_numbers()], "QAResult": [QAResult(edits=[])]}))
-    assert manifest.status == ReportStatus.COMPLETED
-    assert [d.dataset_id for d in store.load_request(manifest.report_id).datasets] == [f"decision_{request.run_refs[0].ref_id}"]
     _assert_clean_deck(store, manifest.report_id)
 
 

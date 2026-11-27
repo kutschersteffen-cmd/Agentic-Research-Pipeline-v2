@@ -34,7 +34,7 @@ DATES = ("2026-09-30", "2026-10-31")
 MONTH = "2026-09"  # the earlier month, for the monthly run (AC-41)
 ENDPOINTS = (
     "/api/stewardship/worklist?scope=house", "/api/stewardship/worklist/scopes", "/api/stewardship/selection",
-    "/api/stewardship/tiers", "/api/stewardship/decision-inputs", "/api/stewardship/studio/coverage/inputs",
+    "/api/stewardship/tiers", "/api/stewardship/studio/coverage/inputs",
     "/api/stewardship/studio/monitoring/triggers", "/api/stewardship/streams/house/flow",
 )  # fmt: skip
 
@@ -64,7 +64,7 @@ def fill_store_s(store) -> None:
 @pytest.fixture
 def store_s(pg, monkeypatch, tmp_path):
     for name, sub in (("ARP_PORTFOLIOS_DIR", "portfolios"), ("ARP_STEWARDSHIP_STREAMS_DIR", "streams"), ("ARP_ENGAGEMENTS_DIR", "engagements"),
-                      ("ARP_FRAMEWORKS_DIR", "frameworks"), ("ARP_RUNS_DIR", "runs")):  # fmt: skip
+                      ("ARP_RUNS_DIR", "runs")):  # fmt: skip
         monkeypatch.setenv(name, str(tmp_path / sub))
     monkeypatch.setenv("ARP_ENGAGEMENT_STORE", "postgres")
     get_settings.cache_clear()
@@ -286,20 +286,6 @@ def test_every_answer_equals_main(data, fixture, request):
     # AC-38
     request.getfixturevalue(data)
     assert answers() == json.loads((FIXTURES / fixture).read_text())
-
-
-def test_a_published_decision_reaches_load_sample(store_s):
-    # AC-27
-    from arp.schemas.decision import PublishedDecision, PublishedRow
-    from arp.storage.decision_store import DecisionStore
-
-    process.house_universe()
-    DecisionStore(get_settings().frameworks_dir).save_published(PublishedDecision(
-        framework_id="fw", framework_version=1, framework_name="F", dataset_id="d", dataset_name="D", id_column="id",
-        published_by="A", rows=[PublishedRow(entity_id="C1", name="Company C1", score=72.5, tier=1)],
-    ))  # fmt: skip
-    c1 = next(i for i in process.load_sample()["issuers"] if i["issuer_id"] == "C1")
-    assert c1["fields"]["decision.fw.tier"] == 1
 
 
 def test_one_check_per_request(store_s, logs):

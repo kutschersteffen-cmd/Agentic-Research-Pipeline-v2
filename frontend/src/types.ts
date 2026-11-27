@@ -1575,166 +1575,13 @@ export interface BarrierRefreshCoverage {
 
 // --- Decision Mechanism (scoring, ranking, tiering) ---
 
-export type ColumnType = "numeric" | "ordinal" | "boolean" | "categorical" | "identifier" | "text";
-export type ColumnRole = "label" | "reference" | "size" | "gate" | "criterion" | "segment" | "excluded";
-export type Direction = "higher" | "lower";
-export type NormMethod = "percentile" | "minmax" | "zscore";
-export type MissingPolicy = "renormalise" | "neutral" | "mean" | "penalise";
-export type WeightPreset = "balanced" | "equal" | "entropy" | "manual";
-export type CutMode = "quantile" | "breaks" | "absolute";
-export type GateOp = "is" | "isnot" | "lt" | "gt" | "eq";
-export type GateOutcome = "exclude" | "demote" | "flag";
-export type EntityStatus = "scored" | "excluded" | "insufficient";
-
-export const COLUMN_ROLES: ColumnRole[] = ["label", "reference", "size", "gate", "criterion", "segment", "excluded"];
-
-export type ColumnStats = Served<S["ColumnStats"]>;
-
-export type ColumnProfile = Served<S["ColumnProfile"]>;
-
-export type RoleProposal = Served<S["RoleProposal"]>;
-
-// `rule_inputs`: Preview rows typed exactly as the rule engine sees them.
-export type DatasetSummary = Served<S["DatasetSummary"]>;
-
-export type Dimension = Served<S["Dimension"]>;
-
-export type Criterion = Served<S["Criterion"]>;
-
-export type GateRule = Served<S["GateRule"]>;
-
-export type VetoRule = Served<S["VetoRule"]>;
-
-export type TierDefinition = Served<S["TierDefinition"]>;
-
-export interface MechanismConfig {
-  framework_id: string;
-  purpose?: "score" | "authoritative";
-  no_score_rows?: "include" | "exclude";
-  version: number;
-  name: string;
-  notes: string;
-  ratified: boolean;
-  ratified_at?: string | null;
-  ratified_by?: string | null;
-  created_at: string;
-  /** relative: normalised against the other entities. levels: fixed-scale levels from rules over each entity's own data. */
-  mode?: ScoringMode;
-  level_min?: number;
-  level_max?: number;
-  /** levels mode: criteria with their level grids. Clusters are `dimensions`. */
-  level_criteria?: LevelCriterion[];
-  norm: NormMethod;
-  winsor_pct: number;
-  missing: MissingPolicy;
-  weighting: WeightPreset;
-  min_coverage_pct: number;
-  normalise_within?: string | null;
-  min_cohort_size: number;
-  require_grounded_coverage: boolean;
-  grounded_confidence_min: number;
-  dimensions: Dimension[];
-  criteria: Criterion[];
-  gates: GateRule[];
-  cut_mode: CutMode;
-  pinned_cuts?: number[] | null;
-  veto: VetoRule;
-  tiers: TierDefinition[];
-  label_column?: string | null;
-  size_column?: string | null;
-  segment_column?: string | null;
-  /** Columns of the table the framework was derived on; anything else it uses comes from its rule graph. */
-  source_columns?: string[];
-  cluster_threshold: number;
-  /** GoRules JSON Decision Model: calculated columns, evaluated per row before scoring. */
-  rule_graph?: RuleGraph | null;
-  /** GoRules JSON Decision Model setting the final tier after scoring; replaces gates and the dimension floor. */
-  tier_graph?: RuleGraph | null;
-}
-
-export type ScoringMode = "relative" | "levels";
-
-/** One cell of a level grid: the level an entity gets when `when` (a ZEN expression over its columns) holds. */
-export type LevelRule = Served<S["LevelRule"]>;
-
-/** A criterion scored on the fixed scale; rules are tried in order, first match wins, else `otherwise`. */
-export interface LevelCriterion {
-  id: string;
-  name: string;
-  dimension_id: string;
-  weight: number;
-  enabled: boolean;
-  rules: LevelRule[];
-  otherwise?: number | null;
-  /** Whether `otherwise` also applies when a value a rule reads is blank. */
-  otherwise_on_blank?: boolean;
-  hint?: string;
-}
-
 export interface RuleGraph {
   nodes: { id: string; type: string; name?: string; content?: unknown; position?: { x: number; y: number } }[];
   edges: { id: string; sourceId: string; targetId: string; sourceHandle?: string | null; type?: string }[];
 }
 
-export type AuditEntry = Served<S["AuditEntry"]>;
-
-export interface MechanismEnvelope {
-  config: MechanismConfig;
-  audit: AuditEntry[];
-}
-
-/** Run types a scoring template can be attached to. */
 export type RunScoringKind = "extraction" | "transition_plan" | "financials" | "tnfd";
 
-/** A saved framework and the columns it needs that a table or schema would not supply. */
-export type TemplateMatch = Served<S["TemplateMatch"]>;
-
-/** A run's results scored with the template version pinned on it. */
-export interface RunDecision {
-  framework: { framework_id: string; version: number; name: string };
-  /** Only a ratified version can be published. */
-  ratified: boolean;
-  run_status: string;
-  /** When the run's rules step stored this result; absent while the run is still going. */
-  scored_at?: string | null;
-  missing_columns: string[];
-  result: DecisionResult;
-  /** Levels mode: [lowest, highest] level, the range an override may set. */
-  level_scale?: [number, number] | null;
-}
-
-/** A reviewer setting one criterion's level for one entity by hand (levels mode). */
-export interface LevelOverride {
-  entity_key: string;
-  criterion_id: string;
-  level: number;
-  reason: string;
-  reviewer?: string;
-  at?: string;
-}
-
-// `criterion_id`: Levels mode: the criterion, and when overridden, the rules' level and the override.
-export type CriterionContribution = Served<S["CriterionContribution"]>;
-
-export type OverridesView = Served<S["OverridesView"]>;
-
-export type EntityDecision = Served<S["EntityDecision"]>;
-
-export type TierSummary = Served<S["TierSummary"]>;
-
-export type HistogramBin = Served<S["HistogramBin"]>;
-
-// `missing_columns`: Columns the framework uses that this table lacks; such a result cannot be published.
-// `tier_inputs`: What a tier graph sees for the first rows (band, score, rank, columns…).
-export type DecisionResult = Served<S["DecisionResult"]>;
-
-export type TippingPoint = Served<S["TippingPoint"]>;
-
-export type EntitySensitivity = Served<S["EntitySensitivity"]>;
-
-export type EntityMovement = Served<S["EntityMovement"]>;
-
-export type DecisionComparison = Served<S["DecisionComparison"]>;
 
 // Stewardship process page (backend/arp/stewardship/process.py)
 export type MetricSource = "live" | "sample" | "portfolio" | "not_built";
@@ -2180,24 +2027,6 @@ export interface VotingPreview {
   changed_rows: { resolution_id: string; category: string; base_vote: string; other_vote: string; issues: string[] }[];
   unused_parameters: Record<string, string[]>;
   no_vote_effect: string[];
-}
-
-/** A ratified Decision Studio result, frozen for Steward Workflow and Index Construction. */
-// `cuts_held_from`: The first publication of this framework version, whose cut-points were reused.
-export type PublishedDecision = Served<S["PublishedDecision"]>;
-export type AuthoritativeValue = Served<S["AuthoritativeValueOut"]>;
-
-export interface DecisionInput {
-  snapshot_id: string;
-  framework_name: string;
-  framework_version: number;
-  dataset_name: string;
-  as_of?: string | null;
-  published_by: string;
-  published_at: string;
-  field: string;
-  rows: number;
-  matched: number;
 }
 
 /** One TNFD recommendation as extracted for a company (subset of the backend's DisclosureExtraction). */

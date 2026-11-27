@@ -12,10 +12,26 @@ from typing import Literal
 import openpyxl
 from pydantic import BaseModel
 
-from arp.decision.parsing import sniff_delimiter
 from arp.holdings.validate import TEMPLATE_COLUMNS
 
 MAPPINGS_DIR = Path(__file__).parent / "mappings"
+_DELIMITERS = (";", ",", "\t", "|")
+
+
+def _sniff_delimiter(text: str) -> str:
+    lines = [ln for ln in text.splitlines()[:20] if ln.strip()]
+    if not lines:
+        return ","
+    best, best_score = ",", -1.0
+    for delim in _DELIMITERS:
+        counts = [len(next(csv.reader([ln], delimiter=delim))) for ln in lines]
+        if max(counts) < 2:
+            continue
+        consistent = sum(1 for c in counts if c == counts[0]) / len(counts)
+        score = consistent * 10 + counts[0]
+        if score > best_score:
+            best, best_score = delim, score
+    return best
 
 
 class Mapping(BaseModel):
@@ -56,7 +72,7 @@ def _check_zip(data: bytes) -> None:
 def _records(data: bytes, suffix: str, mapping: Mapping, max_rows: int):
     if suffix == ".csv":
         text = data.decode("utf-8-sig")
-        reader = csv.DictReader(io.StringIO(text, newline=""), delimiter=sniff_delimiter(text))
+        reader = csv.DictReader(io.StringIO(text, newline=""), delimiter=_sniff_delimiter(text))
         yield from ((i, {k: v for k, v in rec.items() if k is not None}) for i, rec in enumerate(reader, start=2))
         return
     _check_zip(data)

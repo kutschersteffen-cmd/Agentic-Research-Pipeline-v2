@@ -202,7 +202,6 @@ _EXTRA = [
     ("arp.db.fields", "FieldIdCollision", 400),
     ("arp.db.fields", "UnreleasedFieldError", 400),
     ("arp.db.fields", "FieldVersionError", 400),
-    ("arp.authoritative.store", "StalePublish", 400),
     ("arp.company_graph", "CompanyGraphError", 503),
 ]
 

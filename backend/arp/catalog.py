@@ -2,9 +2,8 @@
 uses it. Read-only and stateless: it reads the existing stores and the input links consumers already record; nothing
 new is stored.
 
-Kinds: universe (saved company lists), run, publication (Decision Studio), taxonomy.
-"Used by" comes from: a run's universe_path / taxonomy_id (params or inputs.json), a Decision Studio dataset's source
-run, and a report's run and decision refs.
+Kinds: universe (saved company lists), run, taxonomy.
+"Used by" comes from: a run's universe_path / taxonomy_id (params or inputs.json), and a report's run refs.
 """
 
 from __future__ import annotations
@@ -14,12 +13,11 @@ from collections import defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
 
-from arp.storage.decision_store import DecisionStore
 from arp.storage.reporting_store import ReportingStore
 from arp.storage.run_store import RunStore
 from arp.storage.taxonomy_store import TaxonomyStore
 
-KINDS = ("universe", "run", "publication", "taxonomy")
+KINDS = ("universe", "run", "taxonomy")
 
 
 def _path_key(p: str) -> str:
@@ -48,13 +46,6 @@ def runs(run_store: RunStore) -> list[dict]:
     } for m in run_store.list_runs()]
 
 
-def publications(decisions: DecisionStore) -> list[dict]:
-    return [{
-        "kind": "publication", "id": p.snapshot_id, "version": p.framework_version, "as_of": p.as_of or p.published_at,
-        "status": "published", "name": f"{p.framework_name} v{p.framework_version} · {p.dataset_name}", "by": p.published_by,
-    } for p in decisions.list_published()]
-
-
 def taxonomies(store: TaxonomyStore) -> list[dict]:
     return [{
         "kind": "taxonomy", "id": t.taxonomy_id, "version": t.version, "as_of": t.ratified_at or t.created_at,
@@ -62,7 +53,7 @@ def taxonomies(store: TaxonomyStore) -> list[dict]:
     } for t in store.list_all()]
 
 
-def used_by(run_store: RunStore, decisions: DecisionStore, reports: ReportingStore) -> dict[tuple[str, str], list[dict]]:
+def used_by(run_store: RunStore, reports: ReportingStore) -> dict[tuple[str, str], list[dict]]:
     """(input kind, input id) -> the consumers that recorded reading it."""
     links: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for m in run_store.list_runs():
@@ -73,24 +64,20 @@ def used_by(run_store: RunStore, decisions: DecisionStore, reports: ReportingSto
             links[("universe", _path_key(recorded["universe_path"]))].append(consumer)
         if recorded.get("taxonomy_id"):
             links[("taxonomy", recorded["taxonomy_id"])].append({**consumer, "version": recorded.get("taxonomy_version")})
-    for d in decisions.list_datasets():
-        if d.source_ref:
-            links[("run", d.source_ref)].append({"kind": "dataset", "id": d.dataset_id, "label": f"Decision Studio table {d.name}"})
     for rep in reports.list_reports():
         req = reports.load_request(rep.report_id)
         for ref in (req.run_refs if req else []):
-            kind = "publication" if ref.kind == "decision" else "run"
-            links[(kind, ref.ref_id)].append({"kind": "report", "id": rep.report_id, "label": f"report {rep.title or rep.report_id}"})
+            links[("run", ref.ref_id)].append({"kind": "report", "id": rep.report_id, "label": f"report {rep.title or rep.report_id}"})
     return links
 
 
-def catalog(*, runs_dir: Path, run_store: RunStore, decisions: DecisionStore, taxonomy: TaxonomyStore,
+def catalog(*, runs_dir: Path, run_store: RunStore, taxonomy: TaxonomyStore,
             reports: ReportingStore, kind: str | None = None) -> list[dict]:
     """Every output (or one kind), newest first, each with `used_by`."""
     sources = {
-        "universe": lambda: universes(runs_dir), "run": lambda: runs(run_store), "publication": lambda: publications(decisions),
+        "universe": lambda: universes(runs_dir), "run": lambda: runs(run_store),
         "taxonomy": lambda: taxonomies(taxonomy),
     }
     items = [i for k, load in sources.items() if kind in (None, k) for i in load()]
-    links = used_by(run_store, decisions, reports)
+    links = used_by(run_store, reports)
     return sorted(({**i, "used_by": links.get((i["kind"], i["id"]), [])} for i in items), key=lambda i: i["as_of"] or "", reverse=True)

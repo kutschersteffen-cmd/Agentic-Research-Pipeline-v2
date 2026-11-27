@@ -42,7 +42,7 @@ def test_gate_until_every_item_is_decided(run_store, universe_run):
 
 
 def test_all_ten_kinds_present(run_store):  # agent-panel-code-mode D8 adds identity_resolution, tnfd_extraction
-    assert len(build_steps(get_settings(), run_store)) == 9
+    assert len(build_steps(get_settings(), run_store)) == 8
 
 
 def test_report_gate_until_storyline_approved(run_store, monkeypatch):
@@ -162,11 +162,6 @@ def test_universe_adapter_takes_best_exposure(run_store, monkeypatch, tmp_path):
     by_id = {c["id"]: c for c in out["companies"]}
     assert by_id["acme"] == {"id": "acme", "name": "Acme", "exposure": "significant", "included": True}
     assert by_id["beta"]["exposure"] == "none" and by_id["beta"]["included"] is False
-
-
-def test_decision_adapter_needs_a_framework(run_store, universe_run):
-    with pytest.raises(ValueError, match="no decision framework attached"):
-        build_steps(get_settings(), run_store)["decision_score"](source_run_id=universe_run)
 
 
 def test_background_adapter_start_finds_its_run_by_launch_key(run_store, universe_run, monkeypatch):  # AC-3 path

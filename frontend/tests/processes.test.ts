@@ -41,7 +41,6 @@ test("R&D Lab keeps its screens and processes", () => {
     ["#/emergingThemes", "Emerging Themes"],
     ["#/taxonomy", "Taxonomy Library"],
     ["#/theme", "Thematic Universe"],
-    ["#/decision", "Decision Studio"],
   ];
   for (const pair of kept) assert.ok(rdLab.screens.some(([h, l]) => h === pair[0] && l === pair[1]), pair[0]);
   const ids = rdLab.processes.map((p) => p.id);

@@ -19,7 +19,6 @@ RULES = [
     ("backend/*", B),
     ("frontend/*", F),
     ("DESIGN.md", F),  # frontend/tests/designDoc.test.ts, workspaceCard.test.ts
-    ("docs/decision-studio/*", B),  # docs the backend tests read
     ("docs/transition_barrier/*", B),
     ("docs/INSTALLATION.md", B),
     ("docs/*", NONE),
@@ -57,7 +56,6 @@ CASES = [  # (name, changed files, jobs that run)
     ("review.py", ["backend/arp/schemas/review.py"], "backend frontend app"),
     ("routing.py", ["backend/arp/extraction/routing.py"], "backend frontend app"),
     ("rule_sentences.json", ["backend/tests/fixtures/rule_sentences.json"], "backend frontend app"),
-    ("docs/decision-studio", ["docs/decision-studio/example-framework/targets/x.csv"], "backend app"),
     ("docs/transition_barrier", ["docs/transition_barrier/RULE_BOOK.md"], "backend app"),
     ("docs/INSTALLATION.md", ["docs/INSTALLATION.md"], "backend app"),
     ("DESIGN.md", ["DESIGN.md"], "frontend app"),

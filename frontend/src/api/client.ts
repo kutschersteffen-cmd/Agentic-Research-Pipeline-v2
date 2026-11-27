@@ -4,10 +4,8 @@ import type { Plan } from "../lib/plans";
 import type { Board, BoardBlock } from "../lib/board";
 import { filenameFromDisposition, inlineSafe } from "../lib/files";
 import { cockpitPath } from "../lib/cockpit";
-import type { RowLineage } from "../lib/lineage";
 import type { Me } from "../lib/reviewKeys";
 import type {
-  AuthoritativeValue,
   Objective,
   WatchItemKind,
   WatchTopic,
@@ -77,16 +75,6 @@ import type {
 import { encodeRef, factsUrl, type FactFilters } from "../pages/company/companyQuery";
 import type { CompanyFactRow, CompanySearchHit, CompanySummary, CompanyTransition, FactTrail, SimulatedObservation, Taxonomy, ThemeLayers } from "../types";
 import type {
-  DatasetSummary,
-  DecisionComparison,
-  DecisionResult,
-  EntitySensitivity,
-  MechanismConfig,
-  MechanismEnvelope,
-  RuleGraph,
-  RunDecision,
-  LevelOverride,
-  OverridesView,
   RunScoringKind,
   DataIssue,
   SmartSearchAnswer,
@@ -95,7 +83,6 @@ import type {
   FeedRow,
   SecurityMasterStatus,
   UnmatchedSecurity,
-  TemplateMatch,
   Alert,
   AlertRule,
   AlertStatus,
@@ -137,7 +124,7 @@ import type {
   StandardsView,
 } from "../types";
 import type { AgentAsk, AskThread, Exploration, InboxRow, ItemContext, ItemDecisionBody, ItemSource, ItemState, PageBox, ReviewItem, SimilarDecision, WaitingCounts, Walkthrough } from "../types";
-import type { DecisionInput, DocType, DocumentPassages, PublishedDecision, Readiness } from "../types";
+import type { DocType, DocumentPassages, Readiness } from "../types";
 import { formatValidationErrors } from "../lib/apiError";
 import type { Finding, QuantitativeDataset, ReportManifest, ReportPlan, ReportRequest, Storyline, TemplateStyleProfile } from "../types";
 import type {
@@ -1111,76 +1098,12 @@ export const api = {
   getReportPreview: (reportId: string) => request<{ page_count: number }>(`/api/reports/${encodeURIComponent(reportId)}/preview`),
   reportPreviewPageUrl: (reportId: string, page: number) => `${API_BASE}/api/reports/${encodeURIComponent(reportId)}/preview/${page}`,
 
-  // trail records.
-  uploadDecisionDataset: (file: File) => {
-    const form = new FormData();
-    form.append("file", file);
-    return request<DatasetSummary>("/api/decision/datasets", { method: "POST", body: form });
-  },
-  decisionDatasetFromSource: (body: { source: string; run_id?: string; run_ids?: string[]; as_of?: string; portfolio_ids?: string[]; region?: string; sectors?: string[]; include_indicators?: boolean }) =>
-    request<DatasetSummary>("/api/decision/datasets/from-source", { method: "POST", body: JSON.stringify(body) }),
-  listDecisionDatasets: () => request<DatasetSummary[]>("/api/decision/datasets"),
-  calculatedColumns: (datasetId: string, ruleGraph: RuleGraph) =>
-    request<DatasetSummary>(`/api/decision/datasets/${datasetId}/calculated`, { method: "POST", body: JSON.stringify({ rule_graph: ruleGraph }) }),
-  deriveMechanism: (body: { dataset_id: string; name?: string; cluster_threshold?: number; save?: boolean; framework_id?: string }) =>
-    request<MechanismEnvelope>("/api/decision/mechanisms/derive", { method: "POST", body: JSON.stringify(body) }),
-  saveMechanism: (body: { config: MechanismConfig; base_version?: number | null }) =>
-    request<MechanismEnvelope>("/api/decision/mechanisms", { method: "POST", body: JSON.stringify(body) }),
-  ratifyMechanism: (frameworkId: string, version: number | undefined) =>
-    request<MechanismConfig>(`/api/decision/mechanisms/${frameworkId}/ratify${buildQuery({ version: version ? String(version) : undefined })}`, {
-      method: "POST",
-    }),
-  scoreDecision: (body: { dataset_id: string; config?: MechanismConfig; framework_id?: string; version?: number }) =>
-    request<DecisionResult>("/api/decision/score", { method: "POST", body: JSON.stringify(body) }),
-  decisionSensitivity: (body: { dataset_id: string; config?: MechanismConfig; entity_keys?: string[]; steps?: number }) =>
-    request<EntitySensitivity[]>("/api/decision/sensitivity", { method: "POST", body: JSON.stringify(body) }),
-  compareDecisions: (body: { dataset_id_before: string; dataset_id_after: string; config?: MechanismConfig; framework_id?: string; version?: number }) =>
-    request<DecisionComparison>("/api/decision/compare", { method: "POST", body: JSON.stringify(body) }),
-  decisionExportUrl: () => `${API_BASE}/api/decision/export.csv`,
-  getMechanism: (frameworkId: string, version?: number) =>
-    request<MechanismEnvelope>(`/api/decision/mechanisms/${frameworkId}${buildQuery({ version: version ? String(version) : undefined })}`),
-  exportMechanismUrl: (frameworkId: string, version?: number) =>
-    `${API_BASE}/api/decision/mechanisms/${frameworkId}/export${buildQuery({ version: version ? String(version) : undefined })}`,
-  importMechanism: (template: unknown) =>
-    request<MechanismEnvelope>("/api/decision/mechanisms/import", { method: "POST", body: JSON.stringify({ template }) }),
-  importIndicatorList: (file: File, name: string) => {
-    const form = new FormData();
-    form.append("file", file);
-    form.append("name", name);
-    return request<MechanismEnvelope>("/api/decision/mechanisms/from-indicators", { method: "POST", body: form });
-  },
-  matchTemplates: (body: { run_type?: RunScoringKind; field_names?: string[]; columns?: string[]; ratified_only?: boolean }) =>
-    request<TemplateMatch[]>("/api/decision/templates/match", { method: "POST", body: JSON.stringify(body) }),
-  attachRunFramework: (runId: string, frameworkId: string, version?: number) =>
-    request(`/api/decision/runs/${runId}/framework`, { method: "PUT", body: JSON.stringify({ framework_id: frameworkId, version }) }),
-  getRunDecision: (runId: string) => request<RunDecision>(`/api/decision/runs/${runId}/decision`),
-  setRunOverride: (runId: string, body: LevelOverride) =>
-    request<RunDecision>(`/api/decision/runs/${runId}/overrides`, { method: "POST", body: JSON.stringify(body) }),
-  removeRunOverride: (runId: string, body: { entity_key: string; criterion_id: string; reason: string }) =>
-    request<RunDecision>(`/api/decision/runs/${runId}/overrides/remove`, { method: "POST", body: JSON.stringify(body) }),
-  setDatasetOverride: (datasetId: string, body: LevelOverride) =>
-    request<OverridesView>(`/api/decision/datasets/${datasetId}/overrides`, { method: "POST", body: JSON.stringify(body) }),
-  removeDatasetOverride: (datasetId: string, body: { entity_key: string; criterion_id: string; reason: string }) =>
-    request<OverridesView>(`/api/decision/datasets/${datasetId}/overrides/remove`, { method: "POST", body: JSON.stringify(body) }),
-  rescoreRunDecision: (runId: string) => request<RunDecision>(`/api/decision/runs/${runId}/decision/rescore`, { method: "POST" }),
-  publishRunDecision: (runId: string) =>
-    request<PublishedDecision>(`/api/decision/runs/${runId}/publish`, { method: "POST", body: "{}" }),
-  publishDecision: (body: { dataset_id: string; framework_id: string; version?: number; id_column?: string; note?: string }) =>
-    request<PublishedDecision>("/api/decision/publish", { method: "POST", body: JSON.stringify(body) }),
-  listPublishedDecisions: () => request<PublishedDecision[]>("/api/decision/published"),
-  listAuthoritativeValues: (frameworkId: string) =>
-    request<AuthoritativeValue[]>(`/api/authoritative/values?framework_id=${encodeURIComponent(frameworkId)}`),
-  getAuthoritativeValue: (id: number) => request<AuthoritativeValue>(`/api/authoritative/values/${id}`),
-  getRowLineage: (snapshotId: string, entityId: string) =>
-    request<RowLineage>(`/api/decision/published/${encodeURIComponent(snapshotId)}/rows/${encodeURIComponent(entityId)}/lineage`),
-  lineageUrl: (snapshotId: string, format: "csv" | "json") => `${API_BASE}/api/decision/published/${encodeURIComponent(snapshotId)}/lineage.${format}`,
   getHouseUniverse: () =>
     request<{ source: "sample" | "portfolio"; set_by: string | null; set_at: string | null; issuers: number; note: string | null }>(
       "/api/stewardship/universe",
     ),
   setHouseUniverse: (body: { source: "sample" | "portfolio" }) =>
     request<{ source: "sample" | "portfolio"; issuers: number }>("/api/stewardship/universe", { method: "PUT", body: JSON.stringify(body) }),
-  getDecisionInputs: () => request<{ in_scope: number; published: DecisionInput[] }>("/api/stewardship/decision-inputs"),
   // Value chain explorer
   valueChainStatus: () => request<VcStatus>("/api/value-chain/status"),
   valueChainSearch: (q: string, limit?: number) =>

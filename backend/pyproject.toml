@@ -132,7 +132,6 @@ include = ["arp*"]
 "arp.transition_alignment" = ["data/*.json"]
 "arp.transition_plan" = ["data/*.json"]
 "arp.presets" = ["data/*.json"]
-"arp.decision" = ["data/*.json", "sample_data/*.csv"]
 "arp.reporting" = ["style/*.json", "style/*.md", "style/templates/*.j2", "style/fonts/*/*.ttf", "style/fonts/*/*.txt", "vendor/elkjs/*"]
 
 [tool.pytest.ini_options]

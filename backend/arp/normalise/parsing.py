@@ -52,7 +52,7 @@ def sniff_delimiter(text: str) -> str:
 
 
 def parse_delimited(text: str, delimiter: str | None = None) -> list[list[str]]:
-    if text.startswith("﻿"):
+    if text.startswith("\ufeff"):
         text = text[1:]
     delim = delimiter or sniff_delimiter(text)
     rows = [[(cell or "").strip() for cell in row] for row in csv.reader(io.StringIO(text), delimiter=delim)]
@@ -62,8 +62,7 @@ def parse_delimited(text: str, delimiter: str | None = None) -> list[list[str]]:
 def _parse_xlsx(path: Path) -> list[list[str]]:
     """Reads the first worksheet. openpyxl is already a dependency of this
     codebase (arp/ingestion/local_files.py parses xlsx disclosures with
-    it), which is why Excel support here needs no new package and -- unlike
-    the browser prototype this replaces -- no script loaded from a CDN."""
+    it), which is why Excel support here needs no new package."""
     from openpyxl import load_workbook
 
     wb = load_workbook(path, data_only=True, read_only=True)

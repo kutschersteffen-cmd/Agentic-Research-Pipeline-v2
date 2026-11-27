@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from arp.api.auth import Principal, current_user
-from arp.api.deps import get_decision_store, get_engagement_store, get_stream_store, settings_dep
+from arp.api.deps import get_engagement_store, get_stream_store, settings_dep
 from arp.config import Settings
 from arp.engagement.tracking_agent import MissingEvidence, check_evidence
 from arp.schemas.engagement import (
@@ -50,7 +50,6 @@ from arp.stewardship.style import check as style_check
 from arp.stewardship.tiers import PickStore, TierStore, map_tier, tier_contexts
 from arp.stewardship.trigger_store import TriggerStore, trigger_id
 from arp.stewardship.universe import HouseUniverseSetting
-from arp.storage.decision_store import DecisionStore
 from arp.storage.engagement_store import EngagementStore
 
 router = APIRouter(prefix="/api/stewardship", tags=["stewardship"])
@@ -305,31 +304,6 @@ def put_universe(
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
     return get_universe(streams)
-
-
-@router.get("/decision-inputs")
-def decision_inputs(decisions: DecisionStore = Depends(get_decision_store)) -> dict:
-    """Decision Studio publications the coverage rules can read, and how many
-    issuers in scope each one matched. Unmatched issuers simply lack the field."""
-    issuer_ids = {i["issuer_id"] for i in load_sample()["issuers"]}
-    return {
-        "in_scope": len(issuer_ids),
-        "published": [
-            {
-                "snapshot_id": s.snapshot_id,
-                "framework_name": s.framework_name,
-                "framework_version": s.framework_version,
-                "dataset_name": s.dataset_name,
-                "as_of": s.as_of,
-                "published_by": s.published_by,
-                "published_at": s.published_at,
-                "field": f"issuer.decision.{s.framework_id}",
-                "rows": len(s.rows),
-                "matched": sum(1 for r in s.rows if r.entity_id in issuer_ids),
-            }
-            for s in decisions.latest_published()
-        ],
-    }
 
 
 @router.get("/studio/coverage/inputs")

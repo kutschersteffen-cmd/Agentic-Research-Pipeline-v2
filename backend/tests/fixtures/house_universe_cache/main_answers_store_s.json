@@ -1,8 +1,4 @@
 {
- "/api/stewardship/decision-inputs": {
-  "in_scope": 2,
-  "published": []
- },
  "/api/stewardship/selection": {
   "current": true,
   "rows": []

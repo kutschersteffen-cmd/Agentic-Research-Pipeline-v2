@@ -13,7 +13,7 @@ from typing import Any
 from arp.config import Settings
 from arp.db.runs import RunStore
 from arp.orchestration.job_manager import LAUNCH_KEY
-from arp.orchestration.plan_executor import Step, sync_step
+from arp.orchestration.plan_executor import Step
 from arp.orchestration.review_queue import latest_decisions
 from arp.schemas.common import CompanyRef
 
@@ -201,22 +201,6 @@ def build_steps(settings: Settings, run_store: RunStore) -> dict[str, Step]:
                                           verifier_llm=build_verifier_llm_client(settings), registry=get_registry(),
                                           settings=settings, run_store=run_store)
 
-    def decision_score(*, source_run_id: str, framework_id: str | None = None) -> dict[str, Any]:
-        from arp.api.deps import get_decision_store
-        from arp.decision import templates
-
-        if framework_id is not None:
-            config = get_decision_store().latest_ratified(framework_id)
-            if config is None:
-                raise ValueError(f"framework {framework_id} has no ratified version")
-            templates.attach_to_run(run_store, source_run_id, config)
-        stored = templates.score_run(run_store, source_run_id)  # None: no framework pinned on the run
-        if stored is None:
-            raise ValueError(f"run {source_run_id} has no decision framework attached; pass framework_id")
-        if stored.get("error"):
-            raise RuntimeError(f"the rules step failed: {stored['error']}")
-        return {"id": source_run_id, "run_id": None, "result_ref": f"decision:{source_run_id}", "companies": []}
-
     def report_start(_launch_key: str | None, *, source_ids: list[str], template_id: str | None = None) -> str:
         # shortcut: a report manifest has no params to carry the launch key, so a crash inside create_and_plan leaves
         # an unused report and the resumed step plans another.
@@ -248,7 +232,6 @@ def build_steps(settings: Settings, run_store: RunStore) -> dict[str, Step]:
         "extraction": _background(run_store, extraction_create, extraction_execute),
         "financials_extraction": _background(run_store, financials_create, financials_execute),
         "xbrl_facts": _background(run_store, xbrl_create, xbrl_execute),
-        "decision_score": sync_step(decision_score),
         "report_render": Step(report_start, report_finish),
         "identity_resolution": _background(run_store, identity_create, identity_execute),
         "tnfd_extraction": _background(run_store, tnfd_create, tnfd_execute),

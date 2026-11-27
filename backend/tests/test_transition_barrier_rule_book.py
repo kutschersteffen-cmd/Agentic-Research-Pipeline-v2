@@ -812,25 +812,6 @@ def test_report_script_requires_export(tmp_path):
     assert "Usage: node scripts/build_transition_barrier_report.js <out.docx> <export.json>" in run.stderr
 
 
-def test_ac136_decision_studio_ratings(bundled):
-    from arp.decision import sources
-
-    scale = {"H": 100.0, "M": 50.0, "L": 0.0}
-    cells: dict[tuple[str, str, str], list[float]] = {}
-    for s in _bundled_scores():
-        cells.setdefault((s["sector"], s["region"], s["category"]), []).append(scale[s["rating"]])
-    assert sum(len(v) for v in cells.values()) == 105
-
-    seen = 0
-    for row in sources.from_transition_barrier().rows:
-        for pillar in ("Technology", "Regulation", "Demand_Economics"):
-            members = cells.get((row["Sector"], row["Region"], pillar.replace("_", " & ")), [])
-            value = row[f"{pillar}_Feasibility_0_100"]
-            assert value == (f"{sum(members) / len(members):.1f}" if members else ""), (row["Assessment"], pillar)
-            seen += len(members)
-    assert seen == 105
-
-
 def test_ac130_ac131_existing_cell_fields(bundled):
     from arp.api.routers.transition_barrier import get_matrix, list_scores
     from arp.config import Settings

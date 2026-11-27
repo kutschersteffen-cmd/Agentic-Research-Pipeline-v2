@@ -141,16 +141,14 @@ def test_app_works_under_the_proxy_prefix(proxied_app):
         page.goto(proxied_app + "#home")
         page.wait_for_load_state("networkidle")
         assert page.get_by_role("heading", name=re.compile(r"^Good (morning|afternoon|evening)")).is_visible()
-        for tab in ("decision", "argus"):  # other views must stay inside the prefix too
+        for tab in ("theme", "argus"):  # other views must stay inside the prefix too
             page.goto(proxied_app + "#" + tab)
             page.wait_for_load_state("networkidle")
         # a write: browsers send Origin on every POST, and dev sign-in must still accept it behind the proxy
         write_status = page.evaluate("fetch('./api/plans', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'}).then(r => r.status)")
-        cross_origin_isolated = page.evaluate("window.crossOriginIsolated")
         browser.close()
 
     assert write_status not in (401, 403, 404), write_status
-    assert cross_origin_isolated  # Decision Studio's threaded rule engine needs it
     responses = [r for r in responses if not r[1].endswith("/api/plans") or r[0] < 400]  # the probe's own 4xx body error
     assert responses
     outside_or_failed = [(s, path) for s, path in responses if not path.startswith(PREFIX + "/") or s >= 400]

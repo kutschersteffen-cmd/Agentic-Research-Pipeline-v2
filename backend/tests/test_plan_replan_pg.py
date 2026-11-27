@@ -15,10 +15,10 @@ from arp.orchestration.plan_store import PlanStore
 
 CHAIN = """u = universe_build(taxonomy_id="t", source="u.csv")
 e = extraction(universe_run_id=u.run_id, schema_id="green_capex")
-d = decision_score(source_run_id=e.run_id)
+d = report_render(source_ids=[e.run_id])
 """
 REMAINING = PlanScript(script="""e = extraction(universe_run_id=previous[0].run_id, schema_id="green_capex_v2")
-d = decision_score(source_run_id=e.run_id)
+d = report_render(source_ids=[e.run_id])
 """)
 BAD = PlanScript(script="import os\n")
 BAD2 = PlanScript(script="w = x * 2\n")
@@ -38,7 +38,7 @@ class Stubs:
                 n = len(self.started)
                 return {"id": f"{kind}_{n}", "run_id": f"r_{n}", "companies": [{"id": "c1"}, {"id": "c2"}]}
             return fn
-        return {k: step(k) for k in ("universe_build", "extraction", "decision_score")}
+        return {k: step(k) for k in ("universe_build", "extraction", "report_render")}
 
 
 @pytest.fixture
@@ -58,7 +58,7 @@ def _failed(store, cancelled=False) -> str:
     store.approve(plan_id, "alice")
     assert run_plan(plan_id, store, Stubs(fail_kind="extraction").all(), lambda c: True) == "failed"
     if cancelled:
-        store.record_call(plan_id, seq=3, kind="decision_score", params={}, status="cancelled")
+        store.record_call(plan_id, seq=3, kind="report_render", params={}, status="cancelled")
     return plan_id
 
 
@@ -108,7 +108,7 @@ def test_run_replanned_plan(store, fake_llm, monkeypatch):  # AC-8, AC-9, AC-10
     result = CliRunner().invoke(plan_cli.plan_app, ["run", plan_id])
     assert result.exit_code == 0, result.stdout
     assert [c["seq"] for c in store.calls(plan_id)] == [1, 2, 3]
-    assert [k for k, _ in stubs.started] == ["extraction", "decision_score"]
+    assert [k for k, _ in stubs.started] == ["extraction", "report_render"]
     assert stubs.started[0][1]["universe_run_id"] == "r_1"
     assert store.get(plan_id)["status"] == "done"
 
@@ -117,22 +117,22 @@ def test_resume_replanned_plan_keeps_previous(store, fake_llm, monkeypatch):
     plan_id = _failed(store)
     _replan(store, plan_id, fake_llm, monkeypatch)
     store.approve(plan_id, "alice")
-    assert run_plan(plan_id, store, Stubs(fail_kind="decision_score").all(), lambda c: True) == "failed"
+    assert run_plan(plan_id, store, Stubs(fail_kind="report_render").all(), lambda c: True) == "failed"
     stubs = Stubs()
     assert run_plan(plan_id, store, stubs.all(), lambda c: True) == "done"  # resume: seq 2 reused
-    assert [k for k, _ in stubs.started] == ["decision_score"]
+    assert [k for k, _ in stubs.started] == ["report_render"]
 
 
 def test_replan_twice_keeps_all_done_calls(store, fake_llm, monkeypatch):
     plan_id = _failed(store)
     _replan(store, plan_id, fake_llm, monkeypatch)
     store.approve(plan_id, "alice")
-    run_plan(plan_id, store, Stubs(fail_kind="decision_score").all(), lambda c: True)
-    third = PlanScript(script="d = decision_score(source_run_id=previous[1].run_id)\n")
+    run_plan(plan_id, store, Stubs(fail_kind="report_render").all(), lambda c: True)
+    third = PlanScript(script="d = report_render(source_ids=[previous[1].run_id])\n")
     result, _ = _replan(store, plan_id, fake_llm, monkeypatch, [third])
     assert result.stdout.splitlines()[0] == "version 3"
     plan = store.get(plan_id)
-    assert plan["dry_run"][0]["seq"] == 3 and plan["dry_run"][0]["params"]["source_run_id"] == "r_1"
+    assert plan["dry_run"][0]["seq"] == 3 and plan["dry_run"][0]["params"]["source_ids"] == ["r_1"]
     assert [e["version"] for e in plan["previous_scripts"]] == [1, 2]
 
 
@@ -146,7 +146,7 @@ def test_edit_replanned_plan_keeps_done_calls(store, fake_llm, monkeypatch):
     store.approve(plan_id, "alice")
     stubs = Stubs()
     assert run_plan(plan_id, store, stubs.all(), lambda c: True) == "done"
-    assert [k for k, _ in stubs.started] == ["extraction", "decision_score"]  # seq 1 not re-run
+    assert [k for k, _ in stubs.started] == ["extraction", "report_render"]  # seq 1 not re-run
     assert stubs.started[0][1]["universe_run_id"] == "r_1"
 
 
@@ -182,7 +182,7 @@ def test_v1_run_unchanged(store):  # AC-21
     stubs = Stubs()
     assert run_plan(plan_id, store, stubs.all(), lambda c: True) == "done"
     assert [(c["seq"], c["kind"], c["status"]) for c in store.calls(plan_id)] == [
-        (1, "universe_build", "done"), (2, "extraction", "done"), (3, "decision_score", "done")]
+        (1, "universe_build", "done"), (2, "extraction", "done"), (3, "report_render", "done")]
     plan = store.get(plan_id)
     assert (plan["version"], plan["previous_scripts"]) == (1, [])
 

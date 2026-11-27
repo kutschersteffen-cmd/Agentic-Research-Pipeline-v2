@@ -1,13 +1,6 @@
 import { defaultAllowedOrigins, defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// Cross-origin isolation: the Decision Studio rule engine runs as threaded
-// WebAssembly (SharedArrayBuffer), which browsers only allow on an isolated
-// page. nginx.conf sends the same two headers in production.
-const isolation = {
-  'Cross-Origin-Opener-Policy': 'same-origin',
-  'Cross-Origin-Embedder-Policy': 'require-corp',
-}
 // The board diagram frame is sandboxed without allow-same-origin, so it loads its scripts as origin "null".
 const cors = { origin: [defaultAllowedOrigins, 'null'] }
 
@@ -19,6 +12,6 @@ export default defineConfig({
   plugins: [react()],
   // board-diagram.html is the Agent board's sandboxed diagram frame (spec agent-board, Amendment 1d).
   build: { rollupOptions: { input: { main: 'index.html', 'board-diagram': 'board-diagram.html' } } },
-  server: { headers: isolation, cors },
-  preview: { headers: isolation, cors },
+  server: { cors },
+  preview: { cors },
 })

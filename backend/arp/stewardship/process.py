@@ -24,7 +24,6 @@ from pathlib import Path
 from typing import Any
 
 from arp.db.session import require_dsn
-from arp.decision.publish import as_fields
 from arp.engagement.orchestrator import is_stalled
 from arp.schemas.engagement import EngagementRecord, MilestoneStage
 from arp.stewardship import alerts_feed, escalation, monitoring, tracking, vote_ledger_feed, voting_feed
@@ -44,7 +43,6 @@ from arp.stewardship.universe import (
     latest_observations,
 )
 from arp.storage.atomic_io import atomic_write_text
-from arp.storage.decision_store import DecisionStore
 from arp.storage.run_store import RunStore
 
 SAMPLE_PATH = DATA / "examples" / "sample_meetings.json"
@@ -107,7 +105,7 @@ def house_isins() -> dict[str, str]:
 
 
 def load_sample(
-    frameworks_dir: Path | None = None,
+    _unused: Path | None = None,
     votes: list[dict] | None = None,
     alerts: list | None = None,
     base: dict | None = None,
@@ -117,29 +115,24 @@ def load_sample(
     by issuer id, so coverage, monitoring and escalation rules read it like
     any other field:
 
-    - each framework's latest published decision (`decision.<framework_id>.tier`,
-      `.score`, `.rank`...);
     - decided Proxy Voting ballots (`vote.decided`, `vote.against_management`,
       `vote.overrode_policy`, `vote.last_meeting_date`);
     - open Risk Monitoring alerts (`alert.open_news_controversy`,
       `alert.open_threshold_breach`).
 
     `build`: `house_build()` when the caller already has it (one input check per request)."""
-    if frameworks_dir is None:
-        from arp.config import get_settings
-
-        frameworks_dir = get_settings().frameworks_dir
     held: dict[str, str] | None = None  # from the universe build, so the vote ledger does not read it all again
     if base is not None:
         sample = base
     else:
         build = house_build() if build is None else build
         sample, held = build.universe, build.held
-    merged = [as_fields(snapshot) for snapshot in DecisionStore(frameworks_dir).latest_published()]
     if votes is None:
         votes = vote_items(house_issuers=sample["issuers"] if base is None else None, held=held)
-    merged.append(voting_feed.issuer_fields(votes))
-    merged.append(alerts_feed.issuer_fields(portfolio_alerts() if alerts is None else alerts))
+    merged = [
+        voting_feed.issuer_fields(votes),
+        alerts_feed.issuer_fields(portfolio_alerts() if alerts is None else alerts),
+    ]
     for fields in merged:
         for issuer in sample["issuers"]:
             issuer["fields"].update(fields.get(issuer["issuer_id"], {}))

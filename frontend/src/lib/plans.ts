@@ -56,7 +56,6 @@ export function stepRows(plan: Plan): { step: DryRunStep; status: CallStatus; ca
 export function resultHref(call: PlanCall): string | null {
   if (call.run_id) return `#/history/${encodeURIComponent(call.run_id)}`;
   if (call.result_ref?.startsWith("report:")) return "#/reporting";
-  if (call.result_ref?.startsWith("decision:")) return "#/decision";
   return null;
 }
 

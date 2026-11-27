@@ -6,7 +6,6 @@ from fastapi.testclient import TestClient
 from arp.api.deps import get_portfolio_store, settings_dep
 from arp.api.main import app
 from arp.config import Settings
-from arp.decision import sources
 from arp.schemas.common import CompanyRef
 from arp.schemas.portfolio import Holding, Portfolio, SecurityRef
 from arp.storage.portfolio_store import PortfolioStore
@@ -26,20 +25,6 @@ def store(tmp_path):
             portfolio_id=pid, security_id="bmw_eq", as_of_date=day, quantity=1, price=10, market_value=10,
             fx_rate_to_eur=1.0, market_value_eur=10)])
     return store
-
-
-def test_snapshot_dataset_is_named_after_the_dates_of_its_rows(store):
-    one = sources.from_portfolio_snapshot(store, portfolio_ids=["old_fund"])
-    assert (one.name, one.as_of) == (f"Portfolio holdings as of {OLD}", OLD)
-    both = sources.from_portfolio_snapshot(store, portfolio_ids=["old_fund", "core"])
-    assert (both.name, both.as_of) == (f"Portfolio holdings as of {OLD} to {NEW}", NEW)
-
-
-def test_one_date_is_labelled_as_before(store):
-    latest = sources.from_portfolio_snapshot(store, portfolio_ids=["core"])
-    assert (latest.name, latest.as_of) == (f"Portfolio holdings as of {NEW}", NEW)
-    earlier = sources.from_portfolio_snapshot(store, as_of="2026-07-31", portfolio_ids=["core"])
-    assert (earlier.name, earlier.as_of) == ("Portfolio holdings as of 2026-07-31", "2026-07-31")
 
 
 def test_universe_file_is_named_after_the_dates_of_its_rows(store, tmp_path):

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from arp.api.auth import Principal, current_user
-from arp.api.deps import get_decision_store, get_registry, get_run_store, settings_dep
+from arp.api.deps import get_registry, get_run_store, settings_dep
 from arp.api.review_endpoints import (
     ReviewDecisionRequest,
     get_review_decisions,
@@ -12,16 +12,13 @@ from arp.api.review_endpoints import (
     get_review_queue,
     submit_review,
 )
-from arp.api.routers.decision import template_for_run
 from arp.api.run_scheduling import schedule_llm_run
 from arp.api.saved_universe import load_saved_universe
 from arp.config import Settings
-from arp.decision.templates import attach_to_run
 from arp.extraction.tnfd_pipeline import create_tnfd_extraction_run, execute_tnfd_extraction_run
 from arp.ingestion.registry import DocumentSourceRegistry
 from arp.llm.factory import batch_settings
 from arp.schemas.common import CompanyRef
-from arp.storage.decision_store import DecisionStore
 from arp.storage.run_store import RunStore
 
 router = APIRouter(prefix="/api/tnfd", tags=["tnfd"])
@@ -32,8 +29,6 @@ class RunRequest(BaseModel):
     as_of: str
     companies: list[CompanyRef] | None = None
     universe_path: str | None = None
-    decision_framework_id: str | None = Field(default=None, description="Decision Studio framework applied as the run's last step.")
-    decision_framework_version: int | None = None
 
 
 @router.post("/runs")
@@ -42,22 +37,15 @@ async def start_tnfd_extraction_run(
     settings: Settings = Depends(settings_dep),
     run_store: RunStore = Depends(get_run_store),
     registry: DocumentSourceRegistry = Depends(get_registry),
-    decision_store: DecisionStore = Depends(get_decision_store),
     principal: Principal = Depends(current_user),
 ) -> dict:
     settings = batch_settings(settings, req.batch)
     companies = req.companies or (load_saved_universe(req.universe_path, settings) if req.universe_path else None)
     if not companies:
         raise HTTPException(400, "Provide either `companies` or `universe_path`.")
-    template = None
-    if req.decision_framework_id:
-        template = template_for_run(decision_store, "tnfd", req.decision_framework_id, req.decision_framework_version)
 
     def _create() -> str:
-        run_id = create_tnfd_extraction_run(companies, req.as_of, settings, run_store)
-        if template is not None:
-            attach_to_run(run_store, run_id, template, decision_store.get_audit(template.framework_id, template.version))
-        return run_id
+        return create_tnfd_extraction_run(companies, req.as_of, settings, run_store)
 
     async def _run(run_id: str, llm, verifier_llm) -> None:
         await execute_tnfd_extraction_run(

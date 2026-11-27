@@ -23,13 +23,11 @@ ALLOWED: set[tuple[str, str]] = set()
 @pytest.fixture
 def settings(tmp_path, monkeypatch):
     s = get_settings().model_copy(update={
-        "max_upload_bytes": LIMIT, "runs_dir": tmp_path / "runs", "frameworks_dir": tmp_path / "frameworks",
+        "max_upload_bytes": LIMIT, "runs_dir": tmp_path / "runs",
         "documents_dir": tmp_path / "documents",
     })
-    for d in (s.runs_dir / "_universes", s.frameworks_dir / "_uploads"):
-        d.mkdir(parents=True)
+    (s.runs_dir / "_universes").mkdir(parents=True)
     monkeypatch.setitem(app.dependency_overrides, deps.settings_dep, lambda: s)
-    monkeypatch.setitem(app.dependency_overrides, deps.get_decision_store, lambda: None)
     monkeypatch.setitem(app.dependency_overrides, holdings_router.get_portfolio_store, lambda: None)
     monkeypatch.setitem(app.dependency_overrides, holdings_router.get_identifier_map, lambda: None)
     return s
@@ -44,13 +42,11 @@ def _answer(r):
     return r.status_code, r.json()
 
 
-# Upload reads 1 to 5: route, file name, other form fields.
+# Upload reads 1 to 3: route, file name, other form fields.
 SAVING_UPLOADS = [
     ("/api/universe/upload", "big.csv", {}),
     ("/api/universe/raw-upload", "big.csv", {}),
     ("/api/universe/from-holdings", "big.csv", {}),
-    ("/api/decision/datasets", "big.csv", {}),
-    ("/api/decision/mechanisms/from-indicators", "big.csv", {"name": "x"}),
 ]
 
 
@@ -61,7 +57,7 @@ def test_raw_upload_at_and_over_the_limit(client, settings):  # AC-37
 
 @pytest.mark.parametrize(("route", "name", "data"), SAVING_UPLOADS)
 def test_upload_over_the_limit_saves_nothing(client, settings, route, name, data):  # AC-38
-    folders = [settings.runs_dir / "_universes", settings.frameworks_dir / "_uploads"]
+    folders = [settings.runs_dir / "_universes"]
     before = [sorted(d.rglob("*")) for d in folders]
     assert _answer(client.post(route, data=data, files={"file": (name, b"a" * (LIMIT + 1))})) == TOO_BIG
     assert [sorted(d.rglob("*")) for d in folders] == before

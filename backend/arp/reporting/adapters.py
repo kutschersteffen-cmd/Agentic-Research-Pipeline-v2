@@ -10,7 +10,6 @@ from arp.config import Settings, get_settings
 from arp.db.session import require_dsn
 from arp.reporting.datasets import _build_dataset
 from arp.schemas.reporting import QuantitativeDataset, ReportRequest, RunRef
-from arp.storage.decision_store import DecisionStore
 from arp.storage.run_store import RunStore
 
 _SCALAR = (str, int, float, bool, type(None))
@@ -22,19 +21,12 @@ def _table(name: str, rows: list[dict]) -> QuantitativeDataset:
 
 
 def _load(ref: RunRef, settings: Settings) -> QuantitativeDataset:
-    if ref.kind == "decision":
-        pub = DecisionStore(settings.frameworks_dir).get_published(ref.ref_id)
-        if pub is None:
-            raise ValueError(f"unknown decision {ref.ref_id}")
-        ds = _table(pub.framework_name, [r.model_dump(mode="json") for r in pub.rows])
-        ds.description = f"Published decision {pub.snapshot_id}, as of {pub.as_of or pub.published_at}."
-    else:
-        runs = RunStore(require_dsn(settings), settings.runs_dir)
-        manifest = runs.load_manifest(ref.ref_id)
-        if manifest is None:
-            raise ValueError(f"unknown run {ref.ref_id}")
-        ds = _table(manifest.run_type, runs.read_results(ref.ref_id))
-        ds.description = f"Results of {manifest.run_type} run {ref.ref_id}."
+    runs = RunStore(require_dsn(settings), settings.runs_dir)
+    manifest = runs.load_manifest(ref.ref_id)
+    if manifest is None:
+        raise ValueError(f"unknown run {ref.ref_id}")
+    ds = _table(manifest.run_type, runs.read_results(ref.ref_id))
+    ds.description = f"Results of {manifest.run_type} run {ref.ref_id}."
     ds.dataset_id = f"{ref.kind}_{ref.ref_id}"  # stable, so a re-run replaces it instead of adding a copy
     return ds
 

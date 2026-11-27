@@ -4,7 +4,6 @@ import { safeDecode } from "../src/lib/nav.ts";
 import { runItem } from "../src/lib/commandPalette.ts";
 import { latestGate, memoUntilRejected } from "../src/lib/latest.ts";
 import { randomId } from "../src/lib/randomId.ts";
-import { wasmBytes } from "../src/lib/wasmFetch.ts";
 import { activityOptions } from "../src/lib/themeBuilder.ts";
 import { runTypeLabel } from "../src/lib/runs.ts";
 
@@ -64,11 +63,6 @@ test("randomId does not need crypto.randomUUID", () => {
   } finally {
     Object.defineProperty(globalThis.crypto, "randomUUID", { value: original, configurable: true });
   }
-});
-
-test("wasmBytes rejects a failed download and passes the bytes of a good one", async () => {
-  await assert.rejects(wasmBytes(new Response("<html>", { status: 404 })), { message: "the rule engine could not be downloaded (HTTP 404)" });
-  assert.equal((await wasmBytes(new Response(new Uint8Array([0, 97, 115, 109])))).byteLength, 4);
 });
 
 test("activityOptions: the theme's activities, else the distinct ones in the results", () => {

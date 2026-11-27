@@ -14,7 +14,6 @@ from starlette.concurrency import run_in_threadpool
 from arp import catalog, smart_search
 from arp.api.auth import Principal, current_user, require_role
 from arp.api.deps import (
-    get_decision_store,
     get_identifier_map,
     get_llm_client,
     get_portfolio_store,
@@ -124,11 +123,11 @@ def get_issues(
     return {"issues": issues.open_issues(store, idmap, run_store, date.today())}
 
 
-def datahub_lists(settings: Settings, store, idmap, run_store, decisions, taxonomy, reports, today: date) -> dict[str, list[dict]]:
+def datahub_lists(settings: Settings, store, idmap, run_store, taxonomy, reports, today: date) -> dict[str, list[dict]]:
     """The three lists Smart Search filters: open issues, the output catalog and the feeds (also used by Ask ARP)."""
     return {
         "issues": issues.open_issues(store, idmap, run_store, today),
-        "outputs": catalog.catalog(runs_dir=settings.runs_dir, run_store=run_store, decisions=decisions, taxonomy=taxonomy,
+        "outputs": catalog.catalog(runs_dir=settings.runs_dir, run_store=run_store, taxonomy=taxonomy,
                                    reports=reports),
         "feeds": feeds.overview(store, idmap, today),
     }
@@ -141,7 +140,7 @@ class SmartSearchRequest(BaseModel):
 @search_router.post("", response_model=smart_search.SearchAnswer)
 async def post_smart_search(
     req: SmartSearchRequest, settings: Settings = Depends(settings_dep), store=Depends(get_portfolio_store),
-    idmap: IdentifierMapStore = Depends(get_identifier_map), run_store: RunStore = Depends(get_run_store), decisions=Depends(get_decision_store),
+    idmap: IdentifierMapStore = Depends(get_identifier_map), run_store: RunStore = Depends(get_run_store),
     taxonomy=Depends(get_taxonomy_store), reports=Depends(get_reporting_store),
     llm: LLMClient = Depends(get_llm_client), principal: Principal = Depends(current_user),
 ) -> smart_search.SearchAnswer:
@@ -149,7 +148,7 @@ async def post_smart_search(
     Every call leaves an audit row, like Ask the Portfolio."""
     answer, error = None, None
     try:
-        lists = await run_in_threadpool(datahub_lists, settings, store, idmap, run_store, decisions, taxonomy, reports, date.today())
+        lists = await run_in_threadpool(datahub_lists, settings, store, idmap, run_store, taxonomy, reports, date.today())
         answer, _usage = await smart_search.smart_search(req.question, llm, **lists)
         return answer
     except Exception as exc:

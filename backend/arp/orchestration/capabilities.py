@@ -43,9 +43,6 @@ class XbrlFacts(_Step):
     market: str = "auto"
 
 
-class DecisionScore(_Step):
-    source_run_id: str
-    framework_id: str | None = None
 
 
 class ReportRender(_Step):
@@ -111,7 +108,6 @@ CATALOG: list[Capability] = [
     _run("extraction", "Extract a schema's fields from each company's documents.", Extraction),
     _run("financials_extraction", "Extract each company's financials.", FinancialsExtraction),
     _run("xbrl_facts", "Fetch each company's XBRL facts.", XbrlFacts),
-    _run("decision_score", "Score a run with a ratified decision framework.", DecisionScore),
     _run("report_render", "Render a report from runs.", ReportRender),
     _run("identity_resolution", "Resolve each company's website, CIK and LEI.", IdentityResolution),
     _run("tnfd_extraction", "Extract each company's TNFD disclosures for one reporting period.", TnfdExtraction),

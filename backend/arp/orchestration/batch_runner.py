@@ -150,9 +150,7 @@ async def run_company_batch(
     and records completed/review/token/cost progress (tokens from
     `result.usage`, when the result has one); each failure records
     failed_delta, except a ReviewRequired stop, whose report is queued for
-    review instead. When the batch is done, applies the run's attached
-    Decision Studio framework (arp.decision.templates.score_run), then
-    finishes the run.
+    review instead. When the batch is done, finishes the run.
     """
     job_manager = JobManager(run_store)
     # The run's stored companies when it has them: resolved (entity_id set), identity conflicts
@@ -229,14 +227,4 @@ async def run_company_batch(
                 cancel_check=_cancel_check,
                 write_result=_write_result,
             )
-        # The rules step: a run with a Decision Studio framework attached is
-        # scored before it is marked finished, so a finished run's scores are
-        # already stored when anyone looks. A no-op without one. Whatever goes
-        # wrong in it, the run still finishes: its extracted results stand.
-        from arp.decision.templates import score_run
-
-        try:
-            score_run(run_store, run_id)
-        except Exception:  # noqa: BLE001
-            logger.exception("Rules step failed for run %s", run_id)
         retrying(job_manager.finish_run, run_id)

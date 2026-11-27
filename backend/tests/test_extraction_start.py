@@ -33,10 +33,10 @@ def calls(monkeypatch):
 
 
 def _start(run_store=None, settings=None, **body):
-    req = extraction.StartRequest(companies=[CompanyRef(company_id="c1", name="Acme")], decision_framework_id="fw", **body)
+    req = extraction.StartRequest(companies=[CompanyRef(company_id="c1", name="Acme")], **body)
     return asyncio.run(
         extraction.start_extraction(
-            req, settings=settings or Settings(), run_store=run_store or _Store(), registry=None, decision_store=None, xbrl_source="xbrl"
+            req, settings=settings or Settings(), run_store=run_store or _Store(), registry=None, xbrl_source="xbrl"
         )
     )
 
@@ -64,7 +64,7 @@ def test_each_profile_reaches_its_pipeline(calls, pg):
     assert calls[1][2]["xbrl_source"] == "xbrl"
     assert calls[2][1].as_of == "FY2025"
     assert calls[3][1].datapoint_schema.schema_id == "transition_plan_indicators" and calls[3][1].trial is False
-    assert all([x.company_id for x in c[1].companies] == ["c1"] and c[1].decision_framework_id == "fw" for c in calls)
+    assert all([x.company_id for x in c[1].companies] == ["c1"] for c in calls)
 
 
 @pytest.mark.parametrize("profile", ["custom", "tnfd"])
@@ -124,14 +124,14 @@ def _finished_run(store, calls, **body):
         companies=[CompanyRef(company_id="c1", name="Acme"), CompanyRef(company_id="c2", name="Beta")],
         step_settings=StepSettings(llm_model="model-b"), **body,
     )
-    asyncio.run(extraction.start_extraction(req, settings=Settings(), run_store=store, registry=None, decision_store=None, xbrl_source=None))
+    asyncio.run(extraction.start_extraction(req, settings=Settings(), run_store=store, registry=None, xbrl_source=None))
     JobManager(store).finish_run(run_id)
     return run_id
 
 
 def _restart(store, run_id, **body):
     return asyncio.run(
-        extraction.restart_run(run_id, extraction.RestartRequest(**body), settings=Settings(), run_store=store, decision_store=None, xbrl_source=None)
+        extraction.restart_run(run_id, extraction.RestartRequest(**body), settings=Settings(), run_store=store, xbrl_source=None)
     )
 
 
@@ -209,8 +209,7 @@ def api(monkeypatch, tmp_path, pg):
 
     from arp.api import run_scheduling
     from arp.api.auth import Principal, current_user
-    from arp.api.deps import get_decision_store, get_registry, get_run_store, get_xbrl_source, settings_dep
-    from arp.storage.decision_store import DecisionStore
+    from arp.api.deps import get_registry, get_run_store, get_xbrl_source, settings_dep
 
     class _NoLaunch:
         def launch(self, run_id, job):
@@ -220,7 +219,7 @@ def api(monkeypatch, tmp_path, pg):
     monkeypatch.setattr(run_scheduling, "build_llm_client", lambda s: object())
     monkeypatch.setattr(run_scheduling, "build_verifier_llm_client", lambda s: object())
     settings = Settings(anthropic_api_key="x", runs_dir=tmp_path / "runs")
-    store, decisions = RunStore(pg, settings.runs_dir), DecisionStore(tmp_path / "frameworks")
+    store = RunStore(pg, settings.runs_dir)
     app = FastAPI()
     app.include_router(extraction.router)
 
@@ -230,12 +229,11 @@ def api(monkeypatch, tmp_path, pg):
 
     app.dependency_overrides[settings_dep] = lambda: settings
     app.dependency_overrides[get_run_store] = lambda: store
-    app.dependency_overrides[get_decision_store] = lambda: decisions
     app.dependency_overrides[get_registry] = lambda: None
     app.dependency_overrides[get_xbrl_source] = lambda: None
     app.dependency_overrides[current_user] = lambda: Principal(user_id="u", name="U", role="approver")
     client = TestClient(app)
-    client.store, client.decisions, client.pg = store, decisions, pg
+    client.store, client.pg = store, pg
     return client
 
 
@@ -314,16 +312,6 @@ def test_custom_profile_still_starts_on_its_own_schema(api):  # AC-47
     assert r.status_code == 200, r.text
     assert r.json()["run_type"] == "extraction"
     assert api.store.load_manifest(r.json()["run_id"]).params["schema_id"] == released.schema_id
-
-
-def test_a_framework_needing_the_indicator_count_is_accepted_at_start(api):  # AC-20 at start
-    from arp.schemas.decision import MechanismConfig
-
-    config = api.decisions.save(MechanismConfig(name="TP", criteria=[], gates=[], label_column="Indicators_Disclosed_Count"))
-    api.decisions.ratify(config.framework_id, config.version)
-    _release_preset(api.pg)
-    r = _tp_start(api, decision_framework_id=config.framework_id)
-    assert r.status_code == 200, r.text
 
 
 def test_a_preset_is_readable_without_saving_it(api):

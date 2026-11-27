@@ -3,15 +3,40 @@ from __future__ import annotations
 import pytest
 
 from arp.api.auth import Principal
+from arp.ask import _row as ask_row
 from arp.ask import newest_transition_plan
-from arp.decision.sources import from_transition_plan_run
+from arp.orchestration.job_manager import JobManager
 from arp.orchestration.review_queue import append_decision
-from arp.schemas.common import JobStatus, RunManifest
+from arp.presets.transition_plan import SCHEMA_ID, build_transition_plan_schema
+from arp.schemas.common import CompanyRef, JobStatus, RunManifest
+from arp.schemas.datapoints import ExtractedField, ExtractionRecord
 from arp.schemas.review import ReviewDecision
-from tests.test_decision_sources import preset_record, store_preset_run
+from tests.postgres_helpers import replace_results
 
 ALICE = Principal(user_id="u_alice", name="Alice", role="analyst")
 BOB = Principal(user_id="u_bob", name="Bob", role="analyst")
+
+
+def _preset_record(company_id: str, found: dict[str, tuple] | None = None, *, needs_review: bool = False) -> dict:
+    found = found or {}
+    fields = [
+        ExtractedField(field_id=f.field_id, field_name=f.name, value=found[f.field_id][0], grounded=found[f.field_id][1], confidence=found[f.field_id][2])
+        if f.field_id in found
+        else ExtractedField(field_id=f.field_id, field_name=f.name, value=None, confidence=0.0)
+        for f in build_transition_plan_schema().fields
+    ]
+    return ExtractionRecord(
+        company_id=company_id, name=company_id.upper(), schema_id=SCHEMA_ID, run_id="r", fields=fields, needs_review=needs_review,
+    ).model_dump(mode="json")
+
+
+def _store_preset_run(run_store, companies: list[CompanyRef] | None, records: list[dict]) -> str:
+    run_id = JobManager(run_store).create_run("extraction", {"schema_id": SCHEMA_ID}, len(records)).run_id
+    if companies is not None:
+        run_store.save_companies(run_id, companies)
+    (run_store.run_dir(run_id) / "schema.json").write_text(build_transition_plan_schema().model_dump_json())
+    replace_results(run_store, run_id, records)
+    return run_id
 
 
 def old_run(rs, run_id: str, created: str, names: list[str], *, status=JobStatus.COMPLETED, params=None) -> str:
@@ -27,7 +52,7 @@ def old_run(rs, run_id: str, created: str, names: list[str], *, status=JobStatus
 
 def preset_run(rs, created: str, company_ids: list[str], *, status=JobStatus.COMPLETED, params=None) -> str:
     """A transition plan preset extraction run; a record's Company is its company_id upper-cased."""
-    run_id = store_preset_run(rs, None, [preset_record(c) for c in company_ids])
+    run_id = _store_preset_run(rs, None, [_preset_record(c) for c in company_ids])
     m = rs.load_manifest(run_id)
     rs.save_manifest(m.model_copy(update={"status": status, "created_at": created, "params": {**m.params, **(params or {})}}))
     return run_id
@@ -58,7 +83,7 @@ def test_newest_completed_run_wins_and_running_is_skipped(three_runs):  # AC-3
 def test_figures_come_from_the_run_row(three_runs):  # AC-4
     rs, _, new = three_runs
     card, _ = ask(rs, "BASF")
-    row = next(r for r in from_transition_plan_run(rs, new).rows if r["Company"] == "BASF SE")
+    row = ask_row(rs, new, "BASF SE")
     assert card.figures.model_dump() == {
         "indicators_disclosed_count": float(row["Indicators_Disclosed_Count"]),
         "walk_disclosed_count": float(row["Walk_Disclosed_Count"]),
@@ -183,8 +208,8 @@ def test_only_the_matching_run_is_built(run_store, monkeypatch):  # review I2
     old_run(run_store, "tp_2", "2026-02-01T00:00:00+00:00", ["Siemens AG"])
     old_run(run_store, "tp_3", "2026-03-01T00:00:00+00:00", ["Shell plc"])
     built = []
-    real = arp.ask.from_transition_plan_run
-    monkeypatch.setattr(arp.ask, "from_transition_plan_run", lambda rs, run_id: built.append(run_id) or real(rs, run_id))
+    real = arp.ask._row
+    monkeypatch.setattr(arp.ask, "_row", lambda rs, run_id, company: built.append(run_id) or real(rs, run_id, company))
     assert ask(run_store, "BASF")[0].run_id == "tp_1"
     assert built == ["tp_1"]
 
@@ -201,12 +226,14 @@ def test_a_run_that_cannot_be_read_is_skipped(run_store, monkeypatch):  # review
 
     old_run(run_store, "tp_old", "2026-06-01T00:00:00+00:00", ["BASF SE"])
     old_run(run_store, "tp_bad", "2026-10-20T00:00:00+00:00", ["BASF SE"])
-    real = arp.ask.from_transition_plan_run
+    real = arp.ask._row_from_legacy_record
 
-    def flaky(rs, run_id):
-        if run_id == "tp_bad":
+    def flaky(record):
+        if record.get("name") == "BASF SE" and len(called) == 0:
+            called.append(1)
             raise KeyError("by_category")
-        return real(rs, run_id)
+        return real(record)
 
-    monkeypatch.setattr(arp.ask, "from_transition_plan_run", flaky)
+    called: list[int] = []
+    monkeypatch.setattr(arp.ask, "_row_from_legacy_record", flaky)
     assert ask(run_store, "BASF")[0].run_id == "tp_old"

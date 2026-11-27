@@ -813,5 +813,4 @@ class AppDocument(Base):
 
 import arp.agent.models  # noqa: E402,F401  (registers the explorations table on Base)
 import arp.agent_board.models  # noqa: E402,F401  (registers the agent board tables on Base)
-import arp.authoritative.models  # noqa: E402,F401  (registers the authoritative layer tables on Base)
 import arp.orchestration.plan_models  # noqa: E402,F401  (registers the research plan tables on Base)

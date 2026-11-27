@@ -127,8 +127,6 @@ export const WORKSPACES: Workspace[] = [
           { tab: "argus", label: "Schema", optional: true, does: "Custom profile only: the data points to extract and their types.", handsOn: "Schema", carried: true },
           { tab: "argus", label: "Extract", does: "Custom schema, Financials, TNFD or Transition plan profile; every citation re-verified against its source.", handsOn: "Flagged figures", carried: true, runTypes: EXTRACTION_RUNS, reviewedElsewhere: true },
           { tab: "review", label: "Review", does: "Approve, edit or reject every flagged figure.", handsOn: "Reviewed figures", carried: true, runTypes: REVIEWABLE },
-          { tab: "argus", label: "Score", optional: true, does: "Attach a ratified Decision Studio template at setup (or after the run); publish the tiers from the run's Scoring panel.", handsOn: "Published tiers", carried: true },
-          { tab: "decision", label: "Template", optional: true, does: "Build and ratify scoring templates in Decision Studio (R&D Lab); only ratified versions reach Argus." },
         ],
       },
     ],
@@ -165,10 +163,9 @@ export const WORKSPACES: Workspace[] = [
         steps: [
           { tab: "portfolio-monitoring", sub: "monitoring", label: "Risk Monitoring", does: "WACI, financed emissions and data coverage: where the carbon sits.", handsOn: "Holdings in scope", carried: true },
           { tab: "transitionBarrier", label: "Transition Barriers", does: "Sector × jurisdiction barriers: what can a company in this sector realistically commit to?", handsOn: "Sector context", runTypes: ["transition_barrier_refresh"] },
-          { tab: "transitionPlan", label: "Transition Plan", does: "64 indicators per issuer, walk vs. talk, each with a grounded citation (run by Argus), scored with a ratified template.", handsOn: "Indicator scores and tiers", carried: true, runTypes: ["transition_plan"] },
-          { tab: "decision", label: "Decision Studio", does: "Tune the scoring template; ratify it, then publish the tiers.", handsOn: "Published tiers", carried: true },
-          { tab: "stewardship", sub: "selection", label: "Steward · Selection", does: "Coverage rules read the published tiers: who gets engaged this cycle.", handsOn: "Engagement program" },
-          { tab: "reporting", label: "Presentations & Reports", does: "Committee pack: the tiering with its evidence." },
+          { tab: "transitionPlan", label: "Transition Plan", does: "64 indicators per issuer, walk vs. talk, each with a grounded citation (run by Argus).", handsOn: "Indicator scores", carried: true, runTypes: ["transition_plan"] },
+          { tab: "stewardship", sub: "selection", label: "Steward · Selection", does: "Coverage rules read the transition plan results: who gets engaged this cycle.", handsOn: "Engagement program" },
+          { tab: "reporting", label: "Presentations & Reports", does: "Committee pack: the assessment with its evidence." },
         ],
       },
     ],
@@ -185,10 +182,9 @@ export const WORKSPACES: Workspace[] = [
       ["#/taxonomy", "Taxonomy Library"],
       ["#/theme", "Thematic Universe"],
       ["#/valueChain", "Value Chain Explorer"],
-      ["#/decision", "Decision Studio"],
     ],
     // Emerging Themes is the second tab of Themes (the Themes hub).
-    row: ["#/designStrategy", "#/themes", "#/decision"],
+    row: ["#/designStrategy", "#/themes"],
     more: ["#/taxonomy", "#/theme", "#/valueChain"],
     processes: [
       {
@@ -201,7 +197,6 @@ export const WORKSPACES: Workspace[] = [
           { tab: "taxonomy", label: "Define", does: "The theme's activities; ratify a version.", handsOn: "Ratified taxonomy", carried: true, runTypes: ["taxonomy_research"] },
           { tab: "theme", label: "Match", does: "Companies matched to activities with exposure estimates and cited rationale.", handsOn: "Theme universe", carried: true, runTypes: ["theme"], reviewedElsewhere: true },
           { tab: "review", label: "Review", does: "Resolve contested classifications.", handsOn: "Reviewed universe", carried: true, runTypes: ["theme"] },
-          { tab: "decision", label: "Score", does: "Score and tier the universe in Decision Studio; ratify, then publish.", handsOn: "Published scores", carried: true },
           { tab: "reporting", label: "Report", does: "Committee deck." },
         ],
       },

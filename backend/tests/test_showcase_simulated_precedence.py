@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from arp.config import Settings
 from arp.db.importer import _esg_loads
-from arp.decision.sources import from_portfolio_snapshot
 from arp.portfolio.climate.esg_intake import FIELD_IDS
 from arp.portfolio.climate.schemas import FIELD_SCOPE1
 from arp.portfolio.loads import LoadRecord, record_load
@@ -51,25 +50,6 @@ def test_latest_observation_prefers_the_real_value_and_falls_back_to_the_simulat
     only = store.latest_observation(SIM_ONLY, FIELD_SCOPE1, "2026-11-30")
     assert (only.source, only.value) == ("simulated", 7.0)
     assert store.latest_observation(REAL, FIELD_SCOPE1, "2026-11-05").source == "simulated"  # before the real load: nothing real yet
-
-
-def test_the_decision_dataset_shows_the_real_value_and_names_simulated_ones(tmp_path):
-    dataset = from_portfolio_snapshot(_store(tmp_path), "2026-11-30", ["fund"], [FIELD_SCOPE1])
-    text = dataset.model_dump_json()
-    assert '"1000"' in text and '"7"' in text  # REAL keeps its real value; SIM_ONLY has only the simulated one
-    assert dataset.name.endswith("(includes simulated ESG values)")
-
-
-def test_the_decision_dataset_of_real_values_is_named_as_before(tmp_path):
-    plain = PortfolioStore(tmp_path / "plain")
-    plain.save_portfolio(Portfolio(portfolio_id="fund", name="Fund"))
-    plain.save_company(CompanyRef(company_id=REAL, name=REAL))
-    plain.save_security(SecurityRef(security_id="s", name="S", company_id=REAL, asset_class="equity", currency="EUR"))
-    plain.save_snapshot("fund", "2026-11-30", [Holding(portfolio_id="fund", security_id="s", as_of_date="2026-11-30", quantity=1,
-                                                       price=1.0, market_value=1.0, market_value_eur=1.0)])
-    plain.append_observation(DataPointObservation(company_id=REAL, field_id=FIELD_SCOPE1, field_name="S1", value=5.0,
-                                                  observed_at="2026-11-10T00:00:00+00:00", source="internal_api"))
-    assert "simulated" not in from_portfolio_snapshot(plain, "2026-11-30", ["fund"], [FIELD_SCOPE1]).name.lower()
 
 
 def test_the_stewardship_universe_takes_the_real_value_and_its_note_says_simulated(tmp_path):

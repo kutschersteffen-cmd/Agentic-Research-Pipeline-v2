@@ -39,9 +39,7 @@ from pathlib import Path
 import pytest
 
 from arp.schemas.common import JobStatus, RunManifest
-from arp.schemas.decision import MechanismConfig
 from arp.storage.atomic_io import atomic_write_text, read_text_utf8, write_text_exclusive
-from arp.storage.decision_store import DecisionStore
 from arp.storage.jsonl_io import append_jsonl, read_jsonl
 from arp.storage.run_store import RunStore
 
@@ -73,41 +71,6 @@ def test_read_text_utf8_is_independent_of_the_platform_locale(tmp_path: Path) ->
     path = tmp_path / "record.json"
     path.write_bytes(AWKWARD.encode("utf-8"))
     assert read_text_utf8(path) == AWKWARD
-
-
-def test_decision_framework_name_survives_a_save_load_round_trip(tmp_path: Path) -> None:
-    """The original report: a framework saved with an umlaut and a `<=` in
-    its name came back as mojibake, with no error raised anywhere."""
-    store = DecisionStore(tmp_path)
-    store.save(MechanismConfig(framework_id="fw_umlaut", version=1, name=AWKWARD))
-
-    loaded = store.get("fw_umlaut", 1)
-
-    assert loaded is not None
-    assert loaded.name == AWKWARD
-
-
-def test_decision_framework_with_cjk_text_is_loadable(tmp_path: Path) -> None:
-    store = DecisionStore(tmp_path)
-    store.save(MechanismConfig(framework_id="fw_cjk", version=1, name=AWKWARD_CJK))
-
-    loaded = store.get("fw_cjk", 1)
-
-    assert loaded is not None
-    assert loaded.name == AWKWARD_CJK
-
-
-def test_latest_pointer_resolves_for_a_framework_with_non_ascii_content(tmp_path: Path) -> None:
-    """`get()` with no version reads the `latest.json` pointer first; that
-    read is on the same locale-default path as the record itself."""
-    store = DecisionStore(tmp_path)
-    store.save(MechanismConfig(framework_id="fw_pointer", version=1, name=AWKWARD))
-
-    loaded = store.get("fw_pointer")
-
-    assert loaded is not None
-    assert loaded.version == 1
-    assert loaded.name == AWKWARD
 
 
 def test_run_manifest_round_trips_non_ascii(tmp_path: Path, pg) -> None:

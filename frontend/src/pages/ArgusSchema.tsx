@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import { BatchToggle } from "../components/BatchToggle";
 import { ruleMarkers, RulesList } from "../components/RulesList";
-import { ScoringTemplatePicker } from "../components/RunScoring";
 import { SchemaFieldsEditor } from "../components/SchemaFieldsEditor";
 import { errorDetail } from "../lib/barrier";
 import { ruleInputs, sameRule } from "../lib/ruleSentence";
@@ -418,14 +417,6 @@ export function ArgusSchema({ flow, busy, act }: { flow: Flow; busy: boolean; ac
             />
           </label>
           <BatchToggle checked={flow.settings.batch} disabled={busy} onChange={(batch) => act(() => api.patchArgusFlow(id, { settings: { ...flow.settings, batch } }))} />
-          {choice && (
-            <ScoringTemplatePicker
-              runType={runType}
-              fieldNames={schema?.fields.map((f) => f.name)}
-              value={flow.settings.decision_framework_id ?? null}
-              onChange={(fw) => act(() => api.patchArgusFlow(id, { settings: { ...flow.settings, decision_framework_id: fw, decision_framework_version: null } }))}
-            />
-          )}
         </div>
       </details>
 

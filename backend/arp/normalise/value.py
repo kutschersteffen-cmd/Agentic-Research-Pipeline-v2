@@ -6,10 +6,10 @@ import re
 from dataclasses import dataclass
 from datetime import date
 
-from arp.decision.parsing import to_number
 from arp.extraction.extractor_agent import PeriodValue
 from arp.normalise import fx
 from arp.normalise.locale import Decimal, parse_number
+from arp.normalise.parsing import to_number
 from arp.normalise.period import (
     Qualifier,
     ResolvedPeriod,

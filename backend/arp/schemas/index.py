@@ -683,8 +683,7 @@ class ReviewResult(BaseModel):
     trace: list[StageTrace] = Field(default_factory=list)
     state: IndexState
     exceptions: list[str] = Field(default_factory=list, description="Every rule relaxation or data-quality override applied, in order.")
-    decision_snapshot_ids: list[str] = Field(default_factory=list, description="Published Decision Studio results this review read.")
-    input_notes: list[str] = Field(default_factory=list, description="How each published decision matched the universe.")
+    input_notes: list[str] = Field(default_factory=list, description="Notes on the starting universe and input data.")
     created_at: str = Field(default_factory=now_iso)
 
 

@@ -97,7 +97,6 @@ STEP_INFO: dict[str, dict[str, str]] = {
     "finalize_answer_error": {"label": "Answer failed", "about": "The model never returned a valid answer; recorded as failed and flagged for review."},
     "aggregate": {"label": "Ground & score", "about": "Every quote is re-matched against its source; ungrounded or low-confidence answers go to review."},
     "company": {"label": "Company record", "about": "The company's items are assembled into one record and saved to the run."},
-    "rules": {"label": "Rules step", "about": "Once every company is done, the attached Decision Studio framework scores and tiers the run."},
 }
 
 _REVIEW = ["grounding_fuzzy_threshold", "confidence_review_threshold"]
@@ -130,7 +129,7 @@ PRE_STEPS = ("identity", "content_search", "document_mgmt", "parse_index")
 def pipeline_shape(profile: str, settings: Settings) -> dict:
     """Nodes and edges for the diagram: the start, the optional steps before
     extraction, then the per-item graph -- `__start__` becomes the per-item
-    entry and `__end__` the company record -- and the rules step."""
+    entry and `__end__` the company record."""
     graph = _graph(profile)
     rename = {"__start__": "item", "__end__": "company"}
     node_settings = PROFILES[profile]["settings"]
@@ -148,11 +147,9 @@ def pipeline_shape(profile: str, settings: Settings) -> dict:
         }
         for n in graph.nodes
     ]
-    nodes.append({"id": "rules", **STEP_INFO["rules"], "per_item": False, "settings": []})
     chain = ["start", *PRE_STEPS, "item"]
     edges = [{"source": a, "target": b, "conditional": False} for a, b in zip(chain, chain[1:], strict=False)]
     edges += [{"source": rename.get(e.source, e.source), "target": rename.get(e.target, e.target), "conditional": e.conditional} for e in graph.edges]
-    edges.append({"source": "company", "target": "rules", "conditional": False})
     return {
         "profile": "custom" if profile == "transition_plan" else profile,  # the same body as custom's
         "nodes": nodes,

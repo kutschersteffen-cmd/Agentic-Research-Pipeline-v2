@@ -78,7 +78,7 @@ def start(tmp_path, monkeypatch, pg):
             app.include_router(extraction.router)
         app.dependency_overrides[deps.settings_dep] = lambda: settings
         app.dependency_overrides[deps.get_run_store] = lambda: store
-        for dep in (deps.get_registry, deps.get_decision_store, deps.get_xbrl_source, deps.get_taxonomy_store,
+        for dep in (deps.get_registry, deps.get_xbrl_source, deps.get_taxonomy_store,
                     deps.get_engagement_store, deps.get_edgar_source, deps.get_web_search_client):
             app.dependency_overrides[dep] = lambda: None
         if name == "themes":

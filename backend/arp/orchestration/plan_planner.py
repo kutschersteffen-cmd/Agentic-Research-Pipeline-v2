@@ -57,13 +57,11 @@ the saved universes' file names listed below.
 Return only the script."""
 
 
-def planner_context(taxonomies, frameworks, universes=()) -> str:
-    """What the planner may name: ratified taxonomies (universe_build), decision frameworks,
+def planner_context(taxonomies, universes=()) -> str:
+    """What the planner may name: ratified taxonomies (universe_build),
     saved universes (universe_build source, by file name)."""
     tax = [f"- {t.taxonomy_id}: {t.theme.name}" for t in taxonomies if t.status == "ratified"]
-    fw = [f"- {f.framework_id}: {f.name}" for f in frameworks if f.ratified]
     return ("Ratified taxonomies (universe_build taxonomy_id):\n" + ("\n".join(tax) or "- none") +
-            "\n\nRatified decision frameworks (decision_score framework_id):\n" + ("\n".join(fw) or "- none") +
             "\n\nSaved universes (universe_build source):\n" + ("\n".join(f"- {u}" for u in universes)
                                                               or "- none saved yet"))
 

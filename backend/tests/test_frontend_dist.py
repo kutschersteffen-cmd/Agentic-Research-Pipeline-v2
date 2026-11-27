@@ -36,10 +36,10 @@ def test_root_serves_index(served):
 
 @pytest.mark.parametrize("path", ["/", "/assets/app.js"])
 def test_frontend_has_isolation_headers(served, path):
-    # Decision Studio's rule engine needs a cross-origin isolated page (see frontend/vite.config.ts).
+    # Decision Studio's threaded WASM rule engine was removed, so COOP/COEP headers are no longer set.
     r = served.get(path)
-    assert r.headers["cross-origin-opener-policy"] == "same-origin"
-    assert r.headers["cross-origin-embedder-policy"] == "require-corp"
+    assert "cross-origin-opener-policy" not in r.headers
+    assert "cross-origin-embedder-policy" not in r.headers
 
 
 def test_health_still_wins(served):

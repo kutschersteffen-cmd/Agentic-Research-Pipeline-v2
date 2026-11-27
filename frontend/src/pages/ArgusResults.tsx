@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "../api/client";
 import { FileLink } from "../components/FileLink";
 import { ReviewControls, decisionLabel } from "../components/ReviewControls";
-import { RunScoringPanel } from "../components/RunScoring";
 import { SourcePanel, type ActiveSource } from "../components/SourcePanel";
 import { WalkthroughLink } from "../components/WalkthroughLink";
 import { TRANSITION_PLAN_TEMPLATE, earlierFailedLine, flowReviewHref, keptRuns, notInRun, onlyNeedsYou, periodText, readEach, resultRows, walkTalkLine, type ResultRow } from "../lib/argusFlow";
@@ -208,7 +207,6 @@ export function ArgusResults({ flow }: { flow: Flow }) {
         <p className="muted">{mineOnly ? "Nothing waits on you in this run." : "This run has no values yet."}</p>
       ))}
       {source && <SourcePanel source={source} onClose={() => setSource(null)} />}
-      {choice?.kind === "schema" && <RunScoringPanel runId={runId} runType="extraction" fieldNames={schema?.fields.map((f) => f.name)} />}
     </section>
   );
 }
