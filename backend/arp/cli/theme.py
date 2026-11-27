@@ -84,8 +84,8 @@ def theme_trend_snapshot(
 
     import httpx
 
-    from arp.replication.price_data import CsvPriceSource, YFinancePriceSource
     from arp.research import theme_trend
+    from arp.research.price_data import CsvPriceSource, YFinancePriceSource
 
     try:
         if facts_dir:

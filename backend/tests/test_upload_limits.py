@@ -17,8 +17,7 @@ from arp.config import get_settings
 LIMIT = 2_000_000
 TOO_BIG = 413, {"detail": "File is larger than the 2 MB upload limit."}
 ROUTERS = Path(__file__).resolve().parents[1] / "arp" / "api" / "routers"
-# Upload guard allow-list (spec Design 4): the two Strategy Replication uploads, until bug-list item 1 caps them.
-ALLOWED = {("replication.py", "dest.write_bytes(await file.read())")}
+ALLOWED: set[tuple[str, str]] = set()
 
 
 @pytest.fixture

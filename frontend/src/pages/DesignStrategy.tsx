@@ -14,7 +14,6 @@ export function DesignStrategy() {
       <p className="help-text">From an idea to a portfolio you can report on.</p>
       <div className="toolbar">
         <a className="button-link" href="#/themes">Start from a theme</a>
-        <a className="button-link" href="#/strategyReplication">Start from a research paper</a>
       </div>
       <ProcessFlow p={DESIGN} runs={runs} flow={flow} activity={activity} foldable={false} />
       <HandoffLegend />

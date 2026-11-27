@@ -9,7 +9,7 @@ test("five workspaces, each with at least one process, and process ids unique", 
 });
 
 test("a process finds its workspace; old Processes-screen ids still resolve", () => {
-  for (const id of ["onboard", "climate", "engage", "proxy", "client", "thematic", "strategy"]) assert.ok(workspaceOfProcess(id), id);
+  for (const id of ["onboard", "climate", "engage", "proxy", "client", "thematic"]) assert.ok(workspaceOfProcess(id), id);
   assert.equal(workspaceOfProcess("extract")?.id, "argus");
   assert.equal(workspaceOfProcess("nope"), undefined);
 });
@@ -46,20 +46,19 @@ test("R&D Lab keeps its screens and processes", () => {
     ["#/emergingThemes", "Emerging Themes"],
     ["#/taxonomy", "Taxonomy Library"],
     ["#/theme", "Thematic Universe"],
-    ["#/strategyReplication", "Strategy Replication"],
     ["#/decision", "Decision Studio"],
     ["#/index", "Portfolio Builder"],
   ];
   for (const pair of kept) assert.ok(rdLab.screens.some(([h, l]) => h === pair[0] && l === pair[1]), pair[0]);
   const ids = rdLab.processes.map((p) => p.id);
-  for (const id of ["thematic", "strategy"]) assert.ok(ids.includes(id), id);
+  for (const id of ["thematic", "theme"]) assert.ok(ids.includes(id), id);
 });
 
-test("R&D Lab lists the Value Chain Explorer right after Strategy Replication", () => {
+test("R&D Lab lists the Value Chain Explorer right after Thematic Universe", () => {
   const screens = WORKSPACES.find((w) => w.id === "rdLab")!.screens;
   const at = screens.findIndex(([h]) => h === "#/valueChain");
   assert.deepEqual(screens[at], ["#/valueChain", "Value Chain Explorer"]);
-  assert.deepEqual(screens[at - 1], ["#/strategyReplication", "Strategy Replication"]);
+  assert.deepEqual(screens[at - 1], ["#/theme", "Thematic Universe"]);
 });
 
 test("StewardIQ links RFP Answers, which no other page links", () => {

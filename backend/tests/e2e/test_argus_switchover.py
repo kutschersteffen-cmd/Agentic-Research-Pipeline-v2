@@ -252,7 +252,7 @@ def test_stored_runs_open_from_run_history_with_the_same_counts(page, old_runs):
 ALL_SCREENS = [  # the sidebar and the All screens list (App.tsx TABS), minus the company page that needs a ref
     "home", "stewardiq", "argus", "argusWalkthrough", "transitionIntel", "rdLab", "dataHub", "search", "securityMaster", "feeds",
     "issues", "smartSearch", "outputs", "theme", "taxonomy", "emergingThemes", "themes", "backgroundAgents", "transitionBarrier",
-    "portfolio-monitoring", "review", "history", "plans", "stewardship", "engagement", "voting", "reporting", "strategyReplication",
+    "portfolio-monitoring", "review", "history", "plans", "stewardship", "engagement", "voting", "reporting",
     "valueChain", "decision", "index", "xbrl", "rfp", "library",
 ]
 

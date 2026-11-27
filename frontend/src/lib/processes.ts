@@ -198,14 +198,13 @@ export const WORKSPACES: Workspace[] = [
       ["#/emergingThemes", "Emerging Themes"],
       ["#/taxonomy", "Taxonomy Library"],
       ["#/theme", "Thematic Universe"],
-      ["#/strategyReplication", "Strategy Replication"],
       ["#/valueChain", "Value Chain Explorer"],
       ["#/decision", "Decision Studio"],
       ["#/index", "Portfolio Builder"],
     ],
     // Emerging Themes is the second tab of Themes (the Themes hub).
     row: ["#/designStrategy", "#/themes", "#/decision", "#/index"],
-    more: ["#/taxonomy", "#/theme", "#/strategyReplication", "#/valueChain"],
+    more: ["#/taxonomy", "#/theme", "#/valueChain"],
     processes: [
       {
         id: "thematic",
@@ -233,18 +232,6 @@ export const WORKSPACES: Workspace[] = [
           { tab: "themes", label: "Research", does: "Risks, opportunities and transmission channels from approved authoritative sources." },
           { tab: "themes", label: "Find companies", does: "The exposed universe, measured against the latest ratified taxonomy version and reviewed." },
           { tab: "themes", label: "Position and standards", does: "The house position and the stewardship standards derived from it." },
-        ],
-      },
-      {
-        id: "strategy",
-        title: "Research a strategy",
-        cadence: "Per paper or idea",
-        outcome: "A strategy tested out of sample, compared to alternatives, and built as an index if it holds.",
-        steps: [
-          { tab: "strategyReplication", label: "Replicate", does: "Paper to executable spec; backtest with deflated Sharpe and PBO.", handsOn: "Backtest runs" },
-          { tab: "decision", label: "Compare", does: "Compare strategies side by side in Decision Studio.", handsOn: "Chosen strategy" },
-          { tab: "index", label: "Construct", does: "Implement it as rules with capping and a calibration.", handsOn: "Index composition", runTypes: ["calibration"] },
-          { tab: "reporting", label: "Report", does: "Investment committee deck." },
         ],
       },
     ],

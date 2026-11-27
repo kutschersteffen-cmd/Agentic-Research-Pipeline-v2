@@ -15,7 +15,7 @@ from pathlib import Path
 import numpy as np
 
 from arp.ingestion.xbrl import CAPEX_TAGS, RND_TAGS, _annual_row
-from arp.replication.price_data import PriceDataSource, PricePanel
+from arp.research.price_data import PriceDataSource, PricePanel
 from arp.research.stock_inference import comove as cm
 from arp.research.stock_inference.schemas import InferRun
 from arp.storage.atomic_io import atomic_write_text, read_text_utf8

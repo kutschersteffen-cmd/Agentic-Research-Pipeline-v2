@@ -8,13 +8,6 @@ from arp.decision.profiling import profile_dataset
 from arp.decision.roles import propose_direction
 from arp.schemas.common import JobStatus, RunManifest
 from arp.schemas.emerging_themes import CandidateStatus, EmergingThemeCandidate, MentionCitation
-from arp.schemas.strategy_replication import (
-    BacktestResult,
-    LegPerformance,
-    ReplicationComparisonReport,
-    ReplicationVerdict,
-    ReportedPerformance,
-)
 from arp.storage.run_store import RunStore
 from tests.postgres_helpers import replace_results
 
@@ -188,37 +181,39 @@ def test_an_empty_themes_run_is_an_error(tmp_path, pg):
 # --- Strategy replication: entity = strategy ----------------------------
 
 
-def _report(spec_id: str, sharpe: float, verdict: ReplicationVerdict, oos_gap: float | None = 1.0) -> ReplicationComparisonReport:
-    leg = LegPerformance(annualized_return_pct=sharpe * 8, sharpe_ratio=sharpe, t_stat=sharpe * 2, max_drawdown_pct=-12.0)
-    return ReplicationComparisonReport(
-        spec_id=spec_id,
-        in_sample=BacktestResult(
-            spec_id=spec_id, period_label="in_sample", period_start="2015-01-31", period_end="2020-12-31",
-            data_source="csv", universe_size=500, long_short=leg, monthly_turnover_pct=8.0, warnings=["thin early coverage"],
-        ),
-        out_of_sample=BacktestResult(
-            spec_id=spec_id, period_label="out_of_sample", period_start="2021-01-31", period_end="2025-12-31",
-            data_source="csv", universe_size=500,
-            long_short=LegPerformance(annualized_return_pct=sharpe * 5, sharpe_ratio=sharpe * 0.6),
-        ),
-        reported_performance=ReportedPerformance(),
-        out_of_sample_return_gap_pp=oos_gap,
-        verdict=verdict,
-    )
+def _report(spec_id: str, sharpe: float, verdict: str, oos_gap: float | None = 1.0) -> dict:
+    return {
+        "spec_id": spec_id,
+        "in_sample": {
+            "spec_id": spec_id, "period_label": "in_sample", "period_start": "2015-01-31", "period_end": "2020-12-31",
+            "data_source": "csv", "universe_size": 500, "monthly_turnover_pct": 8.0, "warnings": ["thin early coverage"],
+            "long_short": {
+                "annualized_return_pct": sharpe * 8, "sharpe_ratio": sharpe, "t_stat": sharpe * 2, "max_drawdown_pct": -12.0,
+            },
+        },
+        "out_of_sample": {
+            "spec_id": spec_id, "period_label": "out_of_sample", "period_start": "2021-01-31", "period_end": "2025-12-31",
+            "data_source": "csv", "universe_size": 500,
+            "long_short": {"annualized_return_pct": sharpe * 5, "sharpe_ratio": sharpe * 0.6},
+        },
+        "reported_performance": {},
+        "out_of_sample_return_gap_pp": oos_gap,
+        "verdict": verdict,
+    }
 
 
-def _write_replication(run_store: RunStore, run_id: str, name: str, report: ReplicationComparisonReport) -> None:
+def _write_replication(run_store: RunStore, run_id: str, name: str, report: dict) -> None:
     replace_results(run_store, run_id, [
-        {"type": "spec", "spec_id": report.spec_id, "strategy_name": name},
-        {"type": "comparison", **report.model_dump(mode="json")},
+        {"type": "spec", "spec_id": report["spec_id"], "strategy_name": name},
+        {"type": "comparison", **report},
     ])
     run_store.save_manifest(RunManifest(run_id=run_id, run_type="strategy_replication", status=JobStatus.COMPLETED))
 
 
 def test_replication_table_spans_runs_because_one_run_is_one_strategy(tmp_path, pg):
     run_store = RunStore(pg, tmp_path)
-    _write_replication(run_store, "r1", "Momentum 12-1", _report("s1", 1.2, ReplicationVerdict.REPLICATED))
-    _write_replication(run_store, "r2", "Low Vol", _report("s2", 0.4, ReplicationVerdict.PARTIALLY_REPLICATED))
+    _write_replication(run_store, "r1", "Momentum 12-1", _report("s1", 1.2, "replicated"))
+    _write_replication(run_store, "r2", "Low Vol", _report("s2", 0.4, "partially_replicated"))
 
     dataset = sources.from_replication_runs(run_store)
     assert dataset.source == "replication_runs"
@@ -232,7 +227,7 @@ def test_out_of_sample_column_is_not_called_a_gap(tmp_path, pg):
     """`gap` is in the lower-is-better dictionary. Persistence carries the
     sign the engine needs: higher means the effect held up."""
     run_store = RunStore(pg, tmp_path)
-    _write_replication(run_store, "r1", "Momentum", _report("s1", 1.0, ReplicationVerdict.REPLICATED))
+    _write_replication(run_store, "r1", "Momentum", _report("s1", 1.0, "replicated"))
     dataset = sources.from_replication_runs(run_store)
     assert "Out_Of_Sample_Persistence_pp" in dataset.columns
     assert not any("Gap" in c for c in dataset.columns)
@@ -250,8 +245,8 @@ def test_sharpe_and_drawdown_directions_are_inferred_not_guessed():
 def test_a_strategy_that_did_not_replicate_is_gated_out(tmp_path, pg):
     run_store = RunStore(pg, tmp_path)
     for i in range(5):
-        _write_replication(run_store, f"ok{i}", f"Strategy {i}", _report(f"s{i}", 0.3 + i * 0.2, ReplicationVerdict.REPLICATED))
-    _write_replication(run_store, "bad", "Wrong Sign", _report("sbad", 2.5, ReplicationVerdict.NOT_REPLICATED))
+        _write_replication(run_store, f"ok{i}", f"Strategy {i}", _report(f"s{i}", 0.3 + i * 0.2, "replicated"))
+    _write_replication(run_store, "bad", "Wrong Sign", _report("sbad", 2.5, "not_replicated"))
 
     dataset = sources.from_replication_runs(run_store)
     config, audit = derive_mechanism(dataset)
