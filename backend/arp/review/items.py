@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from arp.extraction.pipeline import load_run_schema
 from arp.orchestration.review_queue import FINAL_STATES, ItemState, blind_for, item_states, public_decision
+from arp.review.state import LEGACY_COSIGN, cosign_rule  # noqa: F401
 from arp.schemas.common import RunManifest
 from arp.schemas.review import ReviewItem, ReviewItemKind, field_item_key, held_item_key, period_key
 from arp.storage.run_store import RunStore
@@ -13,11 +14,6 @@ if TYPE_CHECKING:
     from arp.core.auth import Principal
 
 REVIEWABLE_RUN_TYPES = ("theme", "extraction", "identity", "transition_plan", "holdings", "discovery", BARRIER_RUN_TYPE)  # never voting
-LEGACY_COSIGN = {"extraction": {"edit"}}
-
-
-def cosign_rule(run_type: str) -> set[str]:
-    return LEGACY_COSIGN.get(run_type, set())
 
 
 def _queue_kind(run_type: str, row: dict) -> ReviewItemKind:

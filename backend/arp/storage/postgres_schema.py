@@ -279,7 +279,7 @@ def _vote_meeting_key_repair(conn: Connection) -> None:
     from sqlalchemy import text
     from sqlalchemy.orm import Session
 
-    from arp.stewardship.intake import _company, meeting_key
+    from arp.db.stewardship_keys import _company, meeting_key
 
     rows = conn.execute(text(
         "SELECT meeting_id, source, external_id, isin, cusip FROM vote_meetings WHERE source IN ('api', 'excel')"
@@ -311,7 +311,7 @@ def _vote_meeting_listing_key(conn: Connection) -> None:
 
     from sqlalchemy import text
 
-    from arp.stewardship.intake import meeting_key
+    from arp.db.stewardship_keys import meeting_key
 
     rows = conn.execute(text(
         "SELECT meeting_id, source, external_id, isin, cusip FROM vote_meetings WHERE source IN ('api', 'excel')"

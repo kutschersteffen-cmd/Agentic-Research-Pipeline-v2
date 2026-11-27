@@ -4,7 +4,6 @@ schema.json, regrounds.jsonl, ...) stay files under `runs_dir/<run_id>/`, reache
 
 from __future__ import annotations
 
-import math
 import threading
 import uuid
 from collections.abc import Iterator
@@ -33,31 +32,17 @@ from arp.db.models import (
     RunStatus,
 )
 from arp.db.observations import ObservationIn
+from arp.db.run_files import RunArtifactFiles, _jsonb_safe, done_keys_from_rows
 from arp.db.session import transaction
 from arp.schemas.common import CompanyRef, RunManifest, now_iso
 from arp.schemas.review import field_item_key, period_key
 from arp.storage.jsonl_io import append_jsonl, read_jsonl
-from arp.storage.run_store import LegacyRunStore, done_keys_from_rows
 from arp.universe import resolve_universe
 
 _DECISIONS = {d.value for d in DecisionKind}
 # Decision-log rows that are not review-queue decisions, so carry no DecisionKind: emerging-theme
 # candidate actions (arp/emerging_themes/pipeline.py), which have `action` and no `decision`.
 _NON_REVIEW_ACTIONS = {"promote", "reject", "disconfirm"}
-
-
-def _jsonb_safe(value):
-    """What Postgres jsonb can store: NaN/±Infinity become None and NUL is stripped from strings
-    (keys too). The file store wrote both; jsonb refuses them, which would fail a whole batch."""
-    if isinstance(value, float):
-        return value if math.isfinite(value) else None
-    if isinstance(value, str):
-        return value.replace("\x00", "")
-    if isinstance(value, dict):
-        return {_jsonb_safe(k): _jsonb_safe(v) for k, v in value.items()}
-    if isinstance(value, list | tuple):
-        return [_jsonb_safe(v) for v in value]
-    return value
 
 
 def _decision_kind(row: dict) -> DecisionKind | None:
@@ -90,7 +75,7 @@ class RunStore:
     def __init__(self, dsn: str, runs_dir: Path) -> None:
         self.dsn = dsn
         self.runs_dir = runs_dir
-        self._files = LegacyRunStore(runs_dir)  # side artifacts only
+        self._files = RunArtifactFiles(runs_dir)  # side artifacts only
         self._local = threading.local()  # run_id -> the session holding that run's lock, per thread
 
     def _held(self) -> dict[str, Session]:

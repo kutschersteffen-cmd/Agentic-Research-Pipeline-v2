@@ -10,8 +10,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
-from arp.db.company_view import resolve_ref
 from arp.db.session import transaction
+from arp.db.stewardship_keys import _company, _safe, meeting_key  # noqa: F401
 from arp.errors import ClientInputError
 from arp.schemas.common import new_id, now_iso
 from arp.schemas.engagement import (
@@ -41,7 +41,6 @@ from arp.storage.postgres_models import (
     VoteItemModel,
     VoteMeetingModel,
 )
-from arp.storage.safe_path import UnsafeIdentifierError, safe_id
 
 ENGAGEMENT_COLUMNS: dict[str, list[str]] = {
     "engagements": [
@@ -164,27 +163,6 @@ def _clean(sheet: str, n: int, raw: dict, bad: list[Rejection]) -> dict:
     if sheet == "engagements":
         _clean_engagement_fields(row, reject)
     return {**row, **{k: v for k, v in _DEFAULTS[sheet].items() if row.get(k) is None}}
-
-
-def _company(s, company_id: str | None, isin: str | None) -> str | None:
-    """The stewardship company key this row names: `company_id`, else the normalised ISIN, if a stw_companies
-    row or the registry knows it."""
-    if company_id and _safe(company_id) and (s.get(StwCompanyModel, company_id) or resolve_ref(s, f"UNIVERSE:{company_id}")):
-        return company_id
-    if isin:
-        isin = "".join(isin.split()).upper()
-        key = f"isin_{isin}"
-        if _safe(key) and (s.get(StwCompanyModel, key) or resolve_ref(s, f"ISIN:{isin}")):
-            return key
-    return None
-
-
-def _safe(key: str) -> bool:
-    try:
-        safe_id(key, label="company_id")
-    except UnsafeIdentifierError:
-        return False
-    return True
 
 
 def _order_objectives(plan: list[tuple], ids: dict[str, dict[str, str]], bad: list[Rejection]) -> list[tuple]:
@@ -330,15 +308,6 @@ _MEETING = ["issuer_name", "isin", "cusip", "meeting_type"]
 _KEEP = {"company_id", "isin", "cusip"}
 _ITEM = ["description", "categories", "proponent", "management_recommendation"]
 _DECISION = ["vote", "vote_label", "against_management", "shares_voted", "rationale", "decided_by", "decided_at", "run_id"]
-
-
-def meeting_key(company_id: str | None, isin: str | None, cusip: str | None) -> str:
-    """The listing part of a vote meeting's key: `isin`, else `cusip`, else the company id, one namespace each, so two
-    listings of one company (share and ADR) are two meetings (owner, 15 Nov 2026). A company keyed `isin_<ISIN>`
-    shares the `isin:` namespace with ISIN-only rows, so both reach one meeting."""
-    if not isin and company_id and company_id.startswith("isin_"):
-        isin = company_id[5:].upper()
-    return next(f"{ns}:{v}" for ns, v in (("isin", isin), ("cusip", cusip), ("cid", company_id)) if v)
 
 
 def _normalise_vote_fields(row: dict, source: str, reject) -> None:
