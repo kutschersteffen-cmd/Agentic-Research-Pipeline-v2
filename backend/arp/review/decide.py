@@ -8,9 +8,9 @@ import math
 from hashlib import sha256
 from typing import TYPE_CHECKING
 
-from arp.api.auth import ROLE_RANK
 from arp.checks.numeric import NUMERIC_TYPES, candidates, parse_number
 from arp.config import Settings
+from arp.core.auth import ROLE_RANK
 from arp.discovery.review import apply_decision
 from arp.extraction.history import PriorValue, RunHistory
 from arp.grounding import ground_citations
@@ -27,7 +27,7 @@ from arp.transition_barrier import RUN_TYPE as BARRIER_RUN_TYPE
 from arp.transition_barrier.ratings import current_cell
 
 if TYPE_CHECKING:
-    from arp.api.auth import Principal
+    from arp.core.auth import Principal
 
 logger = logging.getLogger(__name__)
 

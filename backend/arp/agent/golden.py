@@ -17,8 +17,8 @@ from urllib.parse import urlparse
 import httpx
 
 from arp.agent.explorations import run_question
-from arp.api.auth import Principal
 from arp.config import Settings
+from arp.core.auth import Principal
 from arp.llm.base import LLMClient
 
 SANDBOX_DIR = Path(__file__).resolve().parents[3] / "sandbox"

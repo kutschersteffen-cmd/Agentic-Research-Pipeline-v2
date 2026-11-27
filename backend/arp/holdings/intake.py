@@ -19,7 +19,7 @@ from arp.schemas.portfolio import HolderConfig, Holding, Portfolio, SecurityRef,
 from arp.storage.safe_path import UnsafeIdentifierError, safe_id
 
 if TYPE_CHECKING:
-    from arp.api.auth import Principal
+    from arp.core.auth import Principal
 
 
 class IntakeError(ClientInputError):

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
-from arp.api.auth import Principal
+from arp.core.auth import Principal
 from arp.db.runs import RunStore
 from arp.orchestration.review_queue import latest_decisions
 from arp.review.items import list_open_items

@@ -23,8 +23,8 @@ from arp.agent.miniapp_html import (
     trim_asks,
 )
 from arp.agent.models import AgentExploration
-from arp.api.auth import Principal
 from arp.config import Settings
+from arp.core.auth import Principal
 from arp.llm.base import LLMClient
 from arp.orchestration.capabilities import CATALOG
 from arp.orchestration.plan_models import AgentAsk

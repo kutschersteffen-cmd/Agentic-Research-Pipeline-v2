@@ -21,7 +21,7 @@ from arp.storage.document_store import DocumentContentStore
 from arp.storage.run_store import RunStore
 
 if TYPE_CHECKING:
-    from arp.api.auth import Principal
+    from arp.core.auth import Principal
 
 CHECK_WORDS: dict[str, str] = {
     "format.data_type": "The value is not of the field's type.",
