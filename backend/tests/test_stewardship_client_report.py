@@ -9,7 +9,7 @@ pptx = pytest.importorskip("pptx")
 
 from arp.stewardship.client_report import build_pptx, client_report  # noqa: E402
 from arp.stewardship.config_store import StreamStore  # noqa: E402
-from arp.storage.engagement_store import EngagementStore  # noqa: E402
+from arp.storage.postgres_engagement_store import PostgresEngagementStore  # noqa: E402
 
 pytestmark = pytest.mark.usefixtures("sample_house_universe", "pg")
 
@@ -28,7 +28,7 @@ def test_stewardship_client_report_uses_house_renderer_without_llm(tmp_path, mon
     assert "Data sources" in _texts(out)
 
 
-def test_pptx_endpoint_skips_the_pdf_and_the_browser(tmp_path, monkeypatch):
+def test_pptx_endpoint_skips_the_pdf_and_the_browser(tmp_path, pg, monkeypatch):
     from fastapi import BackgroundTasks
 
     import arp.stewardship.client_report as cr
@@ -37,15 +37,15 @@ def test_pptx_endpoint_skips_the_pdf_and_the_browser(tmp_path, monkeypatch):
     monkeypatch.setattr(cr, "write_pdf", lambda *a: pytest.fail("the endpoint deletes its temp dir; no PDF"))
     streams = StreamStore(tmp_path)
     tasks = BackgroundTasks()
-    resp = get_house_report_pptx(tasks, streams, EngagementStore(tmp_path / "eng"))
+    resp = get_house_report_pptx(tasks, streams, PostgresEngagementStore(pg))
     out = Path(resp.path)
     assert out.suffix == ".pptx" and out.exists() and not list(out.parent.glob("*.pdf"))
     shutil.rmtree(out.parent)
 
 
-def test_report_summarises_universe_and_open_engagements(tmp_path):
+def test_report_summarises_universe_and_open_engagements(tmp_path, pg):
     streams = StreamStore(tmp_path)
-    eng = EngagementStore(tmp_path / "eng")
+    eng = PostgresEngagementStore(pg)
     eng.open_issue("SYN10", "Synthetic Company 10", theme="climate_transition")
     report = client_report(streams.root, "House programme", eng.list_all())
     assert sum(s["companies"] for s in report["sectors"]) == 12

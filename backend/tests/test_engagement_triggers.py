@@ -1,13 +1,17 @@
 from datetime import UTC, datetime, timedelta
 
+from sqlalchemy import update
+
+from arp.db.session import transaction
 from arp.engagement.triggers import ControversySignal, StaticControversySource, run_trigger_screen, scan_for_stalled_issues
 from arp.schemas.common import CompanyRef
 from arp.schemas.engagement import IssueSeverity, IssueStatus, TriggerSource
-from arp.storage.engagement_store import EngagementStore
+from arp.storage.postgres_engagement_store import PostgresEngagementStore
+from arp.storage.postgres_models import StwEngagementModel
 
 
-async def test_run_trigger_screen_opens_issue_for_new_signal(tmp_path):
-    store = EngagementStore(tmp_path)
+async def test_run_trigger_screen_opens_issue_for_new_signal(pg):
+    store = PostgresEngagementStore(pg)
     companies = [CompanyRef(company_id="C1", name="Acme Corp")]
     source = StaticControversySource([ControversySignal(company_id="C1", theme="climate", severity=IssueSeverity.HIGH, detail="Spill reported.")])
 
@@ -20,8 +24,8 @@ async def test_run_trigger_screen_opens_issue_for_new_signal(tmp_path):
     assert record.issues[0].theme == "climate"
 
 
-async def test_run_trigger_screen_dedupes_against_open_issue(tmp_path):
-    store = EngagementStore(tmp_path)
+async def test_run_trigger_screen_dedupes_against_open_issue(pg):
+    store = PostgresEngagementStore(pg)
     companies = [CompanyRef(company_id="C1", name="Acme Corp")]
     store.open_issue("C1", "Acme Corp", theme="climate", source=TriggerSource.MANUAL)
     source = StaticControversySource([ControversySignal(company_id="C1", theme="climate")])
@@ -32,8 +36,8 @@ async def test_run_trigger_screen_dedupes_against_open_issue(tmp_path):
     assert len(store.get("C1").issues) == 1
 
 
-async def test_run_trigger_screen_reopens_after_resolution(tmp_path):
-    store = EngagementStore(tmp_path)
+async def test_run_trigger_screen_reopens_after_resolution(pg):
+    store = PostgresEngagementStore(pg)
     companies = [CompanyRef(company_id="C1", name="Acme Corp")]
     _record, issue = store.open_issue("C1", "Acme Corp", theme="climate", source=TriggerSource.MANUAL)
     store.set_issue_status("C1", issue.issue_id, IssueStatus.RESOLVED)
@@ -45,8 +49,8 @@ async def test_run_trigger_screen_reopens_after_resolution(tmp_path):
     assert len(store.get("C1").issues) == 2
 
 
-async def test_run_trigger_screen_ignores_signals_for_unlisted_companies(tmp_path):
-    store = EngagementStore(tmp_path)
+async def test_run_trigger_screen_ignores_signals_for_unlisted_companies(pg):
+    store = PostgresEngagementStore(pg)
     companies = [CompanyRef(company_id="C1", name="Acme Corp")]
     source = StaticControversySource([ControversySignal(company_id="C2", theme="climate")])
 
@@ -56,15 +60,16 @@ async def test_run_trigger_screen_ignores_signals_for_unlisted_companies(tmp_pat
     assert store.get("C2") is None
 
 
-def test_scan_for_stalled_issues_flags_and_marks_status(tmp_path):
-    store = EngagementStore(tmp_path)
-    old = (datetime.now(UTC) - timedelta(days=90)).isoformat()
-    store.open_issue("C1", "Acme Corp", theme="climate", source=TriggerSource.MANUAL)
-    # Backdate opened_at by rewriting the record directly (simplest way to simulate age in a test).
-    record = store.get("C1")
-    issue = record.issues[0]
-    stale = record.model_copy(update={"issues": [issue.model_copy(update={"opened_at": old})]})
-    store._save(stale)
+def test_scan_for_stalled_issues_flags_and_marks_status(pg):
+    store = PostgresEngagementStore(pg)
+    old = datetime.now(UTC) - timedelta(days=90)
+    _, issue = store.open_issue("C1", "Acme Corp", theme="climate", source=TriggerSource.MANUAL)
+    with transaction(pg) as s:
+        s.execute(
+            update(StwEngagementModel)
+            .where(StwEngagementModel.engagement_id == issue.issue_id)
+            .values(started_at=old)
+        )
 
     events = scan_for_stalled_issues(store, sla_days=45)
 
@@ -73,7 +78,7 @@ def test_scan_for_stalled_issues_flags_and_marks_status(tmp_path):
     assert store.get("C1").issues[0].status == IssueStatus.STALLED
 
 
-def test_scan_for_stalled_issues_no_events_when_fresh(tmp_path):
-    store = EngagementStore(tmp_path)
+def test_scan_for_stalled_issues_no_events_when_fresh(pg):
+    store = PostgresEngagementStore(pg)
     store.open_issue("C1", "Acme Corp", theme="climate", source=TriggerSource.MANUAL)
     assert scan_for_stalled_issues(store, sla_days=45) == []

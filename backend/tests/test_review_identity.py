@@ -68,13 +68,13 @@ def test_stewardship_approved_by_comes_from_principal(tmp_path):
         assert r.json()["approved_by"] == "u_test"
 
 
-def test_engagement_sent_by_comes_from_principal(tmp_path):
+def test_engagement_sent_by_comes_from_principal(pg):
     from arp.api.auth import current_user
     from arp.api.deps import get_engagement_store
     from arp.api.routers import engagement as engagement_router
-    from arp.storage.engagement_store import EngagementStore
+    from arp.storage.postgres_engagement_store import PostgresEngagementStore
 
-    store = EngagementStore(tmp_path / "eng")
+    store = PostgresEngagementStore(pg)
     _, issue = store.open_issue("ACME", "Acme", theme="climate_transition")
     app = FastAPI()
     app.include_router(engagement_router.router)
@@ -89,14 +89,14 @@ def test_engagement_sent_by_comes_from_principal(tmp_path):
     assert "Mallory" not in r.text and "Test" in r.text
 
 
-def test_draft_sent_by_comes_from_principal(tmp_path):
+def test_draft_sent_by_comes_from_principal(tmp_path, pg):
     from arp.api.routers.stewardship import SentRequest, mark_draft_sent
     from arp.schemas.engagement import CorrespondenceType
     from arp.stewardship import drafting
-    from arp.storage.engagement_store import EngagementStore
+    from arp.storage.postgres_engagement_store import PostgresEngagementStore
 
     streams = StreamStore(tmp_path / "streams")
-    eng = EngagementStore(tmp_path / "eng")
+    eng = PostgresEngagementStore(pg)
     _, issue = eng.open_issue("ACME", "Acme", theme="climate_transition")
     drafts = stewardship_router._drafts(streams)
     d = drafting.create(drafts, eng, stewardship_router._blocklist(streams), company_id="ACME", issue_id=issue.issue_id, type=CorrespondenceType.LETTER, text="Dear board", created_by="author")

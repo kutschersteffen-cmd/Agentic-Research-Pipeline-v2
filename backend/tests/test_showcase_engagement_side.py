@@ -26,7 +26,7 @@ from arp.schemas.engagement import (
     TriggerSource,
 )
 from arp.stewardship.config_store import StreamStore
-from arp.storage.engagement_store import EngagementStore
+from arp.storage.postgres_engagement_store import PostgresEngagementStore as EngagementStore
 from tests.conftest import PRINCIPAL, FakeLLMClient
 from tests.test_engagement_research_agent import _FixedDocSource
 
@@ -37,8 +37,10 @@ YESTERDAY = (TODAY - timedelta(days=1)).isoformat()
 
 
 @pytest.fixture
-def store(tmp_path):
-    return EngagementStore(tmp_path / "e")
+def store(tmp_path, pg):
+    s = EngagementStore(pg)
+    s._test_streams_dir = tmp_path / "s"
+    return s
 
 
 def _client(store: EngagementStore, settings: Settings | None = None, registry=None) -> TestClient:
@@ -46,7 +48,7 @@ def _client(store: EngagementStore, settings: Settings | None = None, registry=N
     app.include_router(engagement.router)
     app.include_router(stewardship.router)
     app.dependency_overrides[deps.get_engagement_store] = lambda: store
-    app.dependency_overrides[deps.get_stream_store] = lambda: StreamStore(store.engagements_dir.parent / "s")
+    app.dependency_overrides[deps.get_stream_store] = lambda: StreamStore(store._test_streams_dir)
     app.dependency_overrides[deps.settings_dep] = lambda: settings or Settings()
     app.dependency_overrides[deps.get_registry] = lambda: registry or DocumentSourceRegistry([])
     app.dependency_overrides[current_user] = lambda: PRINCIPAL

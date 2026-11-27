@@ -30,8 +30,6 @@ from arp.review.analytics import ReviewAnalyticsScheduler
 from arp.stewardship.config_store import StreamStore
 from arp.storage.document_blob_store import blob_store_for
 from arp.storage.document_store import DocumentContentStore
-from arp.storage.engagement_store import EngagementStore
-from arp.storage.engagement_store_factory import build_engagement_store
 from arp.storage.identifier_map import IdentifierMapStore
 from arp.storage.portfolio_store_factory import build_portfolio_store
 from arp.storage.postgres_engagement_store import PostgresEngagementStore
@@ -217,8 +215,8 @@ def get_review_analytics_scheduler() -> ReviewAnalyticsScheduler:
 
 
 @lru_cache
-def get_engagement_store() -> EngagementStore | PostgresEngagementStore:
-    return build_engagement_store(get_settings())
+def get_engagement_store() -> PostgresEngagementStore:
+    return PostgresEngagementStore(require_dsn(get_settings()))
 
 
 @lru_cache

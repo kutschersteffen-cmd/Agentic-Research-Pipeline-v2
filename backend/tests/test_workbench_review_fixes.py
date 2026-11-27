@@ -134,7 +134,6 @@ def test_the_compact_file_entry_for_another_as_of_is_read_again(files):
 @pytest.fixture
 def house(sample_house_universe, pg, monkeypatch, tmp_path):
     monkeypatch.setenv("ARP_ENGAGEMENTS_DIR", str(tmp_path / "engagements"))
-    monkeypatch.setenv("ARP_ENGAGEMENT_STORE", "postgres")
     monkeypatch.setenv("ARP_PORTFOLIOS_DIR", str(tmp_path / "portfolios"))
     get_settings.cache_clear()
     get_portfolio_store.cache_clear()
