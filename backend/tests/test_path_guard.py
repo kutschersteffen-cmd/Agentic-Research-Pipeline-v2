@@ -26,7 +26,6 @@ LISTED = {
     ("POST /api/themes/runs", "universe_path"): UNIVERSES,
     ("POST /api/tnfd/runs", "universe_path"): UNIVERSES,
     ("POST /api/voting/runs", "universe_path"): UNIVERSES,
-    ("POST /api/xbrl/runs", "universe_path"): UNIVERSES,
     ("POST /api/universe/workbench", "universe_path"): UNIVERSES,
     ("POST /api/universe/from-companies", "base_path"): UNIVERSES,
     ("PUT /api/discovery/schedule", "universe_path"): UNIVERSES + ", or the schedule's current value",

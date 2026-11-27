@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../api/client";
 import { dossierHref } from "../lib/dossiers";
-import { safeHref } from "../lib/xbrlTags";
 import {
   CATEGORY_LABEL,
   NOTE_SECTIONS,
@@ -15,6 +14,7 @@ import {
 } from "../lib/research";
 import type { ResearchNote, ResearchRound, ResearchSource, ResearchView, SourceCategory } from "../types";
 
+const safeHref = (url: string | null | undefined): string | null => (url && /^https?:\/\//i.test(url) ? url : null);
 const EMPTY_SOURCE = { title: "", publisher: "", url: "", category: "" as SourceCategory | "", why: "", how: "" };
 
 /** #/themes/<id>/research: the latest round's source plan and note, earlier rounds collapsed below. */

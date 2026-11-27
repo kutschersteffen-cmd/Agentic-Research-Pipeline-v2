@@ -6,7 +6,6 @@ import json
 import os
 import re
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 from uuid import uuid4
 
 import pytest
@@ -245,68 +244,6 @@ def test_the_company_link_opens_the_central_record(page, store):  # AC-127
     link.click()
     page.get_by_role("heading", name=name).first.wait_for()
     page.get_by_text(isin).first.wait_for()
-
-
-def _xbrl(page):
-    page.goto(f"{URL}/#/xbrl")
-    picker = page.get_by_role("region", name="Add companies")
-    picker.wait_for()
-    return picker
-
-
-def _saved(page, n):
-    """A saved universe of n companies; its path."""
-    companies = [{"company_id": f"s{TAG}{i}", "name": f"Saved {i}", "cik": str(320193 + i)} for i in range(n)]
-    r = page.request.post(f"{API}/api/universe/from-companies", data={"companies": companies, "name": f"saved{n}_{TAG}"})
-    assert r.ok, r.text()
-    return r.json()["path"]
-
-
-def _pick(page, picker, path):
-    page.wait_for_function(f"() => document.querySelector('option[value=\"{path}\"]')")
-    picker.get_by_label("Or pick a saved universe").select_option(value=path)
-
-
-def _add_one(page, picker, name="Microsoft", cik="789019"):
-    form = picker.locator("fieldset").filter(has_text="Add one company")
-    form.get_by_label("Name").fill(name)
-    form.get_by_label("CIK").fill(cik)
-    form.get_by_role("button", name="Add").click()
-
-
-def _using(page, n):
-    page.get_by_text(f"Using {n} {'company' if n == 1 else 'companies'}.", exact=True).wait_for()
-
-
-def test_xbrl_add_one_extends_the_picked_list(page):  # AC-129, AC-130, AC-132, AC-133, AC-152
-    one = _saved(page, 1)
-    picker = _xbrl(page)
-    _pick(page, picker, one)
-    _using(page, 1)
-    _add_one(page, picker)
-    _using(page, 2)  # AC-129
-    with page.expect_request(lambda r: r.url.endswith("/api/xbrl/runs") and r.method == "POST") as req:
-        page.get_by_role("button", name=re.compile(r"^Start fetch for 2 companies")).click()  # AC-130
-    assert len(json.loads(Path(req.value.post_data_json["universe_path"]).read_text())) == 2
-    _add_one(page, picker)
-    _using(page, 2)  # AC-132
-    picker.get_by_label("Upload a list").set_input_files(
-        files=[{"name": f"three{TAG}.csv", "mimeType": "text/csv", "buffer": b"company_id,name\nx1,X1\nx2,X2\nx3,X3\n"}])
-    _using(page, 3)  # AC-133
-    page.reload()  # AC-152: opened again, the first saved universe still has its one company
-    picker = page.get_by_role("region", name="Add companies")
-    _pick(page, picker, one)
-    _using(page, 1)
-    assert len(json.loads(Path(one).read_text())) == 1
-
-
-def test_xbrl_picks_a_saved_universe_and_adds_one_to_nothing(page):  # AC-131, AC-153
-    five = _saved(page, 5)
-    picker = _xbrl(page)
-    _add_one(page, picker, name=f"Solo {TAG}", cik="1018724")
-    _using(page, 1)  # AC-131
-    _pick(page, picker, five)
-    _using(page, 5)  # AC-153
 
 
 # --- Review round 1 (code and UI review on #446) --------------------------------------------------------------------

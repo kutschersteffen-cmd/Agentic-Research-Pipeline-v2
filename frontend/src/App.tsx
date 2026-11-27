@@ -48,7 +48,6 @@ const DecisionStudio = lazy(() => import("./pages/DecisionStudio").then((x) => (
 const IndexBuilder = lazy(() => import("./pages/IndexBuilder").then((x) => ({ default: x.IndexBuilder })));
 const ArgusWalkthrough = lazy(() => import("./pages/ArgusWalkthrough").then((x) => ({ default: x.ArgusWalkthrough })));
 const Company = lazy(() => import("./pages/Company").then((x) => ({ default: x.Company })));
-const XbrlFacts = lazy(() => import("./pages/XbrlFacts").then((x) => ({ default: x.XbrlFacts })));
 const DesignStrategy = lazy(() => import("./pages/DesignStrategy").then((x) => ({ default: x.DesignStrategy })));
 const ThemeDossiers = lazy(() => import("./pages/ThemeDossiers").then((x) => ({ default: x.ThemeDossiers })));
 const Agent = lazy(() => import("./pages/Agent").then((x) => ({ default: x.Agent })));
@@ -86,7 +85,6 @@ const TABS = [
   { id: "valueChain", label: "Value Chain Explorer" },
   { id: "decision", label: "Decision Studio" },
   { id: "index", label: "Portfolio Builder" },
-  { id: "xbrl", label: "XBRL Facts" },
   { id: "rfp", label: "RFP Answers" },
   { id: "library", label: "Data Library" },
   // Reached from company names elsewhere (#/companies/<ref>) and the palette; not in the sidebar.
@@ -327,7 +325,6 @@ function App() {
         {active === "index" && <IndexBuilder />}
         {active === "argusWalkthrough" && <ArgusWalkthrough key={route.params.join("/")} params={route.params} />}
         {active === "rfp" && <RfpAnswers projectId={rfpId(route.params[0])} onOpen={(id) => (id === null ? navigate("rfp") : navigate("rfp", String(id)))} />}
-        {active === "xbrl" && <XbrlFacts selectedRunId={route.params[0] ?? null} onSelectRun={(id) => navigate("xbrl", id)} />}
         {active === "library" && <DataLibrary />}
         {active === "companies" && <Company companyRef={route.params[0]} />}
         </Suspense>

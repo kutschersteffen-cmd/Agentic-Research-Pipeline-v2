@@ -46,7 +46,7 @@ test("eo_ac39_40_running_rd_lab", () => {
 
 test("eo_ac41_waiting_argus", () => {
   const v = cardView(ws("argus"), R2, null, NOW);
-  assert.deepEqual(v.dots, ["wait", "idle"]);
+  assert.deepEqual(v.dots, ["wait"]);
   assert.equal(v.status.word, "Waiting on you");
 });
 

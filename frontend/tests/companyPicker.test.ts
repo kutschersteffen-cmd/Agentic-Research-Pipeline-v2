@@ -4,8 +4,8 @@ import { readFileSync } from "node:fs";
 
 const src = (p: string) => readFileSync(new URL(`../src/${p}`, import.meta.url), "utf8");
 
-test("step 1 and XBRL Facts mount the same company picker (AC-67)", () => {
-  for (const page of ["pages/ArgusFlow.tsx", "components/XbrlFetchArea.tsx"]) {
+test("step 1 mounts CompanyPicker (AC-67)", () => {
+  for (const page of ["pages/ArgusFlow.tsx"]) {
     assert.match(src(page), /<CompanyPicker\b/, page);
     assert.doesNotMatch(src(page), /<UniversePicker\b/, page);
   }
