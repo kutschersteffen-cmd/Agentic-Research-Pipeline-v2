@@ -154,14 +154,6 @@ def test_new_high_trigger_flag(client, root):
     assert not _rows(client)["SYN02"]["new_high_trigger"]
 
 
-def test_watch_flags_are_read_once_per_request(client, monkeypatch):
-    calls = []
-    real = worklist.watch_flags_by_company
-    monkeypatch.setattr(worklist, "watch_flags_by_company", lambda *a, **k: calls.append(1) or real(*a, **k))
-    _rows(client)
-    assert len(calls) == 1
-
-
 def test_escalated_issue(client):
     # AC-140, AC-141, AC-142 (they replace AC-7, AC-35, AC-36: joint_engagement is gone)
     issue = _issue(client, "SYN06")

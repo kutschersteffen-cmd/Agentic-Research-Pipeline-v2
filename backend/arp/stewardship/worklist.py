@@ -136,7 +136,7 @@ def _commitment_flags(record: EngagementRecord | None, today: date) -> list[dict
                 since = (c.validated_at or "")[:10]
                 msg = f'Commitment broken: "{c.text}" was marked not met on {since}.' if since else f'Commitment broken: "{c.text}".'
                 out.append({"kind": "broken", "message": msg})
-            elif status == "pending" and c.target_date:
+            elif status == "open" and c.target_date:
                 try:
                     due = date.fromisoformat(c.target_date[:10])
                 except ValueError:

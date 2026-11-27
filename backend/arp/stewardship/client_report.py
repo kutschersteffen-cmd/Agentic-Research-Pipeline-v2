@@ -103,10 +103,14 @@ def build_pptx(report: dict, out_path: Path, pdf: bool = True) -> Path:
             layout_hint=SectionLayoutHint.TEXT_ONLY,
             narrative=text(*report["summary"]),
         ),
-        ReportSection(
-            heading="Covered universe by sector",
-            narrative=text("Companies covered by the house stewardship programme."),
-            chart=ChartSpec(dataset_id="sectors", chart_type=ChartType.BAR, category_column="sector", value_columns=["companies"]),
+        (
+            ReportSection(
+                heading="Covered universe by sector",
+                narrative=text("Companies covered by the house stewardship programme."),
+                chart=ChartSpec(dataset_id="sectors", chart_type=ChartType.BAR, category_column="sector", value_columns=["companies"]),
+            )
+            if report["sectors"]
+            else ReportSection(heading="Covered universe by sector", narrative=text("No covered companies in the current house universe."))
         ),
         (
             ReportSection(
