@@ -63,7 +63,6 @@ def store_s(pg, monkeypatch, tmp_path):
     for name, sub in (("ARP_PORTFOLIOS_DIR", "portfolios"), ("ARP_STEWARDSHIP_STREAMS_DIR", "streams"), ("ARP_ENGAGEMENTS_DIR", "engagements"),
                       ("ARP_RUNS_DIR", "runs")):  # fmt: skip
         monkeypatch.setenv(name, str(tmp_path / sub))
-    monkeypatch.setenv("ARP_ENGAGEMENT_STORE", "postgres")
     get_settings.cache_clear()
     get_portfolio_store.cache_clear()
     settings = get_settings()
@@ -80,7 +79,6 @@ def store_s(pg, monkeypatch, tmp_path):
 @pytest.fixture
 def fixture_w(sample_house_universe, pg, monkeypatch, tmp_path):
     monkeypatch.setenv("ARP_ENGAGEMENTS_DIR", str(tmp_path / "engagements"))
-    monkeypatch.setenv("ARP_ENGAGEMENT_STORE", "postgres")
     monkeypatch.setenv("ARP_PORTFOLIOS_DIR", str(tmp_path / "portfolios"))
     get_settings.cache_clear()
     root = get_settings().stewardship_streams_dir

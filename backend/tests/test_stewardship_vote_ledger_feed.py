@@ -13,7 +13,7 @@ from arp.stewardship.config_store import StreamStore
 from arp.stewardship.npx_load import load_npx
 from arp.stewardship.universe import SAMPLE_PATH, HouseBuild
 from arp.stewardship.vote_ledger_feed import ledger_rows
-from arp.storage.engagement_store import EngagementStore
+from arp.storage.postgres_engagement_store import PostgresEngagementStore
 
 FIXTURE = Path(__file__).parent / "fixtures" / "npx" / "fixture.csv"
 SOCGEN = "isin_FR0000130809"  # in the house universe, no stw_companies row
@@ -39,20 +39,20 @@ def _load(tmp_path, pg, dates=None, lines=None):
     load_npx(d, pg)
 
 
-def _vote_triggers(tmp_path):
-    out = monitoring_triggers(StreamStore(tmp_path / "s"), EngagementStore(tmp_path / "e"))["triggers"]
+def _vote_triggers(tmp_path, pg):
+    out = monitoring_triggers(StreamStore(tmp_path / "s"), PostgresEngagementStore(pg))["triggers"]
     return [t for t in out if t["issuer_id"] == SOCGEN and t["type"] == "vote_outcome"]
 
 
 def test_ac38_against_vote_in_newest_year_raises_one_trigger(tmp_path, pg):
     _load(tmp_path, pg)
-    [t] = _vote_triggers(tmp_path)
+    [t] = _vote_triggers(tmp_path, pg)
     assert t["rule"] == "vote_against_management"
 
 
 def test_ac39_old_against_vote_raises_none(tmp_path, pg):
     _load(tmp_path, pg, dates={"Société Générale": 2024, "トヨタ自動車": 2026, "Apple Inc.": 2026})
-    assert _vote_triggers(tmp_path) == []
+    assert _vote_triggers(tmp_path, pg) == []
 
 
 def test_rows_carry_every_voting_feed_key(tmp_path, pg):
@@ -118,7 +118,7 @@ def test_ac38_house_issuer_holding_the_isin_gets_the_trigger(tmp_path, pg, monke
     d.mkdir()
     (d / "f.csv").write_text(FIXTURE.read_text().replace("FR0000130809", isin).replace("/2024,", "/2026,"))
     load_npx(d, pg)
-    out = monitoring_triggers(StreamStore(tmp_path / "s"), EngagementStore(tmp_path / "e"))["triggers"]
+    out = monitoring_triggers(StreamStore(tmp_path / "s"), PostgresEngagementStore(pg))["triggers"]
     assert [t["rule"] for t in out if t["issuer_id"] == "isin_DE0005190003" and t["type"] == "vote_outcome"] == ["vote_against_management"]
 
 
@@ -127,7 +127,7 @@ def test_ac38_house_issuer_holding_the_isin_gets_the_trigger(tmp_path, pg, monke
 
 def test_trigger_from_demo_votes_alone_is_demo(tmp_path, pg):  # AC-1
     _load(tmp_path, pg)  # npx_load writes source npx_urth_demo
-    [t] = _vote_triggers(tmp_path)
+    [t] = _vote_triggers(tmp_path, pg)
     assert t["demo"] is True
 
 
@@ -138,11 +138,11 @@ def test_one_real_against_vote_clears_demo(tmp_path, pg):  # AC-2
     row = {"external_id": "real1", "isin": "FR0000130809", "meeting_date": "2026-05-23", "item_number": "99",
            "vote": "against", "management_recommendation": "for", "rationale": "Board independence"}
     assert intake_votes([row], pg, "api").rejected == []
-    [t] = _vote_triggers(tmp_path)
+    [t] = _vote_triggers(tmp_path, pg)
     assert t["demo"] is False
-    assert all(t["demo"] is False for t in _all_rule_triggers(tmp_path) if t["rule"] != "vote_against_management")
+    assert all(t["demo"] is False for t in _all_rule_triggers(tmp_path, pg) if t["rule"] != "vote_against_management")
 
 
-def _all_rule_triggers(tmp_path):
-    out = monitoring_triggers(StreamStore(tmp_path / "s"), EngagementStore(tmp_path / "e"))["triggers"]
+def _all_rule_triggers(tmp_path, pg):
+    out = monitoring_triggers(StreamStore(tmp_path / "s"), PostgresEngagementStore(pg))["triggers"]
     return [t for t in out if "rule" in t and "engagement_id" in t]

@@ -8,10 +8,10 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "dead-code": "knip --reporter compact",
-    "dead-code:check": "knip --max-issues 200 --reporter compact",
+    "dead-code:check": "knip --max-issues 175 --reporter compact",
     "gen:api": "npx --yes openapi-typescript@7.13.0 src/api/openapi.json -o src/api/schema.gen.ts",
-    "test": "node --test --experimental-strip-types tests/*.test.ts",
-    "test:coverage": "node --test --experimental-strip-types --experimental-test-coverage --test-coverage-exclude=tests/** --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=lcov.info tests/*.test.ts",
+    "test": "node --test --experimental-strip-types tests/*.test.ts && vitest run",
+    "test:coverage": "node --test --experimental-strip-types --experimental-test-coverage --test-coverage-exclude=tests/** --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=lcov-node.info tests/*.test.ts && vitest run --coverage && node -e \"import('node:fs').then((fs)=>{const a=fs.readFileSync('lcov-node.info','utf8');const b=fs.existsSync('coverage-vitest/lcov.info')?fs.readFileSync('coverage-vitest/lcov.info','utf8'):'';fs.writeFileSync('lcov.info',a+b);})\"",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -19,19 +19,23 @@
     "mermaid": "11.4.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "reactflow": "11.11.4",
+    "react-router-dom": "^7.18.7",
     "three": "0.186.1"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.3.3",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@types/three": "0.186.0",
     "@vitejs/plugin-react": "^6.0.4",
+    "@vitest/coverage-v8": "^5.1.2",
+    "jsdom": "^31.0.1",
     "knip": "^6.48.0",
     "oxlint": "^1.75.0",
     "typescript": "~6.0.2",
-    "vite": "^8.3.8"
+    "vite": "^8.3.8",
+    "vitest": "^5.1.2"
   },
   "overrides": {
     "transition-hook": {

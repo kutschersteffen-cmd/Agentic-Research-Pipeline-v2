@@ -127,7 +127,7 @@ def test_climate_observations_are_on_the_t_keys(seeded):  # AC-15, AC-16
 def pg_store(pg, tmp_path):
     from arp.storage.postgres_portfolio_store import PostgresPortfolioStore
 
-    settings = Settings(engagements_dir=tmp_path / "eng", stewardship_streams_dir=tmp_path / "streams",
+    settings = Settings(stewardship_streams_dir=tmp_path / "streams",
                         runs_dir=tmp_path / "runs")
     store = PostgresPortfolioStore(pg, PortfolioStore(tmp_path / "files"))
 

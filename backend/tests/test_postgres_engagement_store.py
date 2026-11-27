@@ -26,7 +26,6 @@ from arp.schemas.engagement import (
     Receptiveness,
     TriggerSource,
 )
-from arp.storage.engagement_store import EngagementStore
 from arp.storage.postgres_engagement_store import PostgresEngagementStore
 from arp.storage.postgres_models import StwActivityModel, StwEventModel
 from arp.storage.safe_path import UnsafeIdentifierError
@@ -35,14 +34,6 @@ from arp.storage.safe_path import UnsafeIdentifierError
 def _count(dsn, model):
     with transaction(dsn) as s:
         return s.scalar(select(func.count()).select_from(model))
-
-
-def _strip(value):
-    if isinstance(value, dict):
-        return {k: _strip(v) for k, v in value.items() if not k.endswith(("_id", "_at", "date"))}
-    if isinstance(value, list):
-        return [_strip(v) for v in value]
-    return value
 
 
 def _script(store):
@@ -66,11 +57,11 @@ def _script(store):
     return store.get("C1")
 
 
-def test_parity_ignoring_ids(pg, tmp_path):
-    file_rec = _script(EngagementStore(tmp_path))
+def test_full_lifecycle_events_and_fields(pg):
     pg_store = PostgresEngagementStore(pg)
     pg_rec = _script(pg_store)
-    assert _strip(pg_rec.model_dump()) == _strip(file_rec.model_dump())
+    assert pg_rec.name == "Acme Corp" and pg_rec.sector == "Energy" and len(pg_rec.issues) == 1
+    assert pg_rec.issues[0].escalation_stage == EscalationStage.WRITTEN_ESCALATION_TO_BOARD
     assert [e["event_type"] for e in pg_store.events("C1")] == [
         "record_created",
         "issue_opened",
@@ -233,12 +224,12 @@ def test_existing_id_is_a_client_error(pg):
     assert store.get("C2").contacts == []
 
 
-def test_unsafe_company_id_is_rejected_like_the_file_store(pg, tmp_path):
-    for store in (EngagementStore(tmp_path), PostgresEngagementStore(pg)):
-        with pytest.raises(UnsafeIdentifierError):
-            store.get("../etc")
-        with pytest.raises(UnsafeIdentifierError):
-            store.get_or_create("../etc", "Evil")
+def test_unsafe_company_id_is_rejected(pg):
+    store = PostgresEngagementStore(pg)
+    with pytest.raises(UnsafeIdentifierError):
+        store.get("../etc")
+    with pytest.raises(UnsafeIdentifierError):
+        store.get_or_create("../etc", "Evil")
 
 
 def _store_with_issue(dsn):

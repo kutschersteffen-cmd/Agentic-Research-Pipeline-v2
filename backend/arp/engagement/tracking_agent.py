@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import Any
 
 from arp.schemas.engagement import (
     Commitment,
@@ -10,7 +11,8 @@ from arp.schemas.engagement import (
     IssueStatus,
     MilestoneStage,
 )
-from arp.storage.engagement_store import EngagementStore
+
+EngagementStore = Any
 
 """Non-LLM logic: logs outcomes and advances milestone state on the record
 store. No sub-agent here talks to a model -- this is deliberately
