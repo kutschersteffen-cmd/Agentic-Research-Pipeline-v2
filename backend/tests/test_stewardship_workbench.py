@@ -10,19 +10,17 @@ from datetime import UTC, date, datetime
 import pytest
 from fastapi.testclient import TestClient
 
-pytest.importorskip("zen")
-
-from arp.api.deps import get_portfolio_store, get_stream_store, settings_dep  # noqa: E402
-from arp.api.main import app  # noqa: E402
-from arp.config import Settings, get_settings  # noqa: E402
-from arp.schemas.common import CompanyRef  # noqa: E402
-from arp.schemas.engagement import CorrespondenceEntry, EngagementIssue, EngagementRecord  # noqa: E402
-from arp.schemas.portfolio import DataPointObservation, Holding, Portfolio, SecurityRef, SecurityResolution  # noqa: E402
-from arp.stewardship import worklist  # noqa: E402
-from arp.stewardship.intake import intake_votes  # noqa: E402
-from arp.stewardship.process import StreamStore  # noqa: E402
-from arp.stewardship.universe import HouseUniverseSetting  # noqa: E402
-from arp.storage.portfolio_store_factory import build_portfolio_store  # noqa: E402
+from arp.api.deps import get_portfolio_store, get_stream_store, settings_dep
+from arp.api.main import app
+from arp.config import Settings, get_settings
+from arp.schemas.common import CompanyRef
+from arp.schemas.engagement import CorrespondenceEntry, EngagementIssue, EngagementRecord
+from arp.schemas.portfolio import DataPointObservation, Holding, Portfolio, SecurityRef, SecurityResolution
+from arp.stewardship import worklist
+from arp.stewardship.config_store import StreamStore
+from arp.stewardship.intake import intake_votes
+from arp.stewardship.universe import HouseUniverseSetting
+from arp.storage.portfolio_store_factory import build_portfolio_store
 
 pytestmark = pytest.mark.usefixtures("sample_house_universe", "pg")
 Q = worklist.cycle_of(datetime.now(UTC).date())

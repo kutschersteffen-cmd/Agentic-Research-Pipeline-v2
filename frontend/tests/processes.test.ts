@@ -9,7 +9,7 @@ test("five workspaces, each with at least one process, and process ids unique", 
 });
 
 test("a process finds its workspace; old Processes-screen ids still resolve", () => {
-  for (const id of ["onboard", "climate", "engage", "proxy", "client", "thematic"]) assert.ok(workspaceOfProcess(id), id);
+  for (const id of ["onboard", "climate", "engage", "client", "thematic"]) assert.ok(workspaceOfProcess(id), id);
   assert.equal(workspaceOfProcess("extract")?.id, "argus");
   assert.equal(workspaceOfProcess("nope"), undefined);
 });
@@ -17,7 +17,7 @@ test("a process finds its workspace; old Processes-screen ids still resolve", ()
 test("stewardship decisions are counted once per stage, never for the ballot stage", () => {
   assert.equal(new Set(DECISION_STAGES).size, DECISION_STAGES.length);
   assert.ok(!DECISION_STAGES.includes("voting"), "ballots are counted on the Proxy Voting runs");
-  assert.ok(["monitoring", "selection", "drafting", "checkpoint", "tracking"].every((s) => DECISION_STAGES.includes(s)));
+  assert.ok(DECISION_STAGES.includes("drafting"));
 });
 
 test("a step links to its screen and sub-screen", () => {

@@ -14,7 +14,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from arp.schemas.engagement import EngagementRecord
-from arp.stewardship.tracking import OPEN
+from arp.stewardship.monitoring import OPEN
 from arp.storage.jsonl_io import complete_rows
 from arp.storage.locks import KeyedLock
 

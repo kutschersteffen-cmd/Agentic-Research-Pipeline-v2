@@ -51,11 +51,6 @@ dependencies = [
     # CI and dev install the browser with `python -m playwright install chromium`.
     "jinja2>=3.1,<4.0",
     "playwright>=1.45,<2.0",
-    # Decision Studio rule graphs (arp/decision/rules.py): GoRules ZEN, MIT.
-    # Pinned exactly, in lockstep with frontend/package.json's
-    # @gorules/zen-engine-wasm32-wasi: the browser previews a rule with the
-    # same engine build the server scores it with, so the two cannot drift.
-    "zen-engine==2.0.2",
     # Postgres is the system of record (arp/db/): runs, companies, review.
     "sqlalchemy>=2.0,<3.0",
     "psycopg[binary]>=3.1,<4.0",

@@ -225,12 +225,9 @@ def test_ac23_classic_deck_has_slots(tmp_path):
 
 @pytest.mark.usefixtures("sample_house_universe", "pg")
 def test_ac23_stewardship_has_slots(tmp_path):
-    pytest.importorskip("zen")
-    from arp.api.routers.stewardship import CreateStreamRequest, create_stream
     from arp.stewardship.client_report import build_pptx, client_report
-    from arp.stewardship.process import StreamStore
+    from arp.stewardship.config_store import StreamStore
 
     streams = StreamStore(tmp_path)
-    stream = streams.get(create_stream(CreateStreamRequest(name="Example Pension Fund"), streams)["stream_id"])
-    out = build_pptx(client_report(streams.root, stream, [], sla_days=45), tmp_path / "r.pptx")
+    out = build_pptx(client_report(streams.root, "House programme", []), tmp_path / "r.pptx")
     assert any(sh.name.startswith("slot:") for s in Presentation(str(out)).slides for sh in s.shapes)

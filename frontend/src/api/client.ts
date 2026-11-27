@@ -9,28 +9,16 @@ import type {
   ArgusFlow,
   FlowProgress,
   WorkbenchResponse,
-  ClientEscalationPreview,
   CaseStudy,
-  ClientReport,
-  TrackedCommitment,
-  TrackedEngagement,
   InteractionType,
   OutreachDraft,
   StyleFlag,
-  CoveragePreview,
-  EscalationPreview,
-  EscalationRecommendation,
-  MonitoringPreview,
   MonitoringTrigger,
-  IssueCatalogue,
   ResearchDossier,
   StewardPolicyId,
   StewardPolicyInfo,
-  StewardshipFlow,
-  StewardshipStream,
   TriggerEvent,
   UnifiedTrigger,
-  VotingPreview,
   HolderStatus,
   IntakeResult,
   RfpDocument,
@@ -41,7 +29,6 @@ import type {
   RefineThread,
   RefineTurn,
   RefineTurnOut,
-  BilateralPick,
   SelectionConfirmed,
   StewardNote,
   StewardNoteList,
@@ -125,9 +112,6 @@ function buildQuery(params: Record<string, string | string[] | undefined | null>
   const qs = usp.toString();
   return qs ? `?${qs}` : "";
 }
-
-/** Policy endpoints act on the house by default, or on a client stream's own policies. */
-const streamQuery = (stream?: string) => (stream ? `?stream=${encodeURIComponent(stream)}` : "");
 
 async function errorFor(res: Response): Promise<Error> {
   let detail = res.statusText;
@@ -746,30 +730,17 @@ export const api = {
     request<{ triggers: UnifiedTrigger[] }>(`/api/stewardship/triggers${status ? `?status=${status}` : ""}`),
   transitionTrigger: (triggerId: string, body: { status: UnifiedTrigger["status"]; decided_by: string; reason?: string }) =>
     request<UnifiedTrigger>(`/api/stewardship/triggers/${encodeURIComponent(triggerId)}/transition`, { method: "POST", body: JSON.stringify(body) }),
-  listStewardshipStreams: () => request<{ streams: StewardshipStream[] }>("/api/stewardship/streams"),
-  createStewardshipStream: (body: { name: string; vehicle_type: string; client_policy?: unknown }) =>
-    request<{ stream_id: string }>("/api/stewardship/streams", { method: "POST", body: JSON.stringify(body) }),
-  getStewardshipFlow: (streamId: string) => request<StewardshipFlow>(`/api/stewardship/streams/${encodeURIComponent(streamId)}/flow`),
-  recordPolicyDecision: (streamId: string, body: { issue_id: string; decision: string; note?: string }) =>
-    request(`/api/stewardship/streams/${encodeURIComponent(streamId)}/decisions`, { method: "POST", body: JSON.stringify(body) }),
-  confirmTiers: (body: { issuer_ids?: string[] }) =>
-    request<{ confirmed: number }>("/api/stewardship/tiers/confirm", { method: "POST", body: JSON.stringify(body) }),
-  getBilateralPicks: () => request<{ picks: BilateralPick[] }>("/api/stewardship/tiers"),
-  pickBilateral: (body: { issuer_id: string; reason: string }) =>
-    request<{ picked: string }>("/api/stewardship/tiers/bilateral", { method: "POST", body: JSON.stringify(body) }),
-  withdrawBilateral: (issuerId: string) =>
-    request<{ withdrawn: string }>(`/api/stewardship/tiers/bilateral/${encodeURIComponent(issuerId)}/withdraw`, { method: "POST" }),
-  getStewardPolicy: (policyId: StewardPolicyId, stream?: string) =>
-    request<StewardPolicyInfo>(`/api/stewardship/policies/${policyId}${streamQuery(stream)}`),
-  getStewardPolicyVersion: (policyId: StewardPolicyId, version: number, stream?: string) =>
-    request<Record<string, unknown>>(`/api/stewardship/policies/${policyId}/versions/${version}${streamQuery(stream)}`),
-  saveStewardPolicyVersion: (policyId: StewardPolicyId, body: { content: unknown; note: string }, stream?: string) =>
-    request<{ version: number }>(`/api/stewardship/policies/${policyId}/versions${streamQuery(stream)}`, {
+  getStewardPolicy: (policyId: StewardPolicyId) =>
+    request<StewardPolicyInfo>(`/api/stewardship/policies/${policyId}`),
+  getStewardPolicyVersion: (policyId: StewardPolicyId, version: number) =>
+    request<Record<string, unknown>>(`/api/stewardship/policies/${policyId}/versions/${version}`),
+  saveStewardPolicyVersion: (policyId: StewardPolicyId, body: { content: unknown; note: string }) =>
+    request<{ version: number }>(`/api/stewardship/policies/${policyId}/versions`, {
       method: "POST",
       body: JSON.stringify(body),
     }),
-  activateStewardPolicy: (policyId: StewardPolicyId, body: { version: number }, stream?: string) =>
-    request(`/api/stewardship/policies/${policyId}/activate${streamQuery(stream)}`, { method: "POST", body: JSON.stringify(body) }),
+  activateStewardPolicy: (policyId: StewardPolicyId, body: { version: number }) =>
+    request(`/api/stewardship/policies/${policyId}/activate`, { method: "POST", body: JSON.stringify(body) }),
   checkStyle: (text: string) =>
     request<{ flags: StyleFlag[] }>("/api/stewardship/style/check", { method: "POST", body: JSON.stringify({ text }) }),
   listDrafts: () => request<{ drafts: OutreachDraft[] }>("/api/stewardship/drafts"),
@@ -783,32 +754,10 @@ export const api = {
     request<OutreachDraft>(`/api/stewardship/drafts/${encodeURIComponent(draftId)}/sent`, {
       method: "POST",
     }),
-  getTracking: () => request<{ commitments: TrackedCommitment[]; engagements: TrackedEngagement[] }>("/api/stewardship/tracking"),
-  addCommitment: (body: { company_id: string; issue_id: string; text: string; target_date?: string }) =>
-    request("/api/stewardship/tracking/commitments", { method: "POST", body: JSON.stringify(body) }),
-  setCommitmentStatus: (
-    commitmentId: string,
-    body: { company_id: string; issue_id: string; status: "verified" | "missed"; evidence?: string },
-  ) =>
-    request(`/api/stewardship/tracking/commitments/${encodeURIComponent(commitmentId)}`, { method: "POST", body: JSON.stringify(body) }),
   closeEngagement: (body: { company_id: string; issue_id: string; status: "resolved" | "closed"; outcome: string }) =>
-    request("/api/stewardship/tracking/close", { method: "POST", body: JSON.stringify(body) }),
+    request("/api/stewardship/close", { method: "POST", body: JSON.stringify(body) }),
   getCaseStudy: (companyId: string, issueId: string) =>
-    request<CaseStudy>(`/api/stewardship/tracking/case-study/${encodeURIComponent(companyId)}/${encodeURIComponent(issueId)}`),
-  getClientReport: (streamId: string) => request<ClientReport>(`/api/stewardship/streams/${encodeURIComponent(streamId)}/report`),
-  clientReportPptxUrl: (streamId: string) => `${API_BASE}/api/stewardship/streams/${encodeURIComponent(streamId)}/report.pptx`,
-  getClientEscalationExample: () => request<Record<string, unknown>>("/api/stewardship/studio/escalation/client-example"),
-  previewClientEscalation: (streamId: string, graph: unknown) =>
-    request<ClientEscalationPreview>(`/api/stewardship/streams/${encodeURIComponent(streamId)}/studio/escalation/preview`, {
-      method: "POST",
-      body: JSON.stringify({ graph }),
-    }),
-  decideClientException: (
-    streamId: string,
-    body: { issue_id: string; client_step: string; decision: "adopt" | "decline"; note?: string },
-  ) => request(`/api/stewardship/streams/${encodeURIComponent(streamId)}/exceptions`, { method: "POST", body: JSON.stringify(body) }),
-  getIssueCatalogue: () => request<IssueCatalogue>("/api/stewardship/catalogue"),
-  getCoverageInputs: () => request<{ contexts: Record<string, unknown>[] }>("/api/stewardship/studio/coverage/inputs"),
+    request<CaseStudy>(`/api/stewardship/case-study/${encodeURIComponent(companyId)}/${encodeURIComponent(issueId)}`),
   // The stewardship workbench (spec stewardship-priority-worklist)
   getWorklist: (scope: string) => request<Worklist>(`/api/stewardship/worklist${buildQuery({ scope })}`),
   getWorklistScopes: () => request<WorklistScopes>("/api/stewardship/worklist/scopes"),
@@ -829,21 +778,9 @@ export const api = {
   getNotes: (companyId: string) => request<StewardNoteList>(`/api/stewardship/notes${buildQuery({ company_id: companyId })}`),
   addNote: (body: { company_id: string; text: string; scope: string }) => request<StewardNote>("/api/stewardship/notes", jsonBody("POST", body)),
   getVotes: (companyId: string) => request<VoteList>(`/api/stewardship/votes${buildQuery({ company_id: companyId })}`),
-  previewCoverage: (graph: unknown) =>
-    request<CoveragePreview>("/api/stewardship/studio/coverage/preview", { method: "POST", body: JSON.stringify({ graph }) }),
   getMonitoringTriggers: () => request<{ triggers: MonitoringTrigger[] }>("/api/stewardship/studio/monitoring/triggers"),
-  previewMonitoring: (graph: unknown) =>
-    request<MonitoringPreview>("/api/stewardship/studio/monitoring/preview", { method: "POST", body: JSON.stringify({ graph }) }),
   openEngagementFromTrigger: (body: { issuer_id: string; rule: string }) =>
     request<{ issue_id: string }>("/api/stewardship/monitoring/open-engagement", { method: "POST", body: JSON.stringify(body) }),
-  getEscalationRecommendations: () =>
-    request<{ recommendations: EscalationRecommendation[] }>("/api/stewardship/studio/escalation/recommendations"),
-  previewEscalation: (graph: unknown) =>
-    request<EscalationPreview>("/api/stewardship/studio/escalation/preview", { method: "POST", body: JSON.stringify({ graph }) }),
-  previewVoting: (policy: unknown) =>
-    request<VotingPreview>("/api/stewardship/studio/voting/preview", { method: "POST", body: JSON.stringify({ policy }) }),
-  buildStreamPolicy: (streamId: string) =>
-    request<{ positions_from_client: number }>(`/api/stewardship/streams/${encodeURIComponent(streamId)}/build`, { method: "POST" }),
   listEngagementRecords: () => request<{ records: unknown[] }>("/api/engagement/records"),
   createEngagementRecord: (body: { company_id: string; name: string; sector?: string | null }) =>
     request("/api/engagement/records", { method: "POST", body: JSON.stringify(body) }),

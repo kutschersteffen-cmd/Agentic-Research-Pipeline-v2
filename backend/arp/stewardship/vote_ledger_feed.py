@@ -16,6 +16,13 @@ from arp.storage.postgres_models import VoteDecisionModel, VoteItemModel, VoteMe
 DEMO_SOURCES = ("mock_voice_seed", "npx_urth_demo", "cockpit_demo")
 
 
+def ledger_rows_for_settings(settings, house_issuers: list[dict] | None = None, held_isins: dict | None = None) -> list[dict]:
+    """`ledger_rows` using the DSN and vote monitoring window from `settings`."""
+    from arp.db.session import require_dsn
+
+    return ledger_rows(require_dsn(settings), settings.vote_monitoring_window_days, house_issuers, held_isins)
+
+
 def ledger_rows(dsn: str, window_days: int, house_issuers: list[dict] | None = None, held_isins: dict | None = None) -> list[dict]:
     """One row per decision on a meeting within `window_days` before the ledger's newest meeting_date.
     `house_issuers`: `house_universe()["issuers"]` when the caller already built it (building it twice is slow)."""
@@ -38,9 +45,7 @@ def ledger_rows(dsn: str, window_days: int, house_issuers: list[dict] | None = N
         found = s.execute(q).all()
         if not found:
             return []
-        from arp.stewardship.process import house_isins
-
-        held = house_isins() if held_isins is None else held_isins  # ISIN -> house issuer holding it in the latest snapshot
+        held = {} if held_isins is None else held_isins  # ISIN -> house issuer holding it in the latest snapshot
         # monitoring keys on house issuer ids: the house issuer that holds the ISIN wins; else the stw_companies
         # key (set only for a known company); else the registry's universe id for the ISIN; else `isin_<ISIN>`
         by_isin = _registry_ids(s, {r.isin for r in found if r.isin and not held.get(r.isin) and r.company_id is None}, house_issuers)
@@ -112,11 +117,8 @@ def _registry_ids(s, isins: set[str], house_issuers: list[dict] | None) -> dict[
         if value:
             values.setdefault(key, []).append(value)
     house: dict[str, str] = {}
-    if values:  # the registry upper-cases UNIVERSE values; issuer ids keep their case
-        from arp.stewardship.process import house_universe
-
-        issuers = house_universe()["issuers"] if house_issuers is None else house_issuers
-        house = {i["issuer_id"].upper(): i["issuer_id"] for i in issuers}
+    if values and house_issuers:  # the registry upper-cases UNIVERSE values; issuer ids keep their case
+        house = {i["issuer_id"].upper(): i["issuer_id"] for i in house_issuers}
     out = {}
     for i in isins:
         found = values.get(normalise_identifier(m.IdScheme.ISIN, i), ())

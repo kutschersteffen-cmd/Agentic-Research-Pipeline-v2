@@ -14,20 +14,18 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-pytest.importorskip("zen")
-
-from arp.api.deps import get_portfolio_store, get_run_store, get_stream_store  # noqa: E402
-from arp.api.main import app  # noqa: E402
-from arp.config import get_settings  # noqa: E402
-from arp.db.runs import RunStore  # noqa: E402
-from arp.schemas.common import CompanyRef, RunManifest  # noqa: E402
-from arp.schemas.portfolio import DataPointObservation, Holding, Portfolio, SecurityRef  # noqa: E402
-from arp.stewardship import universe  # noqa: E402
-from arp.stewardship.process import StreamStore  # noqa: E402
-from arp.stewardship.universe import HouseUniverseSetting, fill_observation_cache  # noqa: E402
-from arp.storage import portfolio_store  # noqa: E402
-from arp.storage.portfolio_store import LATEST_FILE, PortfolioStore  # noqa: E402
-from arp.storage.portfolio_store_factory import build_portfolio_store  # noqa: E402
+from arp.api.deps import get_portfolio_store, get_run_store, get_stream_store
+from arp.api.main import app
+from arp.config import get_settings
+from arp.db.runs import RunStore
+from arp.schemas.common import CompanyRef, RunManifest
+from arp.schemas.portfolio import DataPointObservation, Holding, Portfolio, SecurityRef
+from arp.stewardship import universe
+from arp.stewardship.config_store import StreamStore
+from arp.stewardship.universe import HouseUniverseSetting, fill_observation_cache
+from arp.storage import portfolio_store
+from arp.storage.portfolio_store import LATEST_FILE, PortfolioStore
+from arp.storage.portfolio_store_factory import build_portfolio_store
 from tests.postgres_helpers import replace_results  # noqa: E402
 
 SNAPSHOT = "2026-11-02"

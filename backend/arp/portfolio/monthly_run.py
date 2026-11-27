@@ -15,10 +15,9 @@ from arp.config import Settings
 from arp.portfolio.climate.esg_intake import MONTH
 from arp.portfolio.loads import latest_load
 from arp.portfolio.monitoring.evaluator import evaluate_news_triggers, evaluate_threshold_rules, list_alerts
-from arp.stewardship import monitoring
+from arp.stewardship import alerts_feed, monitoring, vote_ledger_feed
 from arp.stewardship.alerts_feed import LIVE
-from arp.stewardship.policies import PolicyStore
-from arp.stewardship.process import load_sample, vote_items
+from arp.stewardship.config_store import PolicyStore
 from arp.stewardship.trigger_store import TriggerStore
 from arp.stewardship.universe import from_portfolio
 from arp.storage.engagement_store_factory import build_engagement_store
@@ -77,7 +76,12 @@ def run_month(
     raised = evaluate_threshold_rules(store, as_of=month_end(month))
     raised += evaluate_news_triggers(store, min_severity=settings.portfolio_monitoring_news_min_severity)
     live = [a for a in list_alerts(store) if a.status in LIVE]
-    sample = load_sample(None, vote_items(settings.runs_dir), live, from_portfolio(store, as_of=obs_as_of))
+    held: dict[str, str] = {}
+    sample = from_portfolio(store, as_of=obs_as_of, held_isins_out=held)
+    votes = vote_ledger_feed.ledger_rows_for_settings(settings, sample["issuers"], held)
+    for fields in (vote_ledger_feed.issuer_fields(votes), alerts_feed.issuer_fields(live)):
+        for issuer in sample["issuers"]:
+            issuer["fields"].update(fields.get(issuer["issuer_id"], {}))
     records = build_engagement_store(settings).list_all()
     triggers = monitoring.evaluate(PolicyStore(settings.stewardship_streams_dir).active("monitoring_rules"), sample, records)
     trigger_store = TriggerStore(settings.stewardship_streams_dir)

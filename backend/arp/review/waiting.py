@@ -8,8 +8,6 @@ from arp.core.auth import Principal
 from arp.db.runs import RunStore
 from arp.review.items import list_open_items
 
-DECISION_STAGES = {"checkpoint", "tracking"}
-
 
 class WaitingCounts(BaseModel):
     review: int
@@ -18,7 +16,6 @@ class WaitingCounts(BaseModel):
     total: int
 
 
-def waiting_counts(run_store: RunStore, principal: Principal, house_flow: dict) -> WaitingCounts:
+def waiting_counts(run_store: RunStore, principal: Principal, pending_drafts: int = 0) -> WaitingCounts:
     review = len(list_open_items(run_store, principal))
-    decisions = sum(len(s["decisions"]) for s in house_flow["stages"] if s["id"] in DECISION_STAGES)
-    return WaitingCounts(review=review, decisions=decisions, ballots=0, total=review + decisions)
+    return WaitingCounts(review=review, decisions=pending_drafts, ballots=0, total=review + pending_drafts)

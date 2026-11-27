@@ -11,7 +11,7 @@ from arp.api.auth import current_user
 from arp.api.routers import engagement, stewardship, taxonomies
 from arp.config import Settings
 from arp.schemas.taxonomy import DerivationMethod
-from arp.stewardship.process import StreamStore
+from arp.stewardship.config_store import StreamStore
 from arp.storage.engagement_store import EngagementStore
 from arp.storage.taxonomy_store import TaxonomyStore
 from tests.conftest import PRINCIPAL
@@ -73,11 +73,11 @@ def test_put_universe_works_without_set_by_and_records_the_principal(stew):
     assert res.json()["set_by"] == PRINCIPAL.name
 
 
-def test_stewardship_commitment_ignores_supplied_name(stew):
+def test_stewardship_draft_ignores_supplied_name(stew):
     client, _, engagements = stew
     _, issue = engagements.open_issue("ACME", "Acme", theme="climate_transition")
     res = client.post(
-        "/api/stewardship/tracking/commitments",
-        json={"company_id": "ACME", "issue_id": issue.issue_id, "text": "Cut", "recorded_by": MALLORY},
+        "/api/stewardship/drafts",
+        json={"company_id": "ACME", "issue_id": issue.issue_id, "text": "Hello", "created_by": MALLORY},
     )
-    assert res.status_code == 200 and res.json()["recorded_by"] == PRINCIPAL.name
+    assert res.status_code == 200 and res.json()["created_by"] == PRINCIPAL.user_id
