@@ -97,13 +97,6 @@ optimize = [
 # Empty: Postgres is required now and its packages are in `dependencies`.
 # Kept so existing `pip install -e ".[postgres,...]"` lines keep working.
 postgres = []
-# Opt-in OpenSearch client (arp/storage/opensearch_client.py): user-facing
-# search plus an alternate BM25 retrieval backend for select_evidence.py.
-# Not required for the file/BM25-in-memory default path -- see
-# Settings.opensearch_url.
-opensearch = [
-    "opensearch-py>=2.6,<3.0",
-]
 # Opt-in S3-compatible object-storage client (arp/storage/object_store_client.py,
 # document_blob_store.py): immutable copies of source documents (MinIO
 # locally, any S3-compatible endpoint in production). Not required for the

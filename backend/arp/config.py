@@ -540,32 +540,6 @@ class Settings(BaseSettings):
         description="Extra connections beyond postgres_pool_size under load (to_thread's worker threads, the API's "
         "thread pool). pool_size + max_overflow per process must fit the server's max_connections.",
     )
-    # Optional OpenSearch store (arp/storage/opensearch_client.py, requires
-    # the `opensearch` extra: pip install -e ".[opensearch]"). Additive:
-    # powers a new user-facing search feature (arp/api/routers/search.py)
-    # and, opt-in, an alternate BM25 backend for select_relevant_chunks.
-    # Never authoritative for anything -- OpenSearch holds retrieval-only
-    # evidence/embeddings, never approved facts (see company_facts_* below).
-    opensearch_url: str | None = Field(
-        default=None,
-        description="OpenSearch endpoint, e.g. http://localhost:9200. None (default) disables the user-facing "
-        "search feature and the 'opensearch' retrieval_backend option; BM25/hybrid retrieval and every other "
-        "feature are unaffected.",
-    )
-    search_live_indexing_enabled: bool = Field(
-        default=False,
-        description="When true (and opensearch_url is set), index each newly registered document into OpenSearch "
-        "at ingestion time (arp/ingestion/local_files.py, edgar.py), best-effort -- an indexing failure is logged, "
-        "never fails ingestion. Off by default so opting into OpenSearch never changes ingestion behavior; run "
-        "'arp db reindex opensearch' for a one-time backfill regardless of this flag.",
-    )
-    retrieval_backend: Literal["bm25", "opensearch"] = Field(
-        default="bm25",
-        description="'bm25' (default, in-memory LlamaIndex BM25Retriever, see arp/retrieval/index_cache.py) or "
-        "'opensearch' (requires opensearch_url) for select_relevant_chunks' keyword-ranking component. Either way "
-        "the hybrid_retrieval_enabled local-embedding fusion is unaffected -- this only changes who computes the "
-        "BM25 half.",
-    )
 
     # Optional S3-compatible object store (arp/storage/object_store_client.py,
     # requires the `object_storage` extra: pip install -e ".[object_storage]").
@@ -604,12 +578,6 @@ class Settings(BaseSettings):
         default=3650, ge=365, description="Stored originals in blob_store_dir, by file age."
     )
 
-    # Each entry: the setting, the value that needs a connection, the
-    # setting that must then be set, and what to do instead.
-    _BACKEND_REQUIREMENTS = (
-        ("retrieval_backend", "opensearch", "opensearch_url", "ARP_OPENSEARCH_URL", "ARP_RETRIEVAL_BACKEND=bm25"),
-    )
-
     @field_validator("model_device", mode="before")
     @classmethod
     def _model_device_known(cls, value: object) -> str:
@@ -630,25 +598,6 @@ class Settings(BaseSettings):
                 "llm_batch is set per run (the batch switch / batch_settings), never globally: unset ARP_LLM_BATCH"
             )
         return value
-
-    @model_validator(mode="after")
-    def _selected_backends_have_their_connection(self) -> "Settings":
-        """Refuses to start when a backend is selected without the
-        connection it needs.
-
-        Checked here, once, at startup -- not in the factories that build
-        those stores: the retrieval store is built per field per company
-        inside the retrieval graph, so raising there would fail runs
-        mid-flight over a configuration mistake. Failing at construction
-        makes it loud before any work starts, in the API and the CLI alike.
-        """
-        for setting, needs_connection, connection_setting, env_var, alternative in self._BACKEND_REQUIREMENTS:
-            if getattr(self, setting) == needs_connection and not getattr(self, connection_setting):
-                raise ValueError(
-                    f"{setting} is '{needs_connection}' but {connection_setting} is not set. "
-                    f"Set {env_var}, or use {alternative}."
-                )
-        return self
 
     @field_validator("frontend_dist", mode="before")
     @classmethod

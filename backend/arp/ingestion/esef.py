@@ -520,14 +520,7 @@ class EsefDocumentSource(DocumentSource):
         fiscal_period: str | None = None,
     ) -> None:
         """Mirrors EdgarDocumentSource._index_and_archive; the blob key is the content_key (sha256 of the bytes)."""
-        from arp.retrieval.search_indexer import index_document_if_enabled
         from arp.storage.document_blob_store import blob_store_for, upload_or_fail
 
-        cfg = self._indexing_config
-        doc_type = DocType.ANNUAL_REPORT_10K
-        index_document_if_enabled(
-            cfg, doc_id=doc_id, company_id=company_id, doc_type=doc_type, title=title, full_text=text, fiscal_period=fiscal_period,
-            content_key=content_key, parser_version=esef_parser_version(),
-        )
-        storage_uri = upload_or_fail(blob_store_for(cfg), content_key, raw)
+        storage_uri = upload_or_fail(blob_store_for(self._indexing_config), content_key, raw)
         self._content_store.set_storage_uri(doc_id, storage_uri)

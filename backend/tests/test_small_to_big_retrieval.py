@@ -324,21 +324,6 @@ def test_high_risk_fallback_as_off(monkeypatch):  # AC-12
     assert off and [c.chunk_id for c in field_evidence(field, [doc], _settings(small_to_big_enabled=True))] == off
 
 
-class _FakeOpenSearch:
-    def search(self, index, body):
-        ids = body["query"]["bool"]["filter"]["terms"]["chunk_id"]
-        return {"hits": {"hits": [{"_source": {"chunk_id": cid}, "_score": float(20 - i)} for i, cid in enumerate(ids[:10])]}}
-
-
-def test_opensearch_unchanged(monkeypatch):  # AC-13
-    monkeypatch.setattr("arp.storage.opensearch_client.get_client", lambda url: _FakeOpenSearch())
-    doc = doc_t()
-    kw = {"retrieval_backend": "opensearch", "opensearch_url": "http://x"}
-    off = [c.chunk_id for c in field_evidence(_field(), [doc], _off(**kw))]
-    on = [c.chunk_id for c in field_evidence(_field(), [doc], _settings(small_to_big_enabled=True, **kw))]
-    assert off and on == off
-
-
 def test_other_callers_unchanged(monkeypatch):  # AC-30
     doc = doc_t()
 

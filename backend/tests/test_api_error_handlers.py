@@ -184,7 +184,6 @@ _400 = [
     ("arp.transition_barrier.rule_book", "RuleBookError"), ("arp.reporting.chart_builder", "ChartDataError"),
 ]
 _503 = [
-    ("arp.storage.opensearch_client", "OpenSearchNotConfigured"),
     ("arp.transition_barrier.refresh.pipeline", "RefreshDisabledError"),
     ("arp.reporting.browser", "BrowserUnavailable"), ("arp.orchestration.jobs", "RunBusy"),
     ("arp.orchestration.plan_store", "PlanNotReplannable"), ("arp.orchestration.plan_executor", "PlanNotRunnable"),
@@ -194,7 +193,6 @@ _503 = [
 
 # Not in the spec's table; the owner chose to keep today's status.
 _EXTRA = [
-    ("arp.storage.opensearch_client", "OpenSearchExtraNotInstalled", 503),
     ("arp.storage.taxonomy_store", "TaxonomyVersionConflict", 503),
     ("arp.storage.postgres", "PostgresExtraNotInstalled", 503),
     ("arp.storage.document_blob_store", "CaptureStoreError", 503),

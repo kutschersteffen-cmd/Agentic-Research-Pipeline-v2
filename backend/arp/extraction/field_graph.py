@@ -135,7 +135,7 @@ def field_evidence(
     CPU-bound); `golden-set retrieval` replays it, so the eval measures exactly this path."""
     keywords = with_german(field.seed_keywords)
     # small-to-big: rank small pieces (and table passages), return their parents; in-memory BM25 only
-    small_to_big = bool(settings is not None and settings.small_to_big_enabled and settings.retrieval_backend == "bm25" and keywords)
+    small_to_big = bool(settings is not None and settings.small_to_big_enabled and keywords)
     all_chunks: list[DocumentChunk] = []
     ranked_units: list[DocumentChunk] = []
     parents: dict[str, DocumentChunk] = {}
@@ -159,12 +159,6 @@ def field_evidence(
 
         content_store = build_hybrid_content_store(settings)
 
-    opensearch_client = None
-    if settings is not None and settings.retrieval_backend == "opensearch" and settings.opensearch_url:
-        from arp.storage.opensearch_client import get_client
-
-        opensearch_client = get_client(settings.opensearch_url)
-
     limits = {}
     if settings is not None:
         limits = {
@@ -181,8 +175,6 @@ def field_evidence(
             doc_type_filter=None if field.document_routing else field.source_doc_types or None,
             hybrid_retrieval_enabled=settings is not None and settings.hybrid_retrieval_enabled,
             content_store=content_store,
-            retrieval_backend=settings.retrieval_backend if settings is not None else "bm25",
-            opensearch_client=opensearch_client,
             fallback_to_all=field.high_risk and unit_parents is None,
             on_unranked_fallback=on_unranked_fallback,
             index_texts=index_texts or None,

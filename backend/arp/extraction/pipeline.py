@@ -117,7 +117,7 @@ def input_settings(settings: Settings) -> dict:
         "grounding_fuzzy_threshold": settings.grounding_fuzzy_threshold,
         "confidence_review_threshold": settings.confidence_review_threshold,
         "hybrid_retrieval_enabled": settings.hybrid_retrieval_enabled,
-        "retrieval_backend": settings.retrieval_backend,
+        "retrieval_backend": "bm25",
         "xbrl_facts_enabled": settings.xbrl_facts_enabled,
         **({"extraction_group_size": settings.extraction_group_size} if settings.extraction_group_size > 1 else {}),
         # only when on, so turning it on doesn't change every existing hash

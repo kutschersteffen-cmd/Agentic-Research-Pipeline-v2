@@ -17731,12 +17731,12 @@ export interface components {
             link?: string | null;
             /**
              * Score
-             * @description Raw OpenSearch _score for this hit, not normalized across types.
+             * @description Relevance score for this hit, not normalized across types.
              */
             score: number;
             /**
              * Snippet
-             * @description Plain-text excerpt from OpenSearch's highlight response (tags stripped server-side).
+             * @description Short plain-text summary or excerpt for this search hit.
              * @default
              */
             snippet: string;

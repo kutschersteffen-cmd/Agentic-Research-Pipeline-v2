@@ -36,8 +36,6 @@ from arp.storage.engagement_store import EngagementStore
 from arp.storage.engagement_store_factory import build_engagement_store
 from arp.storage.identifier_map import IdentifierMapStore
 from arp.storage.index_store import IndexStore
-from arp.storage.opensearch_client import OpenSearchNotConfigured
-from arp.storage.opensearch_client import get_client as get_opensearch_client
 from arp.storage.portfolio_store_factory import build_portfolio_store
 from arp.storage.postgres_engagement_store import PostgresEngagementStore
 from arp.storage.reporting_store import ReportingStore
@@ -46,8 +44,6 @@ from arp.storage.taxonomy_store import TaxonomyStore
 from arp.storage.topic_store import TopicStateStore
 
 if TYPE_CHECKING:
-    from opensearchpy import OpenSearch
-
     from arp.schemas.common import CompanyRef
     from arp.schemas.datapoints import DataPointSchema
 
@@ -183,20 +179,6 @@ def get_llm_client() -> LLMClient:
     baked into a cached singleton at import time.
     """
     return build_llm_client(get_settings())
-
-
-def get_opensearch_client_or_503() -> OpenSearch:
-    """Not cached, same rationale as get_llm_client: raises
-    OpenSearchNotConfigured (a RuntimeError, so arp.api.main's global
-    RuntimeError handler turns it into a clean 503) when opensearch_url
-    isn't set, so the "you haven't opted into this feature" error surfaces
-    per-request rather than being baked into a cached dependency. The
-    underlying client itself is still cached, per-URL, by
-    opensearch_client.get_client's own lru_cache."""
-    settings = get_settings()
-    if not settings.opensearch_url:
-        raise OpenSearchNotConfigured()
-    return get_opensearch_client(settings.opensearch_url)
 
 
 def get_verifier_llm_client() -> LLMClient:
