@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api/client";
-import { apiMessage } from "../../lib/projects";
+import { apiMessage } from "../../lib/apiError";
 import { useMe } from "../../lib/reviewer";
 import { exposureHash, recipesHash } from "../../lib/valueChain";
 import type { VcRecipe } from "../../types";

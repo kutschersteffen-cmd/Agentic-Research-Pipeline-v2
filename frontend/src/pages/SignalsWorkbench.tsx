@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import { activatable } from "../lib/activatable";
-import { apiMessage } from "../lib/projects";
+import { apiMessage } from "../lib/apiError";
 import { useMe } from "../lib/reviewer";
 import {
   alreadyRunLine,

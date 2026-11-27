@@ -3,7 +3,6 @@ import { clearToken, getToken } from "../lib/auth";
 import type { Plan } from "../lib/plans";
 import type { Board, BoardBlock } from "../lib/board";
 import { filenameFromDisposition, inlineSafe } from "../lib/files";
-import { profileEmbedParams } from "../lib/biEmbed";
 import { cockpitPath } from "../lib/cockpit";
 import type { RowLineage } from "../lib/lineage";
 import type { Me } from "../lib/reviewKeys";
@@ -159,8 +158,7 @@ import type {
 } from "../types";
 import type { AgentAsk, AskThread, Exploration, InboxRow, ItemContext, ItemDecisionBody, ItemSource, ItemState, PageBox, ReviewItem, SimilarDecision, WaitingCounts, Walkthrough } from "../types";
 import type { DecisionInput, DocType, DocumentPassages, PublishedDecision, Readiness } from "../types";
-import { formatValidationErrors } from "../lib/projects";
-import type { BIChartPlan, BIDesignResult, BIEmbedToken, DashboardItem, ExportedDashboard, OpenedDashboard, OpenResult, ProjectSummary } from "../types";
+import { formatValidationErrors } from "../lib/apiError";
 import type { Finding, QuantitativeDataset, ReportManifest, ReportPlan, ReportRequest, Storyline, TemplateStyleProfile } from "../types";
 import type { PaperCandidate, ReplicationDatasetUpload, ReplicationRunDetail, RegimeStratifiedReport, SanityCheckAssessment, SpecReviewState, StrategySpec } from "../types";
 import type {
@@ -1158,35 +1156,6 @@ export const api = {
     }),
   evaluateMonitoringNow: () =>
     request<{ threshold_alerts_raised: number; news_alerts_raised: number }>("/api/portfolio/monitoring/evaluate-now", { method: "POST" }),
-
-  // Superset BI designer (/api/bi): drafts dashboards in Superset itself
-  designBI: (body: { brief: string }) => request<BIDesignResult>("/api/bi/design", { method: "POST", body: JSON.stringify(body) }),
-  askBI: (question: string) => request<BIDesignResult>("/api/bi/ask", { method: "POST", body: JSON.stringify({ question }) }),
-  biDashboards: () => request<DashboardItem[]>("/api/bi/dashboards"),
-  biEmbedToken: (dashboardId: number, companyId: string | null = null) =>
-    request<BIEmbedToken>("/api/bi/embed-token", {
-      method: "POST",
-      body: JSON.stringify({ dashboard_id: String(dashboardId), ...profileEmbedParams(companyId) }),
-    }),
-
-  // Projects (/api/projects)
-  listProjects: () => request<ProjectSummary[]>("/api/projects"),
-  createProject: (body: { name: string; description: string }) =>
-    request<{ id: string; name: string }>("/api/projects", { method: "POST", body: JSON.stringify(body) }),
-  uploadProjectData: (id: string, file: File, notionalEur: number) => {
-    const form = new FormData();
-    form.append("file", file);
-    form.append("notional_eur", String(notionalEur));
-    return request<{ id: string }>(`/api/projects/${encodeURIComponent(id)}/data`, { method: "POST", body: form });
-  },
-  openProject: (id: string) => request<OpenResult>(`/api/projects/${encodeURIComponent(id)}/open`, { method: "POST" }),
-  saveProjectDashboard: (id: string, body: { title: string; plan: BIChartPlan }) =>
-    request<OpenedDashboard>(`/api/projects/${encodeURIComponent(id)}/dashboards`, { method: "POST", body: JSON.stringify(body) }),
-  exportProjectDashboard: (id: string, dashboardId: number) =>
-    request<ExportedDashboard>(`/api/projects/${encodeURIComponent(id)}/dashboards/export`, {
-      method: "POST",
-      body: JSON.stringify({ dashboard_id: dashboardId }),
-    }),
 
   // Climate analytics
   getClimateSchema: () => request<DataPointSchema>("/api/climate/schema"),

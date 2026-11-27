@@ -8,11 +8,11 @@ import json
 
 import pytest
 
-from arp.bi.published import GRADE_LETTERS, month_end
 from arp.config import Settings
 from arp.portfolio import datapoint_mapping
 from arp.portfolio.climate.esg_intake import FIELD_IDS as CLIMATE_FIELD_IDS
 from arp.portfolio.loads import latest_load
+from arp.portfolio.monthly_run import GRADE_LETTERS, month_end
 from arp.schemas.portfolio import DataPointObservation
 from arp.showcase.load import MONTHS, load
 from arp.showcase.schema import FIELD_IDS
@@ -57,13 +57,11 @@ def env(tmp_path):
     return store, settings, holdings, dataset, rows
 
 
-def _run(env, monkeypatch=None):
+def _run(env):
     store, settings, holdings, dataset, _ = env
-    lines, published = [], {}
-    if monkeypatch:
-        monkeypatch.setattr(store, "publish_rows", lambda d, m, rows: published.__setitem__((d, m), rows), raising=False)
+    lines = []
     ok = load(store, settings, holdings, dataset, lines.append)
-    return ok, lines, published
+    return ok, lines
 
 
 def _counts(store):
@@ -73,15 +71,14 @@ def _counts(store):
     return len(store.list_portfolios()), snapshots, len(events), observations
 
 
-def test_every_step_reports_ok_and_the_six_months_run(env, monkeypatch):
-    ok, lines, published = _run(env, monkeypatch)
+def test_every_step_reports_ok_and_the_six_months_run(env):
+    store = env[0]
+    ok, lines = _run(env)
     assert ok and [line.split(":")[0] for line in lines] == [
         "ok import", "ok history", "ok esg", "ok scores", *(f"ok run {m}" for m in MONTHS),
     ]
     assert lines[4].startswith("ok run 2026-06: ") and lines[4].endswith(" triggers") and " alerts, " in lines[4]
-    for month in MONTHS:
-        assert {r["portfolio_id"] for r in published[("portfolio_climate_metrics", month)]} == PORTFOLIOS
-
+    assert {p.portfolio_id for p in store.list_portfolios()} == PORTFOLIOS
 
 
 def test_load_writes_the_compact_latest_observations_file(env):
@@ -90,6 +87,7 @@ def test_load_writes_the_compact_latest_observations_file(env):
     assert _run(env)[0]
     entries = json.loads((store.portfolios_dir / LATEST_FILE).read_text())["entries"]
     assert sorted((e[0], e[1]) for e in entries) == store.list_observation_keys() and entries
+
 
 def test_history_is_five_rescaled_month_ends_labelled_simulated(env):
     store = env[0]
@@ -114,57 +112,48 @@ def test_history_is_five_rescaled_month_ends_labelled_simulated(env):
     assert latest_load(store, "holdings", "portfolio_sp500", "2026-11").detail == "constituent import SP500.xlsx"
 
 
-def test_esg_values_drift_by_grade_and_carry_the_simulated_source(env, monkeypatch):
+def test_esg_values_drift_by_grade_and_carry_the_simulated_source(env):
     store, *_, rows = env
-    ok, _, published = _run(env, monkeypatch)
+    ok, _ = _run(env)
     assert ok
     for month in MONTHS:
         rec = latest_load(store, "esg", "simulated", month)
         day = "2026-11-02" if month == "2026-11" else month_end(month)
         assert (rec.status, rec.at[:10], rec.detail) == ("ok", day, "simulated ESG from esg_simulated.csv")
 
-    def profile(month, company_id, field_id):
-        (row,) = [r for r in published[("company_profile", month)] if (r["company_id"], r["field_id"]) == (company_id, field_id)]
-        return row
+    def resolve(month, company_id, field_id):
+        as_of = "2026-11-02" if month == "2026-11" else month_end(month)
+        return datapoint_mapping.resolve_field_value(store, company_id, field_id, as_of)
 
     a, f = rows["A"], rows["F"]
-    june = profile("2026-06", a["company_id"], "climate_scope1_tco2e")
-    assert june["value"] == pytest.approx(float(a["climate_scope1_tco2e"]) * 1.05, rel=1e-3)
-    assert (june["source"], june["as_of"]) == ("simulated", "2026-06-30")
-    assert profile("2026-10", a["company_id"], "climate_carbon_intensity")["value"] == pytest.approx(float(a["climate_carbon_intensity"]) * 1.01, rel=1e-3)
-    assert profile("2026-06", a["company_id"], "climate_scope3_tco2e")["value"] == float(a["climate_scope3_tco2e"])  # only scope 1, 2 and intensity drift
+    june = resolve("2026-06", a["company_id"], "climate_scope1_tco2e")
+    assert june.value == pytest.approx(float(a["climate_scope1_tco2e"]) * 1.05, rel=1e-3)
+    assert (june.source, june.observed_at[:10]) == ("simulated", "2026-06-30")
+    assert resolve("2026-10", a["company_id"], "climate_carbon_intensity").value == pytest.approx(float(a["climate_carbon_intensity"]) * 1.01, rel=1e-3)
+    assert resolve("2026-06", a["company_id"], "climate_scope3_tco2e").value == float(a["climate_scope3_tco2e"])  # only scope 1, 2 and intensity drift
     for month in ("2026-06", "2026-11"):
-        assert profile(month, f["company_id"], "climate_scope1_tco2e")["value"] == float(f["climate_scope1_tco2e"])
-    november = profile("2026-11", a["company_id"], "climate_scope1_tco2e")
-    assert (november["value"], november["source"], november["as_of"]) == (float(a["climate_scope1_tco2e"]), "simulated", "2026-11-02")
+        assert resolve(month, f["company_id"], "climate_scope1_tco2e").value == float(f["climate_scope1_tco2e"])
+    november = resolve("2026-11", a["company_id"], "climate_scope1_tco2e")
+    assert (november.value, november.source, november.observed_at[:10]) == (float(a["climate_scope1_tco2e"]), "simulated", "2026-11-02")
 
 
-def test_the_25_score_fields_are_published_for_november_only(env, monkeypatch):
-    rows = env[-1]
-    ok, _, published = _run(env, monkeypatch)
-    assert ok
+def test_the_25_score_fields_are_stored_for_november_only(env):
+    store, *_, rows = env
+    assert _run(env)[0]
     a = rows["A"]
-    november = {r["field_id"]: r for r in published[("company_profile", "2026-11")] if r["company_id"] == a["company_id"]}
-    assert set(FIELD_IDS) <= set(november) and all(november[f]["source"] == "simulated" for f in FIELD_IDS)
-    assert (november["transition_grade"]["value"], november["transition_grade_label"]["value"]) == ("A", "Leader")
-    assert november["peer_group"]["value"] == "Information Technology"
-    assert november["norms_violation"]["value"] is False and november["esg_score"]["value"] == float(a["esg_score"])
-    october = {r["field_id"] for r in published[("company_profile", "2026-10")] if r["company_id"] == a["company_id"]}
-    assert not october & set(FIELD_IDS)
+    november = {
+        fid: datapoint_mapping.resolve_field_value(store, a["company_id"], fid, "2026-11-30")
+        for fid in FIELD_IDS
+    }
+    assert all(obs is not None and obs.source == "simulated" for obs in november.values())
+    assert (november["transition_grade"].value, november["transition_grade_label"].value) == ("A", "Leader")
+    assert november["peer_group"].value == "Information Technology"
+    assert november["norms_violation"].value is False and november["esg_score"].value == float(a["esg_score"])
+    assert all(datapoint_mapping.resolve_field_value(store, a["company_id"], fid, "2026-10-31") is None for fid in FIELD_IDS)
 
 
-def test_grade_weights_are_shares_of_the_graded_weight(env, monkeypatch):
-    assert "".join(g[0] for g in GRADES) == GRADE_LETTERS  # published.py keeps its own copy of the letters
-    ok, _, published = _run(env, monkeypatch)
-    assert ok
-    (world,) = [r for r in published[("portfolio_climate_metrics", "2026-11")] if r["portfolio_id"] == "portfolio_msci_world"]
-    # ten equal weights graded A 1, B 2, C 3, D 2, E 1, F 1; the cash line has no company, so no grade
-    shares = {g: world[f"grade_{g}_weight_pct"] for g in "abcdef"}
-    assert shares == pytest.approx({"a": 10, "b": 20, "c": 30, "d": 20, "e": 10, "f": 10})
-    for r in published[("portfolio_climate_metrics", "2026-11")]:
-        assert sum(r[f"grade_{g}_weight_pct"] for g in "abcdef") == pytest.approx(100)
-    (june,) = [r for r in published[("portfolio_climate_metrics", "2026-06")] if r["portfolio_id"] == "portfolio_msci_world"]
-    assert all(june[f"grade_{g}_weight_pct"] is None for g in "abcdef")  # the grade is observed for 2026-11 only
+def test_grade_letters_match_simulate_grades():
+    assert "".join(g[0] for g in GRADES) == GRADE_LETTERS
 
 
 def test_dataset_companies_open_on_the_company_page_with_their_simulated_values(env):
@@ -215,7 +204,7 @@ def test_a_second_run_changes_nothing(env):
     store = env[0]
     assert _run(env)[0]
     first = _counts(store)
-    ok, lines, _ = _run(env)
+    ok, lines = _run(env)
     assert ok and _counts(store) == first
     assert lines[2].startswith("ok esg: 0 new") and lines[3].startswith("ok scores: 0 new")
 
@@ -261,27 +250,3 @@ def test_the_simulated_schema_is_served_next_to_the_climate_schema():
     assert body["schema_id"] == "simulated_esg" and body["name"] == "Simulated ESG"
     assert [f["field_id"] for f in body["fields"]] == FIELD_IDS and len(FIELD_IDS) == 25
     assert {f["field_id"] for f in body["fields"] if f["data_type"] == "boolean"} == {"controversial_weapons", "norms_violation", "severe_controversy"}
-
-
-def test_the_template_views_have_rows_after_the_load(env, pg):
-    """Every `bi` view the four dashboard templates read shows rows after a showcase load with real publish_rows."""
-    import re
-
-    from sqlalchemy import text
-
-    from arp.bi.views import create_bi_views
-    from arp.storage.postgres import get_engine
-    from arp.storage.postgres_portfolio_store import PostgresPortfolioStore
-
-    store, settings, holdings, dataset, _ = env
-    lines = []
-    assert load(PostgresPortfolioStore(pg, store), settings, holdings, dataset, lines.append), lines
-    runs = [tuple(map(int, m.groups())) for line in lines if (m := re.match(r"ok run \S+: (\d+) alerts, (\d+) triggers", line))]
-    with get_engine(pg).begin() as conn:
-        create_bi_views(conn)
-        count = {v: conn.execute(text(f"SELECT count(*) FROM bi.{v}")).scalar() for v in (
-            "holdings", "holdings_history", "portfolio_climate_metrics", "company_profile", "alerts", "triggers"
-        )}  # fmt: skip
-    assert all(count[v] >= 1 for v in ("holdings", "holdings_history", "portfolio_climate_metrics", "company_profile")), count
-    assert count["alerts"] >= 1 or not any(a for a, _ in runs), (count, lines)
-    assert count["triggers"] >= 1 or not any(t for _, t in runs), (count, lines)

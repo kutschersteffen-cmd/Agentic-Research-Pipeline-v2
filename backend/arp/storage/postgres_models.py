@@ -256,19 +256,6 @@ class FactEventModel(Base):
     company_id: Mapped[uuid.UUID | None] = _company_ref("fact_events")
 
 
-class BiPublishedModel(Base):
-    """Rows the monthly run publishes for Superset, one JSON object per row (arp/bi/published.py).
-    The `bi` views (arp/bi/views.py) cast them to typed columns. Derived data: no file store behind it."""
-
-    __tablename__ = "bi_published"
-    __table_args__ = (Index("ix_bi_published_dataset_month", "dataset", "month"),)
-
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    dataset: Mapped[str] = mapped_column(String)
-    month: Mapped[str] = mapped_column(String)
-    row: Mapped[dict] = mapped_column(JSONB)
-
-
 # Stewardship engagements and the vote ledger. Every table has `source` + `external_id` (unique
 # together). `target_date` stays Text: the API and old files hold free-form ISO strings;
 # every real timestamp is timestamptz.

@@ -102,7 +102,6 @@ class Settings(BaseSettings):
     taxonomies_dir: Path = Field(default=REPO_ROOT / "taxonomies")
     portfolios_dir: Path = Field(default=REPO_ROOT / "portfolios")
     qa_audit_path: Path | None = Field(default=None, description="Q&A audit log; defaults to portfolios_dir/qa_audit.jsonl.")
-    projects_dir: Path = Field(default=REPO_ROOT / "projects")
     documents_dir: Path = Field(default=REPO_ROOT / "data" / "documents")
     xbrl_dir: Path = Field(default=REPO_ROOT / "data" / "xbrl")
     training_cutoffs_path: Path = Field(default=REPO_ROOT / "data" / "training_cutoffs.json")
@@ -542,25 +541,6 @@ class Settings(BaseSettings):
         description="Extra connections beyond postgres_pool_size under load (to_thread's worker threads, the API's "
         "thread pool). pool_size + max_overflow per process must fit the server's max_connections.",
     )
-    # Apache Superset BI integration (arp/bi/). Needs postgres_dsn: Superset
-    # reads only the read-only 'bi' views, never base tables.
-    superset_url: str = Field(
-        default="http://127.0.0.1:8088",
-        description="Base URL of the Superset instance the BI designer talks to.",
-    )
-    superset_user: str = Field(
-        default="arp_designer",
-        description="Superset account used by bootstrap and the BI designer at runtime.",
-    )
-    superset_password: str | None = Field(
-        default=None,
-        description="Password for superset_user. None (default) leaves BI features unconfigured; no built-in default.",
-    )
-    bi_reader_password: str | None = Field(
-        default=None,
-        description="Password of the bi_reader Postgres role (SELECT on schema 'bi' only) that Superset connects "
-        "with. None (default) means the role is not provisioned; no built-in default.",
-    )
     # Optional OpenSearch store (arp/storage/opensearch_client.py, requires
     # the `opensearch` extra: pip install -e ".[opensearch]"). Additive:
     # powers a new user-facing search feature (arp/api/routers/search.py)
@@ -709,7 +689,6 @@ class Settings(BaseSettings):
             self.runs_dir,
             self.taxonomies_dir,
             self.portfolios_dir,
-            self.projects_dir,
             self.documents_dir,
             self.xbrl_dir,
             self.cache_dir,

@@ -531,11 +531,6 @@ class PortfolioStore:
     def list_governance_events(self) -> list[dict]:
         return self._read_jsonl(self.governance_events_path())
 
-    # --- Superset datasets (arp/bi/published.py) ---
-
-    def publish_rows(self, dataset: str, month: str, rows: list[dict]) -> None:
-        pass  # ponytail: Superset needs Postgres
-
 
 def holdings_date_label(holdings: list[Holding], between: str = " to ") -> tuple[str, str]:
     """(label, newest date) of the snapshot dates the holdings really carry: "2026-10-31", or "2026-10-30 to

@@ -5,8 +5,7 @@ from fastapi.testclient import TestClient
 
 from arp.api import deps
 from arp.api.auth import Principal, current_user
-from arp.api.routers import bi, portfolio
-from arp.bi.service import DesignResult
+from arp.api.routers import portfolio
 from arp.config import Settings
 from arp.portfolio.qa_agent import _ParsedQuestion
 from arp.schemas.common import CompanyRef
@@ -29,7 +28,7 @@ class _LLM:
         return out, None
 
 
-def _app(tmp_path, llm, principal=APPROVER, superset=None):
+def _app(tmp_path, llm, principal=APPROVER):
     store = PortfolioStore(tmp_path)
     store.save_portfolio(Portfolio(portfolio_id="p1", name="P1"))
     store.save_security(SecurityRef(security_id="bmw_eq", name="BMW", asset_class="equity", currency="EUR", company_id="bmw"))
@@ -40,11 +39,9 @@ def _app(tmp_path, llm, principal=APPROVER, superset=None):
     settings = Settings(portfolios_dir=tmp_path)
     app = FastAPI()
     app.include_router(portfolio.router)
-    app.include_router(bi.router)
     app.dependency_overrides[deps.get_portfolio_store] = lambda: store
     app.dependency_overrides[deps.get_llm_client] = lambda: llm
     app.dependency_overrides[deps.settings_dep] = lambda: settings
-    app.dependency_overrides[deps.get_superset_client] = lambda: superset
     app.dependency_overrides[current_user] = lambda: principal
     return TestClient(app, raise_server_exceptions=False), settings
 
@@ -122,15 +119,3 @@ def test_audit_endpoint_approver_only_and_no_user_id(tmp_path):
     assert all("user_id" not in r and r["user_name"] == "Ann" for r in got)
     c2, _ = _app(tmp_path, _LLM(), principal=ANALYST)
     assert c2.get("/api/portfolio/qa-audit").status_code == 403
-
-
-def test_bi_ask_audited(tmp_path, monkeypatch):
-    async def fake_ask(question, llm, client):
-        return DesignResult(dashboard_id=7, slug="arp-scratch", url="http://x/d/7", plan=None)
-
-    monkeypatch.setattr("arp.bi.service.ask_chart", fake_ask)
-    c, s = _app(tmp_path, _LLM())
-    assert c.post("/api/bi/ask", json={"question": "exposure?"}).status_code == 200
-    (row,) = _rows(s)
-    assert row["endpoint"] == "bi.ask" and row["user_name"] == "Ann"
-    assert row["vintage"] == {"slug": "arp-scratch", "dashboard_id": 7}

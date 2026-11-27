@@ -1,5 +1,5 @@
 import { useEffect, useState, type DependencyList } from "react";
-import { apiMessage } from "../../lib/projects";
+import { apiMessage } from "../../lib/apiError";
 
 export type VcQuery<T> = { data: T | null; error: string | null; loading: boolean };
 

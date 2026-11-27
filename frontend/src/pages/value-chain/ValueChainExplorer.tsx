@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api/client";
-import { apiMessage } from "../../lib/projects";
+import { apiMessage } from "../../lib/apiError";
 import { explorerParams, nodeHash, portfolioHash, recipesHash, searchable, shockHash } from "../../lib/valueChain";
 import type { VcNodeRef } from "../../types";
 import { ExposureView } from "./ExposureView";
