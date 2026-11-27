@@ -165,33 +165,7 @@ class _Writer:
             connect(target, _side(rect, x, y))
         return True
 
-    def chart(self, p: ChartPrim) -> None:
-        if p.kind == "heatmap":  # no native heatmap: the PNG of the HTML's Vega-Lite spec, at scale 2
-            png = to_png(chart_spec(p, self.tokens, self.mode), self.tokens)
-            self.place(self.slide.shapes.add_picture(io.BytesIO(png), 0, 0), p)
-            return
-        values = [v for s in p.series for v in s.values]
-        fmt = _number_format(values, p.unit)
-        data = CategoryChartData(number_format=fmt)
-        data.categories = p.categories
-        waterfall = p.kind == "waterfall"
-        if waterfall:  # base: the bar's lower end; visible: its length (stacked columns cannot cross zero, so no negatives)
-            ends = waterfall_bars(p)
-            data.add_series("base", [min(a, b) for a, b in ends])
-            data.add_series(p.series[0].name, [abs(b - a) for a, b in ends])
-        else:
-            for s in p.series:
-                data.add_series(s.name, s.values)
-        frame = self.slide.shapes.add_chart(_KINDS[p.kind], self.e(p.x), self.e(p.y), self.e(p.w), self.e(p.h), data)
-        self.place(frame, p)
-        chart = frame.chart
-        chart.font.size, chart.font.name = Pt(24 * self.pt), self.body
-        chart.font.color.rgb = _rgb(self.c["muted"])
-        chart.has_title = False  # a one-series chart otherwise shows the series name as its title
-        chart.has_legend = len(p.series) > 1 and p.kind != "line"  # lines are labelled at their ends
-        if chart.has_legend:
-            chart.legend.position, chart.legend.include_in_layout = XL_LEGEND_POSITION.BOTTOM, False
-        plot = chart.plots[0]
+    def _style_chart_series(self, p: ChartPrim, plot, waterfall: bool) -> list:
         shown = list(plot.series)
         if waterfall:
             base, *shown = shown
@@ -210,6 +184,9 @@ class _Writer:
             plot.gap_width = 67  # bars take 60% of the band, as in the HTML
             if p.kind not in ("stacked_column", "waterfall"):  # stacked bars keep overlap 100
                 plot.overlap = 0
+        return shown
+
+    def _apply_chart_labels(self, p: ChartPrim, plot, shown: list, values: list[float], fmt: str, waterfall: bool) -> None:
         if p.labels and waterfall:  # each bar's own text: changes signed, totals plain; ink, panel on the ink totals
             last = len(p.categories) - 1
             for i, v in enumerate(p.series[0].values):
@@ -230,6 +207,8 @@ class _Writer:
                     run = end.text_frame.paragraphs[0].add_run()
                     run.text = f"{s.name} {_fmt_value(s.values[-1], values, p.unit)}"
                     run.font.color.rgb = _rgb(self.c["ink"])
+
+    def _apply_chart_layout(self, p: ChartPrim, chart, fmt: str) -> None:
         va = chart.value_axis
         va.has_major_gridlines, va.visible = False, not p.labels
         va.tick_labels.number_format, va.tick_labels.number_format_is_linked = fmt, False
@@ -258,6 +237,37 @@ class _Writer:
             etree.SubElement(ml, qn(f"c:{tag}"), val=str(val))
         if p.kind == "bar":
             chart.category_axis.reverse_order = True  # first category on top, as in the HTML
+
+    def chart(self, p: ChartPrim) -> None:
+        if p.kind == "heatmap":  # no native heatmap: the PNG of the HTML's Vega-Lite spec, at scale 2
+            png = to_png(chart_spec(p, self.tokens, self.mode), self.tokens)
+            self.place(self.slide.shapes.add_picture(io.BytesIO(png), 0, 0), p)
+            return
+        values = [v for s in p.series for v in s.values]
+        fmt = _number_format(values, p.unit)
+        data = CategoryChartData(number_format=fmt)
+        data.categories = p.categories
+        waterfall = p.kind == "waterfall"
+        if waterfall:  # base: the bar's lower end; visible: its length (stacked columns cannot cross zero, so no negatives)
+            ends = waterfall_bars(p)
+            data.add_series("base", [min(a, b) for a, b in ends])
+            data.add_series(p.series[0].name, [abs(b - a) for a, b in ends])
+        else:
+            for s in p.series:
+                data.add_series(s.name, s.values)
+        frame = self.slide.shapes.add_chart(_KINDS[p.kind], self.e(p.x), self.e(p.y), self.e(p.w), self.e(p.h), data)
+        self.place(frame, p)
+        chart = frame.chart
+        chart.font.size, chart.font.name = Pt(24 * self.pt), self.body
+        chart.font.color.rgb = _rgb(self.c["muted"])
+        chart.has_title = False  # a one-series chart otherwise shows the series name as its title
+        chart.has_legend = len(p.series) > 1 and p.kind != "line"  # lines are labelled at their ends
+        if chart.has_legend:
+            chart.legend.position, chart.legend.include_in_layout = XL_LEGEND_POSITION.BOTTOM, False
+        plot = chart.plots[0]
+        shown = self._style_chart_series(p, plot, waterfall)
+        self._apply_chart_labels(p, plot, shown, values, fmt, waterfall)
+        self._apply_chart_layout(p, chart, fmt)
 
     def image(self, p: ImagePrim) -> None:
         """The full (or downscaled) image with PowerPoint crop values, so a person can re-crop it; identical bytes are
