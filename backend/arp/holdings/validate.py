@@ -78,6 +78,78 @@ def _blank(v) -> bool:
     return v is None or (isinstance(v, str) and not v.strip())
 
 
+def _validate_row_numbers(
+    r: dict,
+    row: dict,
+    n: int | None,
+    *,
+    kind: str,
+    decimal: str,
+    weight_unit: str,
+    errors: list[RowError],
+) -> None:
+    for col in NUMERIC:
+        v = r.get(col)
+        try:
+            row[col] = None if _blank(v) else parse_decimal(v, decimal)
+        except (ValueError, OverflowError):
+            row[col] = None
+            errors.append(RowError(n, col, "not a number"))
+    if row.get("weight") is not None and row["weight"] < 0:
+        errors.append(RowError(n, "weight", "must not be negative"))
+    fx = row.get("fx_rate_to_eur")
+    if fx is not None and fx <= 0:
+        errors.append(RowError(n, "fx_rate_to_eur", "must be positive"))
+    elif fx is not None and row.get("currency") == "EUR" and fx != 1:
+        errors.append(RowError(n, "fx_rate_to_eur", "must be 1 for a EUR position"))
+    if row.get("weight") is not None and weight_unit == "fraction":
+        row["weight"] *= 100
+    if (
+        kind == "portfolio"
+        and row.get("currency")
+        and row["currency"] != "EUR"
+        and row.get("fx_rate_to_eur") is None
+        and _blank(r.get("fx_rate_to_eur"))
+    ):
+        errors.append(RowError(n, "fx_rate_to_eur", "required for a non-EUR position; ARP never invents FX rates"))
+
+
+def _validate_row(
+    r: dict,
+    *,
+    kind: str,
+    decimal: str,
+    weight_unit: str,
+    seen: set[str],
+    errors: list[RowError],
+) -> dict:
+    n = r.get("_row")
+    row: dict = {}
+    for col in REQUIRED[kind]:
+        if col in r and _blank(r[col]):
+            errors.append(RowError(n, col, "required"))
+    isin = "" if _blank(r.get("isin")) else str(r["isin"]).strip().upper()
+    if isin:
+        if not isin_is_valid(isin):
+            errors.append(RowError(n, "isin", "ISIN check digit fails"))
+        elif isin in seen:
+            errors.append(RowError(n, "isin", "duplicate position"))
+        seen.add(isin)
+    row["isin"] = isin
+    lei = None if _blank(r.get("lei")) else normalise_lei(str(r["lei"]))
+    if lei and not lei_is_valid(lei):
+        errors.append(RowError(n, "lei", "LEI check digits fail (ISO 17442, mod 97)"))
+    row["lei"] = lei
+    name = r.get("name")
+    if isinstance(name, float) and name.is_integer():
+        name = int(name)
+    row["name"] = None if _blank(name) else str(name).strip()
+    if "currency" in r:
+        row["currency"] = None if _blank(r["currency"]) else str(r["currency"]).strip().upper()
+    _validate_row_numbers(r, row, n, kind=kind, decimal=decimal, weight_unit=weight_unit, errors=errors)
+    return row
+
+
 def validate(
     raw: list[dict],
     *,
@@ -91,57 +163,11 @@ def validate(
     for col in REQUIRED[kind]:
         if not any(col in r for r in raw):
             errors.append(RowError(None, col, "missing required column"))
-    rows: list[dict] = []
     seen: set[str] = set()
-    for r in raw:
-        n = r.get("_row")
-        row: dict = {}
-        for col in REQUIRED[kind]:
-            if col in r and _blank(r[col]):
-                errors.append(RowError(n, col, "required"))
-        isin = "" if _blank(r.get("isin")) else str(r["isin"]).strip().upper()
-        if isin:
-            if not isin_is_valid(isin):
-                errors.append(RowError(n, "isin", "ISIN check digit fails"))
-            elif isin in seen:
-                errors.append(RowError(n, "isin", "duplicate position"))
-            seen.add(isin)
-        row["isin"] = isin
-        lei = None if _blank(r.get("lei")) else normalise_lei(str(r["lei"]))
-        if lei and not lei_is_valid(lei):
-            errors.append(RowError(n, "lei", "LEI check digits fail (ISO 17442, mod 97)"))
-        row["lei"] = lei
-        name = r.get("name")
-        if isinstance(name, float) and name.is_integer():
-            name = int(name)
-        row["name"] = None if _blank(name) else str(name).strip()
-        if "currency" in r:
-            row["currency"] = None if _blank(r["currency"]) else str(r["currency"]).strip().upper()
-        for col in NUMERIC:
-            v = r.get(col)
-            try:
-                row[col] = None if _blank(v) else parse_decimal(v, decimal)
-            except (ValueError, OverflowError):
-                row[col] = None
-                errors.append(RowError(n, col, "not a number"))
-        if row.get("weight") is not None and row["weight"] < 0:
-            errors.append(RowError(n, "weight", "must not be negative"))
-        fx = row.get("fx_rate_to_eur")
-        if fx is not None and fx <= 0:
-            errors.append(RowError(n, "fx_rate_to_eur", "must be positive"))
-        elif fx is not None and row.get("currency") == "EUR" and fx != 1:
-            errors.append(RowError(n, "fx_rate_to_eur", "must be 1 for a EUR position"))
-        if row.get("weight") is not None and weight_unit == "fraction":
-            row["weight"] *= 100
-        if (
-            kind == "portfolio"
-            and row.get("currency")
-            and row["currency"] != "EUR"
-            and row.get("fx_rate_to_eur") is None
-            and _blank(r.get("fx_rate_to_eur"))
-        ):
-            errors.append(RowError(n, "fx_rate_to_eur", "required for a non-EUR position; ARP never invents FX rates"))
-        rows.append(row)
+    rows = [
+        _validate_row(r, kind=kind, decimal=decimal, weight_unit=weight_unit, seen=seen, errors=errors)
+        for r in raw
+    ]
     s = sum(r["weight"] for r in rows if r.get("weight") is not None)
     if "weight" in REQUIRED[kind] and any(r.get("weight") is not None for r in rows) and abs(s - 100) > WEIGHT_TOLERANCE:
         errors.append(RowError(None, "weight", f"weights sum to {s:g}%, not 100% ± {WEIGHT_TOLERANCE:g}"))
