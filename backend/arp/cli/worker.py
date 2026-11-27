@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 
 import typer
 
@@ -16,4 +17,5 @@ def worker_run(
     retry_seconds: float = typer.Option(5.0, min=0.1, help="Seconds between leader-lock retries while in standby."),
 ) -> None:
     """Run all scheduled background jobs and the plan worker under a Postgres advisory lock."""
+    logging.basicConfig(level=logging.INFO)
     asyncio.run(run_worker(retry_seconds=retry_seconds))

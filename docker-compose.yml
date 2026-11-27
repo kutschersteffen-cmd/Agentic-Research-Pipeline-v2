@@ -94,6 +94,8 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     command: ["arp", "worker", "run"]
+    healthcheck:
+      disable: true
     depends_on:
       postgres:
         condition: service_healthy

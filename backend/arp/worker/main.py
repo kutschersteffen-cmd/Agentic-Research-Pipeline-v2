@@ -14,8 +14,10 @@ import logging
 import signal
 from contextlib import suppress
 from datetime import UTC, datetime
+from functools import lru_cache
 
-from sqlalchemy import text
+from sqlalchemy import Engine, create_engine, text
+from sqlalchemy.pool import NullPool
 
 from arp.api.deps import (
     get_calibration_scheduler,
@@ -28,14 +30,22 @@ from arp.api.deps import (
 )
 from arp.api.routers import plans
 from arp.config import Settings, get_settings
-from arp.db.session import engine, require_cutover, require_postgres
+from arp.db.session import require_cutover, require_postgres
 from arp.refine.turns import reap_stale_turns
 from arp.research_desk.turn import reap_stale_desk_turns
+from arp.storage.postgres import _CONNECT_TIMEOUT_SECONDS
 
 logger = logging.getLogger(__name__)
 
 # Stable 64-bit Postgres advisory lock key ("ARPW" = 0x41525057).
 ADVISORY_LOCK_KEY = 0x41525057
+
+
+@lru_cache
+def _leader_engine(dsn: str) -> Engine:
+    """Unpooled engine dedicated to the worker leader lock so closing the connection ends the session."""
+    connect_args = {} if "connect_timeout" in dsn else {"connect_timeout": _CONNECT_TIMEOUT_SECONDS}
+    return create_engine(dsn, poolclass=NullPool, connect_args=connect_args)
 
 
 def acquire_leader_lock(conn) -> bool:
@@ -82,8 +92,8 @@ async def run_worker(
     if stop_event is None:
         _install_signal_handlers(asyncio.get_running_loop(), stop)
 
-    # AUTOCOMMIT avoids holding an idle-in-transaction session open while keeping the session lock alive.
-    with engine(dsn).connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
+    # AUTOCOMMIT + NullPool avoids idle-in-transaction sessions and ensures connection close frees the lock.
+    with _leader_engine(dsn).connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
         acquired = False
         while not stop.is_set():
             if acquire_leader_lock(conn):
@@ -97,15 +107,14 @@ async def run_worker(
             return
 
         logger.info("Acquired arp worker leader lock %s; starting schedulers", ADVISORY_LOCK_KEY)
-        now = datetime.now(UTC)
-        reap_stale_turns(now=now)
-        reap_stale_desk_turns(now=now)
-
-        schedulers = _build_schedulers()
         started: list = []
         plan_worker: asyncio.Task | None = None
         try:
-            for sched in schedulers:
+            now = datetime.now(UTC)
+            reap_stale_turns(now=now)
+            reap_stale_desk_turns(now=now)
+
+            for sched in _build_schedulers():
                 sched.start()
                 started.append(sched)
             if cfg.plan_worker_seconds > 0:
@@ -117,7 +126,10 @@ async def run_worker(
                 with suppress(asyncio.CancelledError):
                     await plan_worker
             for sched in reversed(started):
-                sched.shutdown()
+                try:
+                    sched.shutdown()
+                except Exception:  # noqa: BLE001 - continue shutting down remaining schedulers
+                    logger.warning("Scheduler %s failed during shutdown", type(sched).__name__, exc_info=True)
             with suppress(Exception):
                 release_leader_lock(conn)
             logger.info("arp worker stopped cleanly")

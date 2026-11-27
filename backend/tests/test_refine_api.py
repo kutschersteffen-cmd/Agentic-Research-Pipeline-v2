@@ -422,18 +422,21 @@ def test_unknown_kind_404(env, P, kind, method, path):
     assert rows() == []
 
 
-def test_running_turn_failed_by_api_restart(env, P):  # AC-53
+def test_running_turn_failed_by_api_restart(env, P):  # AC-53 (updated for stateless multi-worker API + age-based reaping)
+    stale_at = datetime.now(UTC) - timedelta(minutes=11)
     with transaction() as s:
-        t = m.RefineTurn(kind="rfp", doc_id=P["pid"], user_id="alice", message="m")  # left running by a dead process
+        t = m.RefineTurn(
+            kind="rfp", doc_id=P["pid"], user_id="alice", message="m", created_at=stale_at, updated_at=stale_at
+        )  # orphaned turn past timeout
         s.add(t)
         s.flush()
         tid = t.id
-    with TestClient(app):  # the API starts again
+    with TestClient(app):  # stateless API restart does not reap all running turns blindly
         pass
+    env.ops([])
+    env.wait(env.turn("rfp", P["pid"]))  # age-based reaping unlocks the document on request
     out = env.get_turn(tid)
     assert (out["status"], out["error"]) == ("failed", "interrupted")
-    env.ops([])
-    env.wait(env.turn("rfp", P["pid"]))
 
 
 # --- review fixes (#656 code review, blocking 1 and 2) ---------------------------------------------
