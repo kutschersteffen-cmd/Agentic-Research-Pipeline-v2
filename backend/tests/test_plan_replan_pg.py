@@ -132,7 +132,7 @@ def test_replan_twice_keeps_all_done_calls(store, fake_llm, monkeypatch):
     result, _ = _replan(store, plan_id, fake_llm, monkeypatch, [third])
     assert result.stdout.splitlines()[0] == "version 3"
     plan = store.get(plan_id)
-    assert plan["dry_run"][0]["seq"] == 3 and plan["dry_run"][0]["params"]["source_run_id"] == "r_1"
+    assert plan["dry_run"][0]["seq"] == 3 and plan["dry_run"][0]["params"]["source_ids"] == ["r_1"]
     assert [e["version"] for e in plan["previous_scripts"]] == [1, 2]
 
 

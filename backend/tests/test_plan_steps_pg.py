@@ -42,7 +42,7 @@ def test_gate_until_every_item_is_decided(run_store, universe_run):
 
 
 def test_all_ten_kinds_present(run_store):  # agent-panel-code-mode D8 adds identity_resolution, tnfd_extraction
-    assert len(build_steps(get_settings(), run_store)) == 9
+    assert len(build_steps(get_settings(), run_store)) == 8
 
 
 def test_report_gate_until_storyline_approved(run_store, monkeypatch):

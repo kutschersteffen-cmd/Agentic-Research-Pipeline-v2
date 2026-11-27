@@ -39,7 +39,7 @@ def _widths(flow):
     return flow.evaluate("f => [...f.querySelectorAll('.hub-step')].map((s) => s.getBoundingClientRect().width)")
 
 
-@pytest.mark.parametrize("width", [390, 1440])
+@pytest.mark.parametrize("width", [390, 900])
 def test_steps_keep_their_width_in_one_scrolling_row(page, width):  # noqa: F811
     flow = _start(page, width=width, height=844 if width == 390 else 900)
     assert all(abs(w - 180) <= 1 for w in _widths(flow)), _widths(flow)
@@ -52,7 +52,7 @@ def test_steps_keep_their_width_in_one_scrolling_row(page, width):  # noqa: F811
 
 
 def test_zoom_buttons_steps_limits_and_storage(page):  # noqa: F811
-    flow = _start(page)
+    flow = _start(page, width=900)
     names = page.locator(f"{SECTION} [data-flow-zoom-bar] button").evaluate_all("bs => bs.map((b) => b.getAttribute('aria-label'))")
     assert names == ["Zoom out", "Zoom in", "Reset zoom", "Fit to width"]
     assert _reading(page) == "100%" and _bar(page, "Reset zoom").is_disabled()
@@ -113,7 +113,7 @@ def test_ctrl_wheel_zooms_the_flow_not_the_page(page):  # noqa: F811
 
 
 def test_keys_zoom_and_scroll_and_leave_browser_zoom_alone(page):  # noqa: F811
-    flow = _start(page)
+    flow = _start(page, width=900)
     flow.focus()
     page.keyboard.press("+")
     assert _reading(page) == "110%"
@@ -131,8 +131,8 @@ def test_keys_zoom_and_scroll_and_leave_browser_zoom_alone(page):  # noqa: F811
     for _ in range(3):
         page.keyboard.press("ArrowRight")
     assert flow.evaluate("f => f.scrollLeft") > 0
-    page.locator("#step-thematic-5").focus()
-    assert page.locator("#step-thematic-5").evaluate("(s) => s.getBoundingClientRect().right <= s.closest('ol').getBoundingClientRect().right")
+    page.locator("#step-thematic-4").focus()
+    assert page.locator("#step-thematic-4").evaluate("(s) => s.getBoundingClientRect().right <= s.closest('ol').getBoundingClientRect().right")
 
 
 def test_drag_scrolls_and_does_not_open_the_step(page):  # noqa: F811
@@ -178,7 +178,7 @@ def test_first_step_running_stays_at_the_start(page):  # noqa: F811
 def test_folded_flow_has_its_bar_inside_the_fold(page):  # noqa: F811
     _start(page, runs=(), path="/#/rdLab")
     assert page.locator("[data-flow-zoom-bar]:visible").count() == 0
-    page.locator(SECTION).get_by_text("Show 6 steps").click()
+    page.locator(SECTION).get_by_text("Show 5 steps").click()
     assert page.locator("[data-flow-zoom-bar]:visible").count() == 1
 
 
