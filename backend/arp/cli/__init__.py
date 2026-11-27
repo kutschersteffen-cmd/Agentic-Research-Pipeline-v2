@@ -4,13 +4,11 @@ import typer
 
 from arp.cli.agent import agent_app
 from arp.cli.authority_library import authority_library_app
-from arp.cli.calibration import calibration_app
 from arp.cli.climate import climate_app
 from arp.cli.compute import compute_app
 from arp.cli.db import db_app
 from arp.cli.discovery import discover_app
 from arp.cli.documents import documents_app
-from arp.cli.emerging_themes import emerging_themes_app
 from arp.cli.engagement import engagement_app
 from arp.cli.extraction import extract_app
 from arp.cli.golden_set import golden_set_app
@@ -22,14 +20,12 @@ from arp.cli.portfolio import portfolio_app
 from arp.cli.publish import publish_app
 from arp.cli.reporting import reporting_app
 from arp.cli.retention import retention_app
-from arp.cli.revenue_catalogue import revenue_catalogue_app
 from arp.cli.rfp import rfp_app
 from arp.cli.runs import runs_app
 from arp.cli.scale import scale_app
 from arp.cli.showcase import showcase_app
 from arp.cli.stewardship import stewardship_app
 from arp.cli.taxonomy import taxonomy_app
-from arp.cli.taxonomy_researcher import taxonomy_researcher_app
 from arp.cli.theme import theme_app
 from arp.cli.transition_alignment import transition_alignment_app
 from arp.cli.transition_barrier import transition_barrier_app
@@ -101,27 +97,23 @@ app.add_typer(discover_app, name="discover")
 app.add_typer(runs_app, name="runs")
 app.add_typer(scale_app, name="scale")
 app.add_typer(universe_app, name="universe")
-app.add_typer(revenue_catalogue_app, name="revenue-catalogue")
 app.add_typer(engagement_app, name="engagement")
 app.add_typer(stewardship_app, name="stewardship")
 app.add_typer(portfolio_app, name="portfolio")
-app.add_typer(climate_app, name="climate")
 app.add_typer(documents_app, name="documents")
 app.add_typer(compute_app, name="compute")
 app.add_typer(identity_app, name="identity")
 app.add_typer(golden_set_app, name="golden-set")
-app.add_typer(emerging_themes_app, name="emerging-themes")
 app.add_typer(db_app, name="db")
-app.add_typer(taxonomy_researcher_app, name="taxonomy-researcher")
-app.add_typer(calibration_app, name="calibration")
 app.add_typer(reporting_app, name="report")
 app.add_typer(publish_app, name="publish")
 app.add_typer(holdings_app, name="holdings")
-app.add_typer(retention_app, name="retention")
 app.add_typer(xbrl_app, name="xbrl")
 app.add_typer(plan_app, name="plan")
 app.add_typer(io_app, name="io")
 app.add_typer(rfp_app, name="rfp")
+app.add_typer(climate_app, name="climate")
+app.add_typer(retention_app, name="retention")
 app.add_typer(showcase_app, name="showcase")
 app.add_typer(agent_app, name="agent")
 app.add_typer(worker_app, name="worker")
