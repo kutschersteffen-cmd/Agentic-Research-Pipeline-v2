@@ -85,6 +85,69 @@ def _children(root: Path):
     return sorted(p for p in root.iterdir() if p.is_dir() and not p.is_symlink()) if root.is_dir() else []
 
 
+def _clean_run_dir(
+    run_dir: Path,
+    policy: RetentionPolicy,
+    now: datetime,
+    *,
+    apply: bool,
+    held_runs: set[str],
+    report: CleanupReport,
+    expire,
+) -> None:
+    if run_dir.name in held_runs:
+        report.held.append(run_dir.name)
+        return
+    if _status(run_dir) in ACTIVE_STATUSES:
+        report.kept += 1
+        return
+    before = len(report.deleted)
+    logs, rest = [], []
+    for f in _files(run_dir):
+        (logs if _is_decision_log(f, run_dir) else rest).append(f)
+    for f in logs:
+        if _age(f, now) >= policy.decision_logs:
+            expire(f, policy.decision_logs)
+        else:
+            report.kept += 1
+    aged = [f for f in rest if f.name not in SIDECARS]
+    # all-or-nothing: only once the newest non-sidecar file is past the period
+    if aged and min(_age(f, now) for f in aged) >= policy.runs:
+        for f in rest:
+            # sidecars go with the run: the run's age is what authorises it
+            expire(f, timedelta(0) if f.name in SIDECARS else policy.runs)
+    else:
+        report.kept += len(rest)
+    if apply and len(report.deleted) > before:
+        _prune_empty(run_dir)
+        with contextlib.suppress(OSError):
+            run_dir.rmdir()
+
+
+def _clean_blob_prefix(
+    prefix: Path,
+    policy: RetentionPolicy,
+    now: datetime,
+    *,
+    apply: bool,
+    held_keys: set[str],
+    report: CleanupReport,
+    expire,
+) -> None:
+    before = len(report.deleted)
+    for f in _files(prefix):
+        if f.name in held_keys:
+            report.held.append(f.name)
+        elif _age(f, now) >= policy.originals:
+            expire(f, policy.originals)
+        else:
+            report.kept += 1
+    if apply and len(report.deleted) > before:
+        _prune_empty(prefix)
+        with contextlib.suppress(OSError):
+            prefix.rmdir()
+
+
 def cleanup(
     settings,
     *,
@@ -103,45 +166,8 @@ def cleanup(
             delete_expired(path, retention, now=now)
 
     for run_dir in _children(settings.runs_dir):
-        if run_dir.name in held_runs:
-            report.held.append(run_dir.name)
-            continue
-        if _status(run_dir) in ACTIVE_STATUSES:
-            report.kept += 1
-            continue
-        before = len(report.deleted)
-        logs, rest = [], []
-        for f in _files(run_dir):
-            (logs if _is_decision_log(f, run_dir) else rest).append(f)
-        for f in logs:
-            if _age(f, now) >= policy.decision_logs:
-                expire(f, policy.decision_logs)
-            else:
-                report.kept += 1
-        aged = [f for f in rest if f.name not in SIDECARS]
-        # all-or-nothing: only once the newest non-sidecar file is past the period
-        if aged and min(_age(f, now) for f in aged) >= policy.runs:
-            for f in rest:
-                # sidecars go with the run: the run's age is what authorises it
-                expire(f, timedelta(0) if f.name in SIDECARS else policy.runs)
-        else:
-            report.kept += len(rest)
-        if apply and len(report.deleted) > before:
-            _prune_empty(run_dir)
-            with contextlib.suppress(OSError):
-                run_dir.rmdir()
+        _clean_run_dir(run_dir, policy, now, apply=apply, held_runs=held_runs, report=report, expire=expire)
 
     for prefix in _children(settings.blob_store_dir):
-        before = len(report.deleted)
-        for f in _files(prefix):
-            if f.name in held_keys:
-                report.held.append(f.name)
-            elif _age(f, now) >= policy.originals:
-                expire(f, policy.originals)
-            else:
-                report.kept += 1
-        if apply and len(report.deleted) > before:
-            _prune_empty(prefix)
-            with contextlib.suppress(OSError):
-                prefix.rmdir()
+        _clean_blob_prefix(prefix, policy, now, apply=apply, held_keys=held_keys, report=report, expire=expire)
     return report

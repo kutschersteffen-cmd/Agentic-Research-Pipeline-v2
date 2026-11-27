@@ -57,6 +57,57 @@ def _correction(d: dict) -> Citation | None:
     return Citation(**c) if c else None
 
 
+def _evaluate_field_candidate(row: dict, f: dict, key: str, d: dict | None, in_review: set[str], skips: list[Skip], emit) -> None:
+    if d is None:
+        if key in in_review or f.get("route") == "review":
+            skips.append(Skip(key, "not_final"))
+        elif f.get("route") == "hold":
+            skips.append(Skip(key, "held"))
+        elif f.get("route") == "auto_accept":
+            emit(row, f, key, "auto_accepted", _grounded(f), f.get("period_end"))
+        else:
+            skips.append(Skip(key, "not_auto_accepted"))
+        return
+    kind = d.get("decision")
+    if kind == "reject":
+        skips.append(Skip(key, "rejected"))
+    elif kind == "approve":
+        emit(row, f, key, "approved", _grounded(f), f.get("period_end"))
+    elif kind in ("correct", "edit"):
+        merged = merge_correction(f, d)
+        emit(row, merged, key, "edited", _correction(d), merged.get("period_end"))
+    else:
+        skips.append(Skip(key, "not_final"))
+
+
+def _collect_restatements(
+    run_store,
+    run_id: str,
+    rst: dict[str, dict],
+    decisions: dict[str, dict],
+    rows_by_key: dict[str, tuple[dict, dict]],
+    skips: list[Skip],
+    emit,
+) -> None:
+    states = item_states(run_store, run_id)
+    for key, c in rst.items():
+        d = decisions.get(c["candidate_id"])
+        kind = d.get("decision") if d else None
+        s = states.get(c["candidate_id"])
+        if kind != "reject" and not (d and d.get("step") and (s.state == "second_done" or d["step"] == "resolution")):
+            kind = None  # a restatement publishes only after the workbench's second review or a resolution
+        if kind not in _STATE or key not in rows_by_key:
+            skips.append(Skip(key, "rejected" if kind == "reject" else "restatement_pending"))
+            continue
+        row, f = rows_by_key[key]
+        if kind == "approve":
+            f, citation = {**f, "value": c["new_value"]}, _grounded(f)
+        else:
+            f, citation = merge_correction(f, d), _correction(d)
+        doc = citation.doc_id if citation else next(iter(c.get("doc_ids") or []), None)
+        emit(row, f, key, _STATE[kind], citation, f.get("period_end"), restated=True, restated_by_doc_id=doc)
+
+
 def run_candidates(run_store, run_id: str) -> tuple[list[FactCandidate], list[Skip]]:
     manifest = run_store.load_manifest(run_id)
     if manifest is None or manifest.run_type != "extraction":
@@ -89,45 +140,8 @@ def run_candidates(run_store, run_id: str) -> tuple[list[FactCandidate], list[Sk
         for f in row.get("fields", []):
             key = field_item_key(row["issuer_key"], f["field_id"], period_key(f))
             rows_by_key[key] = (row, f)
-            if key in rst:
-                continue  # only the restatement branch may publish this key
-            d = decisions.get(key)
-            if d is None:
-                if key in in_review or f.get("route") == "review":
-                    skips.append(Skip(key, "not_final"))
-                elif f.get("route") == "hold":
-                    skips.append(Skip(key, "held"))
-                elif f.get("route") == "auto_accept":
-                    emit(row, f, key, "auto_accepted", _grounded(f), f.get("period_end"))
-                else:
-                    skips.append(Skip(key, "not_auto_accepted"))
-                continue
-            kind = d.get("decision")
-            if kind == "reject":
-                skips.append(Skip(key, "rejected"))
-            elif kind == "approve":
-                emit(row, f, key, "approved", _grounded(f), f.get("period_end"))
-            elif kind in ("correct", "edit"):
-                merged = merge_correction(f, d)
-                emit(row, merged, key, "edited", _correction(d), merged.get("period_end"))
-            else:
-                skips.append(Skip(key, "not_final"))
+            if key not in rst:  # only the restatement branch may publish this key
+                _evaluate_field_candidate(row, f, key, decisions.get(key), in_review, skips, emit)
 
-    states = item_states(run_store, run_id)
-    for key, c in rst.items():
-        d = decisions.get(c["candidate_id"])
-        kind = d.get("decision") if d else None
-        s = states.get(c["candidate_id"])
-        if kind != "reject" and not (d and d.get("step") and (s.state == "second_done" or d["step"] == "resolution")):
-            kind = None  # a restatement publishes only after the workbench's second review or a resolution
-        if kind not in _STATE or key not in rows_by_key:
-            skips.append(Skip(key, "rejected" if kind == "reject" else "restatement_pending"))
-            continue
-        row, f = rows_by_key[key]
-        if kind == "approve":
-            f, citation = {**f, "value": c["new_value"]}, _grounded(f)
-        else:
-            f, citation = merge_correction(f, d), _correction(d)
-        doc = citation.doc_id if citation else next(iter(c.get("doc_ids") or []), None)
-        emit(row, f, key, _STATE[kind], citation, f.get("period_end"), restated=True, restated_by_doc_id=doc)
+    _collect_restatements(run_store, run_id, rst, decisions, rows_by_key, skips, emit)
     return cands, skips

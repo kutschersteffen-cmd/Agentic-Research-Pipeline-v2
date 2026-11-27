@@ -449,6 +449,42 @@ def view(kind: str, source: Any, data: Any = None, key: tuple | None = None) -> 
     return _view(render(kind, source))
 
 
+def _checked_flow_view(source: Any) -> dict:
+    from pydantic import ValidationError
+
+    from arp.reporting.mermaid_flow import MermaidError
+
+    if not isinstance(source, str):
+        raise BlockInvalid("invalid block")
+    try:
+        rendered = render("flow", source)
+    except MermaidError as exc:
+        raise BlockInvalid(str(exc)) from None
+    except ValidationError as exc:
+        raise BlockInvalid(exc.errors()[0]["msg"]) from None
+    _check_flow_as_diagram(source)
+    return _view(rendered)
+
+
+def _checked_chart_view(source: Any, data: Any) -> dict:
+    if not isinstance(source, dict):
+        raise BlockInvalid("invalid block")
+    if "live" in source:
+        if "data" in source:
+            raise BlockInvalid("invalid block")
+        _pointer(source["live"])
+    if (path := _outside(source, "")) is not None:
+        raise BlockInvalid(f"chart may not load from outside: {path}")
+    if "live" in source:
+        return _live_chart(source, data, strict=True)  # a data problem is `live_error`; a render failure is refused
+    if _too_many_rows(source):
+        raise BlockInvalid("chart exceeds 5000 data rows")
+    try:
+        return _view(render_chart(source))
+    except RenderFailed as exc:
+        raise BlockInvalid(f"chart does not render: {exc}") from None
+
+
 def checked_view(kind: Any, title: Any, source: Any, data: Any = None) -> dict:
     """Raises `BlockInvalid` for the first failing check; returns the block's view (see `view`)."""
     if not isinstance(kind, str) or not isinstance(title, str):
@@ -475,36 +511,8 @@ def checked_view(kind: Any, title: Any, source: Any, data: Any = None) -> dict:
         _check_checklist(source)
         return _view()
     if kind == "flow":
-        from pydantic import ValidationError
-
-        from arp.reporting.mermaid_flow import MermaidError
-
-        if not isinstance(source, str):
-            raise BlockInvalid("invalid block")
-        try:
-            rendered = render("flow", source)
-        except MermaidError as exc:
-            raise BlockInvalid(str(exc)) from None
-        except ValidationError as exc:
-            raise BlockInvalid(exc.errors()[0]["msg"]) from None
-        _check_flow_as_diagram(source)
-        return _view(rendered)
-    if not isinstance(source, dict):
-        raise BlockInvalid("invalid block")
-    if "live" in source:
-        if "data" in source:
-            raise BlockInvalid("invalid block")
-        _pointer(source["live"])
-    if (path := _outside(source, "")) is not None:
-        raise BlockInvalid(f"chart may not load from outside: {path}")
-    if "live" in source:
-        return _live_chart(source, data, strict=True)  # a data problem is `live_error`; a render failure is refused
-    if _too_many_rows(source):
-        raise BlockInvalid("chart exceeds 5000 data rows")
-    try:
-        return _view(render_chart(source))
-    except RenderFailed as exc:
-        raise BlockInvalid(f"chart does not render: {exc}") from None
+        return _checked_flow_view(source)
+    return _checked_chart_view(source, data)
 
 
 def check_block(kind: Any, title: Any, source: Any, data: Any = None) -> Any:
