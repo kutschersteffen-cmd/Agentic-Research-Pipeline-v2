@@ -24,6 +24,7 @@ def upgrade() -> None:
         import arp.db.models  # noqa: F401
         from arp.storage.postgres_models import Base
 
+        op.execute("CREATE EXTENSION IF NOT EXISTS vector")
         Base.metadata.create_all(bind=bind)
         return
 

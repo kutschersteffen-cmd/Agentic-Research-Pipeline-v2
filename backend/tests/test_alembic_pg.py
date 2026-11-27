@@ -6,13 +6,14 @@ from io import StringIO
 
 from alembic import command
 from alembic.script import ScriptDirectory
-from sqlalchemy import create_engine, inspect, pool, text
+from sqlalchemy import create_engine, inspect, make_url, pool, text
 from typer.testing import CliRunner
 
 import arp.db.models  # noqa: F401 - register ORM models
 from arp.cli.db import db_app
 from arp.db.migrations import ALEMBIC_DIR, ALEMBIC_INI, alembic_config, current_revision, stamp_head, upgrade_head
 from arp.storage.postgres_models import Base
+from arp.storage.postgres_schema import schema_report
 
 
 def test_alembic_config_and_baseline_script_metadata():
@@ -35,14 +36,17 @@ def test_alembic_config_and_baseline_script_metadata():
     offline_cfg.output_buffer = buf
     command.upgrade(offline_cfg, "head", sql=True)
     sql = buf.getvalue()
+    assert "CREATE EXTENSION IF NOT EXISTS vector" in sql
     assert "CREATE TABLE" in sql and "0001_baseline" in sql
 
 
-def test_alembic_upgrade_from_unversioned_and_fresh_schema(pg):
+def test_alembic_upgrade_from_unversioned_and_fresh_database(pg):
     # 1. Start from unversioned state by dropping alembic_version if present.
-    eng = create_engine(pg, poolclass=pool.NullPool)
+    admin_eng = create_engine(pg, poolclass=pool.NullPool, isolation_level="AUTOCOMMIT")
+    fresh_db = "arp_alembic_fresh_test"
+    fresh_dsn = make_url(pg).set(database=fresh_db).render_as_string(hide_password=False)
     try:
-        with eng.begin() as conn:
+        with admin_eng.connect() as conn:
             conn.execute(text("DROP TABLE IF EXISTS alembic_version"))
         assert current_revision(pg) is None
 
@@ -51,26 +55,28 @@ def test_alembic_upgrade_from_unversioned_and_fresh_schema(pg):
         assert res_unver.exit_code == 0, res_unver.output
         assert "unversioned" in res_unver.output
 
-        # 2. Run 0001_baseline against a completely fresh scratch Postgres schema on a caller-supplied connection.
-        scratch = "alembic_fresh_test"
-        with eng.connect() as conn:
-            conn.execute(text(f"DROP SCHEMA IF EXISTS {scratch} CASCADE"))
-            conn.execute(text(f"CREATE SCHEMA {scratch}"))
-            conn.commit()
+        # 2. Run 0001_baseline against a brand-new isolated Postgres database on a caller-supplied connection.
+        with admin_eng.connect() as conn:
+            conn.execute(text(f"DROP DATABASE IF EXISTS {fresh_db} WITH (FORCE)"))
+            conn.execute(text(f"CREATE DATABASE {fresh_db}"))
         try:
-            with eng.connect() as conn:
-                conn.execute(text(f"SET search_path TO {scratch}, public"))
-                conn.commit()
-                cfg = alembic_config(pg)
-                cfg.attributes["connection"] = conn
-                command.upgrade(cfg, "head")
-                created = set(inspect(conn).get_table_names(schema=scratch))
-                assert {"companies", "runs", "fields", "desk_chats", "desk_scope", "desk_turns", "alembic_version"} <= created
+            fresh_eng = create_engine(fresh_dsn, poolclass=pool.NullPool)
+            try:
+                with fresh_eng.connect() as conn:
+                    cfg = alembic_config(fresh_dsn)
+                    cfg.attributes["connection"] = conn
+                    command.upgrade(cfg, "head")
+                    created = set(inspect(conn).get_table_names())
+                    assert {"companies", "runs", "fields", "desk_chats", "desk_scope", "desk_turns", "alembic_version"} <= created
+            finally:
+                fresh_eng.dispose()
+            assert current_revision(fresh_dsn) == "0001_baseline"
+            assert schema_report(fresh_dsn)["current"] is True
         finally:
-            with eng.begin() as conn:
-                conn.execute(text(f"DROP SCHEMA IF EXISTS {scratch} CASCADE"))
+            with admin_eng.connect() as conn:
+                conn.execute(text(f"DROP DATABASE IF EXISTS {fresh_db} WITH (FORCE)"))
     finally:
-        eng.dispose()
+        admin_eng.dispose()
 
     # 3. Full CLI & programmatic upgrade/idempotency/stamp round-trip on the main test DB.
     upgrade_head(pg)
