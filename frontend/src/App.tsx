@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { HashRouter, useLocation, useNavigate } from "react-router-dom";
 import { canLeave } from "./lib/leaveGuard";
 import { ProcessBar, StartPage, WorkspaceOverview } from "./pages/ProcessHub";
@@ -135,7 +135,7 @@ function App() {
 
   // The pathname last shown, so a navigation the open screen refuses can be put back.
   const shownPath = useRef(initialPath);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const target = redirectHash(`#${location.pathname}`);
     if (target) {
       routerNavigate(target.slice(1), { replace: true });
