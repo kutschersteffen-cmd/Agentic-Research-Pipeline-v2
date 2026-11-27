@@ -14,7 +14,7 @@ from arp.cli import taxonomy as taxonomy_cli
 from arp.cli import taxonomy_infer as cli
 from arp.config import get_settings
 from arp.db.runs import RunStore
-from arp.replication.price_data import CsvPriceSource, YFinancePriceSource
+from arp.research.price_data import CsvPriceSource, YFinancePriceSource
 from arp.research.stock_inference import comove as comove_mod
 from arp.research.stock_inference.run import dump
 from arp.research.stock_inference.schemas import InferRun, Selection, StockProfile, Theme
@@ -434,7 +434,7 @@ def test_weeks_must_be_positive(fx):
 
 def test_window_has_all_weeks_for_a_midweek_end():
     """Factory review finding 1: a non-Friday --end must still give `weeks` returns."""
-    from arp.replication.price_data import PricePanel
+    from arp.research.price_data import PricePanel
 
     class _Fridays:
         def get_weekly_returns(self, tickers, start, end):

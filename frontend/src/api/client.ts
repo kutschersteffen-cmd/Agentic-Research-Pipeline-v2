@@ -66,10 +66,6 @@ import type {
   RefineThread,
   RefineTurn,
   RefineTurnOut,
-  SignalComparison,
-  SignalExperimentDetail,
-  SignalExperimentSummary,
-  SignalMethod,
   BilateralPick,
   SelectionConfirmed,
   StewardNote,
@@ -160,7 +156,6 @@ import type { AgentAsk, AskThread, Exploration, InboxRow, ItemContext, ItemDecis
 import type { DecisionInput, DocType, DocumentPassages, PublishedDecision, Readiness } from "../types";
 import { formatValidationErrors } from "../lib/apiError";
 import type { Finding, QuantitativeDataset, ReportManifest, ReportPlan, ReportRequest, Storyline, TemplateStyleProfile } from "../types";
-import type { PaperCandidate, ReplicationDatasetUpload, ReplicationRunDetail, RegimeStratifiedReport, SanityCheckAssessment, SpecReviewState, StrategySpec } from "../types";
 import type {
   BarrierCriterionDetail,
   BarrierMatrix,
@@ -413,21 +408,6 @@ export const api = {
   },
   pullHolder: (kind: string, holderId: string) =>
     request<IntakeResult>(`/api/holdings/holders/${kind}/${encodeURIComponent(holderId)}/pull`, { method: "POST" }),
-  // Signals workbench
-  signalExperiments: () => request<SignalExperimentSummary[]>("/api/signals/experiments"),
-  signalExperiment: (id: string) => request<SignalExperimentDetail>(`/api/signals/experiments/${encodeURIComponent(id)}`),
-  signalMethods: () => request<SignalMethod[]>("/api/signals/methods"),
-  signalCompare: (a: string, b: string) =>
-    request<SignalComparison>("/api/signals/compare", { method: "POST", body: JSON.stringify({ a, b }) }),
-  signalDecide: (id: string, decision: "graduate" | "shelve") =>
-    request<SignalExperimentDetail>(`/api/signals/experiments/${encodeURIComponent(id)}/decision`, { method: "POST", body: JSON.stringify({ decision }) }),
-  signalRun: ({ recipe, prices, panels }: { recipe: File; prices: File; panels: Record<string, File> }) => {
-    const form = new FormData();
-    form.append("recipe", recipe);
-    form.append("prices", prices);
-    for (const [name, f] of Object.entries(panels)) form.append(`panel_${name}`, f);
-    return request<SignalExperimentDetail>("/api/signals/runs", { method: "POST", body: form });
-  },
   listOutputs: (kind?: OutputKind) => request<{ outputs: OutputItem[] }>(`/api/outputs${buildQuery({ kind })}`),
   listIssues: () => request<{ issues: DataIssue[] }>("/api/issues"),
   smartSearch: (question: string) =>
@@ -1198,76 +1178,6 @@ export const api = {
     `${API_BASE}/api/reports/${encodeURIComponent(reportId)}/download${buildQuery({ file })}`,
   getReportPreview: (reportId: string) => request<{ page_count: number }>(`/api/reports/${encodeURIComponent(reportId)}/preview`),
   reportPreviewPageUrl: (reportId: string, page: number) => `${API_BASE}/api/reports/${encodeURIComponent(reportId)}/preview/${page}`,
-
-
-  // Investment Strategy Replication
-  discoverReplicationPapers: (topic: string, maxCandidates = 10) =>
-    request<{ candidates: PaperCandidate[] }>("/api/replication/discover", {
-      method: "POST",
-      body: JSON.stringify({ topic, max_candidates: maxCandidates }),
-    }),
-  createSpecDraft: (paperCitation: string, paperText: string) =>
-    request<{ spec_run_id: string; spec: StrategySpec; approved: boolean }>("/api/replication/specs", {
-      method: "POST",
-      body: JSON.stringify({ paper_citation: paperCitation, paper_text: paperText }),
-    }),
-  getSpecDraft: (specRunId: string) => request<SpecReviewState>(`/api/replication/specs/${encodeURIComponent(specRunId)}`),
-  updateSpecDraft: (specRunId: string, spec: StrategySpec) =>
-    request<{ spec_run_id: string; spec: StrategySpec; approved: boolean }>(`/api/replication/specs/${encodeURIComponent(specRunId)}`, {
-      method: "PUT",
-      body: JSON.stringify(spec),
-    }),
-  reviseSpecDraft: (specRunId: string, instruction: string) =>
-    request<{ spec_run_id: string; spec: StrategySpec; approved: boolean }>(`/api/replication/specs/${encodeURIComponent(specRunId)}/revise`, {
-      method: "POST",
-      body: JSON.stringify({ instruction }),
-    }),
-  approveSpecDraft: (specRunId: string) =>
-    request<{ spec_run_id: string; spec: StrategySpec; approved: boolean }>(`/api/replication/specs/${encodeURIComponent(specRunId)}/approve`, {
-      method: "POST",
-      body: JSON.stringify({}),
-    }),
-  uploadPriceDataset: (specRunId: string, file: File) => {
-    const form = new FormData();
-    form.append("file", file);
-    return request<ReplicationDatasetUpload>(`/api/replication/specs/${encodeURIComponent(specRunId)}/datasets/prices`, {
-      method: "POST",
-      headers: {},
-      body: form,
-    });
-  },
-  uploadCharacteristicsDataset: (specRunId: string, name: string, file: File) => {
-    const form = new FormData();
-    form.append("file", file);
-    return request<ReplicationDatasetUpload>(
-      `/api/replication/specs/${encodeURIComponent(specRunId)}/datasets/characteristics/${encodeURIComponent(name)}`,
-      { method: "POST", headers: {}, body: form }
-    );
-  },
-  runReplicationBacktest: (
-    specRunId: string,
-    body: {
-      tickers: string[];
-      prices_ref: string;
-      characteristics_refs?: Record<string, string>;
-      price_kind?: string;
-      benchmark?: string | null;
-      out_of_sample_start?: string | null;
-      out_of_sample_end?: string | null;
-    }
-  ) =>
-    request<{ run_id: string; verdict: string }>(`/api/replication/specs/${encodeURIComponent(specRunId)}/backtest`, {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
-  getReplicationRunDetail: (runId: string) => request<ReplicationRunDetail>(`/api/replication/runs/${encodeURIComponent(runId)}`),
-  runReplicationSanityCheck: (runId: string) =>
-    request<SanityCheckAssessment>(`/api/replication/runs/${encodeURIComponent(runId)}/sanity-check`, { method: "POST" }),
-  runReplicationRegimeReport: (runId: string, trailingWindowMonths = 12) =>
-    request<RegimeStratifiedReport>(
-      `/api/replication/runs/${encodeURIComponent(runId)}/regime-report${buildQuery({ trailing_window_months: String(trailingWindowMonths) })}`,
-      { method: "POST" }
-    ),
 
   // trail records.
   uploadDecisionDataset: (file: File) => {

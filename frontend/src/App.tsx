@@ -37,8 +37,6 @@ const StewardCockpit = lazy(() => import("./pages/StewardCockpit").then((x) => (
 const StewardWorkflow = lazy(() => import("./pages/StewardWorkflow").then((x) => ({ default: x.StewardWorkflow })));
 const PortfolioRiskMonitoringTool = lazy(() => import("./pages/PortfolioRiskMonitoringTool").then((x) => ({ default: x.PortfolioRiskMonitoringTool })));
 const ReportBuilder = lazy(() => import("./pages/ReportBuilder").then((x) => ({ default: x.ReportBuilder })));
-const StrategyReplication = lazy(() => import("./pages/StrategyReplication").then((x) => ({ default: x.StrategyReplication })));
-const SignalsWorkbench = lazy(() => import("./pages/SignalsWorkbench").then((x) => ({ default: x.SignalsWorkbench })));
 const ValueChainExplorer = lazy(() => import("./pages/value-chain/ValueChainExplorer").then((x) => ({ default: x.ValueChainExplorer })));
 const Search = lazy(() => import("./pages/Search").then((x) => ({ default: x.Search })));
 const SecurityMaster = lazy(() => import("./pages/SecurityMaster").then((x) => ({ default: x.SecurityMaster })));
@@ -85,8 +83,6 @@ const TABS = [
   { id: "engagement", label: "Engagement" },
   { id: "voting", label: "Proxy Voting" },
   { id: "reporting", label: "Presentations & Reports" },
-  { id: "strategyReplication", label: "Strategy Replication" },
-  { id: "signals", label: "Signals workbench" },
   { id: "valueChain", label: "Value Chain Explorer" },
   { id: "decision", label: "Decision Studio" },
   { id: "index", label: "Portfolio Builder" },
@@ -326,8 +322,6 @@ function App() {
         {active === "engagement" && <EngagementDashboard />}
         {active === "voting" && <VotingRuns selectedRunId={route.params[0] ?? null} onSelectRun={(id) => navigate("voting", id)} />}
         {active === "reporting" && <ReportBuilder />}
-        {active === "strategyReplication" && <StrategyReplication />}
-        {active === "signals" && <SignalsWorkbench />}
         {active === "valueChain" && <ValueChainExplorer key={route.params.join("/")} params={route.params} />}
         {active === "decision" && <DecisionStudio key={route.params.join("/")} initialSource={route.params[0]} initialRunId={route.params[1]} />}
         {active === "index" && <IndexBuilder />}

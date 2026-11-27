@@ -19,7 +19,7 @@ const ws = (id: string) => WORKSPACES.find((w) => w.id === id)!;
 const thematic = ws("rdLab").processes.find((p) => p.id === "thematic")!;
 
 test("eo_ac46_caption", () => {
-  assert.equal(workspaceCaption(ws("rdLab")), "Workspace · 4 processes");
+  assert.equal(workspaceCaption(ws("rdLab")), "Workspace · 2 processes");
   assert.equal(workspaceCaption(ws("dataHub")), "Workspace · 1 process");
 });
 

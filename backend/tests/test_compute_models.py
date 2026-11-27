@@ -1,6 +1,4 @@
 import json
-import sys
-import types
 from datetime import datetime, timedelta
 
 import httpx
@@ -150,21 +148,6 @@ def test_emerging_themes_embeds_in_cloud(transport, monkeypatch):  # AC-23
     monkeypatch.setattr(clustering, "_run_once", lambda emb, size, seed: np.full(len(emb), -1))
     assert clustering.cluster_tags([object()] * 3, {}, {}, "2026-09") == []
     assert len(transport.calls(EMBED)) >= 1
-
-
-def test_signal_lab_embedder_stays_local(transport, monkeypatch):  # AC-48
-    from arp.signal_lab.methods.embedding import default_embedder
-
-    class FakeTextEmbedding:
-        def __init__(self, model_name, **kw):
-            pass
-
-        def embed(self, texts):
-            return [np.ones(4) for _ in texts]
-
-    monkeypatch.setitem(sys.modules, "fastembed", types.SimpleNamespace(TextEmbedding=FakeTextEmbedding))
-    assert default_embedder().embed(["a", "b"]).shape == (2, 4)
-    assert transport.calls(EMBED) == []
 
 
 def test_models_unset_makes_no_requests(transport, monkeypatch):  # AC-1

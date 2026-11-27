@@ -12,14 +12,12 @@ from fastapi.testclient import TestClient
 from arp.api import deps
 from arp.api.main import app
 from arp.api.routers import holdings as holdings_router
-from arp.api.routers import signals as signals_router
 from arp.config import get_settings
 
 LIMIT = 2_000_000
 TOO_BIG = 413, {"detail": "File is larger than the 2 MB upload limit."}
 ROUTERS = Path(__file__).resolve().parents[1] / "arp" / "api" / "routers"
-# Upload guard allow-list (spec Design 4): the two Strategy Replication uploads, until bug-list item 1 caps them.
-ALLOWED = {("replication.py", "dest.write_bytes(await file.read())")}
+ALLOWED: set[tuple[str, str]] = set()
 
 
 @pytest.fixture
@@ -32,7 +30,6 @@ def settings(tmp_path, monkeypatch):
         d.mkdir(parents=True)
     monkeypatch.setitem(app.dependency_overrides, deps.settings_dep, lambda: s)
     monkeypatch.setitem(app.dependency_overrides, deps.get_decision_store, lambda: None)
-    monkeypatch.setitem(app.dependency_overrides, signals_router._registry, lambda: None)
     monkeypatch.setitem(app.dependency_overrides, holdings_router.get_portfolio_store, lambda: None)
     monkeypatch.setitem(app.dependency_overrides, holdings_router.get_identifier_map, lambda: None)
     return s
@@ -77,19 +74,6 @@ def test_upload_over_the_limit_saves_nothing(client, settings, route, name, data
 ])
 def test_report_uploads_over_the_limit(client, route, files):  # upload reads 6 to 8
     assert _answer(client.post(route, files=files)) == TOO_BIG
-
-
-def test_signals_checks_every_part_before_parsing(client):  # AC-39
-    files = [("recipe", ("recipe.yaml", b"a")), ("prices", ("prices.csv", b"a")), ("panel_a", ("panel_a.csv", b"a")),
-             ("panel_b", ("panel_b.csv", b"a" * (LIMIT + 1)))]
-    assert _answer(client.post("/api/signals/runs", files=files)) == TOO_BIG
-
-
-@pytest.mark.parametrize("part", ["recipe", "prices"])
-def test_signals_recipe_or_prices_over_the_limit(client, part):  # upload reads 9 and 10
-    files = {"recipe": ("recipe.yaml", b"a"), "prices": ("prices.csv", b"a")}
-    files[part] = (files[part][0], b"a" * (LIMIT + 1))
-    assert _answer(client.post("/api/signals/runs", files=files)) == TOO_BIG
 
 
 @pytest.mark.parametrize(("route", "data"), [

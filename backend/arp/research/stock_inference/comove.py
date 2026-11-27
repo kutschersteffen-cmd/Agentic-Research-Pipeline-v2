@@ -10,7 +10,7 @@ from pathlib import Path
 
 import numpy as np
 
-from arp.replication.price_data import PriceDataSource
+from arp.research.price_data import PriceDataSource
 from arp.research.stock_inference.run import _save, load_run
 
 ACWI = "ACWI"
@@ -64,7 +64,7 @@ def _factor(others: np.ndarray) -> np.ndarray:
 
 
 def _loading(e: np.ndarray, f: np.ndarray) -> dict:
-    """OLS e ~ [1, f] with a Newey-West t (Bartlett kernel, as signal_lab.stats.newey_west_t) and side correlations."""
+    """OLS e ~ [1, f] with a Newey-West t (Bartlett kernel) and side correlations."""
     ok = np.isfinite(e) & np.isfinite(f)
     n = int(ok.sum())
     keys = ("n_weeks", "beta", "partial_r2", "nw_t", "down_corr", "up_corr", "lag_corr", "lead_corr")

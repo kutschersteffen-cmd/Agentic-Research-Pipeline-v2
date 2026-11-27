@@ -4487,236 +4487,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/replication/discover": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Discover Papers
-         * @description Searches for candidate 'outperformance' papers on `req.topic` and
-         *     ranks them by replication-worthiness -- the API equivalent of
-         *     `arp replicate discover-papers`, using every search source
-         *     (arXiv + Semantic Scholar + generic web) merged/deduped, same as that
-         *     CLI command's default. Proposes candidates; nothing is fetched or
-         *     turned into a spec automatically -- picking one is a separate
-         *     POST /specs call.
-         */
-        post: operations["discover_papers_api_replication_discover_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/replication/runs/{run_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Replication Run */
-        get: operations["get_replication_run_api_replication_runs__run_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/replication/runs/{run_id}/regime-report": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Trigger Regime Report */
-        post: operations["trigger_regime_report_api_replication_runs__run_id__regime_report_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/replication/runs/{run_id}/sanity-check": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Trigger Sanity Check
-         * @description Runs the qualitative LLM sanity-check pass on demand (see
-         *     arp/replication/sanity_check.py) and appends the result -- the one
-         *     deliberate on-demand-from-the-UI action in this router, since a
-         *     real interactive review tool should let the user ask for this without
-         *     a separate CLI step.
-         */
-        post: operations["trigger_sanity_check_api_replication_runs__run_id__sanity_check_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/replication/specs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create Spec Draft
-         * @description Drafts a StrategySpec from `req.paper_text` via the same extractor/
-         *     independent-verifier/grounding pipeline as `arp replicate extract-spec`
-         *     -- `paper_text` may be a real paper excerpt or the user's own free-form
-         *     methodology description, handled identically. The draft is NOT approved
-         *     yet; review/edit/approve it via the endpoints below before backtesting.
-         */
-        post: operations["create_spec_draft_api_replication_specs_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/replication/specs/{spec_run_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Spec Draft */
-        get: operations["get_spec_draft_api_replication_specs__spec_run_id__get"];
-        /**
-         * Update Spec Draft
-         * @description Direct full-object edit -- the user's own corrected StrategySpec,
-         *     validated by the schema itself. Recorded as an 'edit' decision (never
-         *     overwrites the draft row in place), which un-approves the spec.
-         */
-        put: operations["update_spec_draft_api_replication_specs__spec_run_id__put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/replication/specs/{spec_run_id}/approve": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Approve Spec Draft */
-        post: operations["approve_spec_draft_api_replication_specs__spec_run_id__approve_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/replication/specs/{spec_run_id}/backtest": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Run Backtest From Spec
-         * @description Runs the deterministic backtest engine against the spec's CURRENT
-         *     (approved) state -- 403s if the latest review decision for this spec
-         *     isn't 'approve', re-checked here server-side rather than trusted from
-         *     the caller/UI.
-         */
-        post: operations["run_backtest_from_spec_api_replication_specs__spec_run_id__backtest_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/replication/specs/{spec_run_id}/datasets/characteristics/{name}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Upload Characteristics Dataset
-         * @description `name` may hold `/` ("B/M"); only the stored file name is slugged, the name itself is not changed.
-         */
-        post: operations["upload_characteristics_dataset_api_replication_specs__spec_run_id__datasets_characteristics__name__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/replication/specs/{spec_run_id}/datasets/prices": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Upload Price Dataset */
-        post: operations["upload_price_dataset_api_replication_specs__spec_run_id__datasets_prices_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/replication/specs/{spec_run_id}/revise": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Revise Spec Draft
-         * @description Applies a natural-language instruction to the current spec (see
-         *     arp/replication/spec_revision.py) -- any field it actually changes has
-         *     its grounding/confidence cleared and a note appended, enforced in code.
-         */
-        post: operations["revise_spec_draft_api_replication_specs__spec_run_id__revise_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/reports": {
         parameters: {
             query?: never;
@@ -5823,108 +5593,6 @@ export interface paths {
         put?: never;
         /** Upload */
         post: operations["upload_api_security_master_upload_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/signals/compare": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Compare */
-        post: operations["compare_api_signals_compare_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/signals/experiments": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Experiments */
-        get: operations["list_experiments_api_signals_experiments_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/signals/experiments/{experiment_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Experiment */
-        get: operations["get_experiment_api_signals_experiments__experiment_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/signals/experiments/{experiment_id}/decision": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Decide */
-        post: operations["decide_api_signals_experiments__experiment_id__decision_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/signals/methods": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Methods */
-        get: operations["list_methods_api_signals_methods_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/signals/runs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Run */
-        post: operations["run_api_signals_runs_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -9775,8 +9443,6 @@ export interface components {
              */
             note: string;
         };
-        /** ApproveSpecRequest */
-        ApproveSpecRequest: Record<string, never>;
         /** ArgusFlow */
         ArgusFlow: {
             /**
@@ -10193,91 +9859,6 @@ export interface components {
             /** Text */
             text: string;
         };
-        /** BacktestRequest */
-        BacktestRequest: {
-            /** Benchmark */
-            benchmark?: string | null;
-            /**
-             * Characteristics Refs
-             * @description characteristic_name -> file name returned by POST .../datasets/characteristics/{name}.
-             */
-            characteristics_refs?: {
-                [key: string]: string;
-            };
-            /** Out Of Sample End */
-            out_of_sample_end?: string | null;
-            /** Out Of Sample Start */
-            out_of_sample_start?: string | null;
-            /**
-             * Price Kind
-             * @default price
-             */
-            price_kind: string;
-            /**
-             * Prices Ref
-             * @description File name returned by POST .../datasets/prices.
-             */
-            prices_ref: string;
-            /** Tickers */
-            tickers: string[];
-        };
-        /**
-         * BacktestResult
-         * @description A deterministic (zero-LLM) replication of one StrategySpec's signal
-         *     and portfolio construction over one date window, against whatever price
-         *     panel a PriceDataSource supplied -- see arp/replication/backtest_engine.py.
-         */
-        BacktestResult: {
-            /**
-             * Avg Num Long
-             * @default 0
-             */
-            avg_num_long: number;
-            /**
-             * Avg Num Short
-             * @default 0
-             */
-            avg_num_short: number;
-            /**
-             * Data Source
-             * @description Which PriceDataSource implementation produced the panel, e.g. 'csv' or 'yfinance' -- material to how much the replication can be trusted.
-             */
-            data_source: string;
-            /** Generated At */
-            generated_at?: string;
-            long_leg?: components["schemas"]["LegPerformance"];
-            long_short?: components["schemas"]["LegPerformance"];
-            /** Monthly Turnover Pct */
-            monthly_turnover_pct?: number | null;
-            /** @description Long-short performance after cost_bps * traded_weight per month; None when no cost was applied. */
-            net_long_short?: components["schemas"]["LegPerformance"] | null;
-            /** Period End */
-            period_end: string;
-            /**
-             * Period Label
-             * @description 'in_sample' (the paper's own sample_period) or 'out_of_sample' (any other window run against the same rules).
-             */
-            period_label: string;
-            /** Period Start */
-            period_start: string;
-            /** Periods */
-            periods?: components["schemas"]["PortfolioPeriodReturn"][];
-            /** Result Id */
-            result_id?: string;
-            short_leg?: components["schemas"]["LegPerformance"];
-            /** Spec Id */
-            spec_id: string;
-            /**
-             * Universe Size
-             * @description Number of distinct tickers in the panel actually used.
-             */
-            universe_size: number;
-            /**
-             * Warnings
-             * @description Data-quality caveats, e.g. thin coverage in early periods, gaps in the panel.
-             */
-            warnings?: string[];
-        };
         /**
          * BarrierCriterion
          * @description One of the 35 transition-barrier criteria: a sector x pillar pair with a
@@ -10692,11 +10273,6 @@ export interface components {
             /** File */
             file: string;
         };
-        /** Body_upload_characteristics_dataset_api_replication_specs__spec_run_id__datasets_characteristics__name__post */
-        Body_upload_characteristics_dataset_api_replication_specs__spec_run_id__datasets_characteristics__name__post: {
-            /** File */
-            file: string;
-        };
         /** Body_upload_companies_api_argus_flows__flow_id__companies_upload_post */
         Body_upload_companies_api_argus_flows__flow_id__companies_upload_post: {
             /** File */
@@ -10761,11 +10337,6 @@ export interface components {
         };
         /** Body_upload_image_api_reports_images_post */
         Body_upload_image_api_reports_images_post: {
-            /** File */
-            file: string;
-        };
-        /** Body_upload_price_dataset_api_replication_specs__spec_run_id__datasets_prices_post */
-        Body_upload_price_dataset_api_replication_specs__spec_run_id__datasets_prices_post: {
             /** File */
             file: string;
         };
@@ -12048,24 +11619,6 @@ export interface components {
             /** Sector */
             sector: string | null;
         };
-        /** Comparison */
-        Comparison: {
-            /** A */
-            a: string;
-            /** B */
-            b: string;
-            /** Months */
-            months: number;
-            /** N Comparisons */
-            n_comparisons: number;
-            /** Reason */
-            reason?: string | null;
-            /**
-             * Verdict
-             * @enum {string}
-             */
-            verdict: "a_higher" | "b_higher" | "insufficient_data";
-        };
         /** ComparisonOut */
         ComparisonOut: {
             /** Assumption */
@@ -12080,46 +11633,6 @@ export interface components {
             reason: string | null;
             /** Region */
             region: string;
-        };
-        /**
-         * CompositeSignalComponent
-         * @description One sub-signal inside a COMPOSITE StrategySpec -- the same
-         *     per-signal parameters a standalone MOMENTUM/VALUE/TEXT_SENTIMENT spec
-         *     would carry, minus everything about portfolio construction (buckets,
-         *     legs, holding period, rebalancing), which is decided once at the
-         *     composite level, not per component.
-         */
-        CompositeSignalComponent: {
-            /**
-             * Characteristic Lag Months
-             * @description VALUE/TEXT_SENTIMENT only.
-             * @default 0
-             */
-            characteristic_lag_months: number;
-            /**
-             * Characteristic Name
-             * @description VALUE/TEXT_SENTIMENT only.
-             */
-            characteristic_name?: string | null;
-            /**
-             * Formation Period Months
-             * @description MOMENTUM only.
-             * @default 0
-             */
-            formation_period_months: number;
-            /** @description MOMENTUM, VALUE, or TEXT_SENTIMENT -- never COMPOSITE (no nesting). */
-            signal_type: components["schemas"]["SignalType"];
-            /**
-             * Skip Month
-             * @description MOMENTUM only.
-             * @default false
-             */
-            skip_month: boolean;
-            /**
-             * Weight
-             * @description Relative weight in the rank-average; weights need not sum to 1 (they're normalized per-ticker by the weight actually applied -- see composite_scores).
-             */
-            weight: number;
         };
         /** ComputedRule */
         ComputedRule: {
@@ -12538,16 +12051,6 @@ export interface components {
             /** Sector */
             sector?: string | null;
         };
-        /** CreateSpecRequest */
-        CreateSpecRequest: {
-            /** Paper Citation */
-            paper_citation: string;
-            /**
-             * Paper Text
-             * @description A pasted paper excerpt, or the user's own free-form methodology description -- mechanically identical to the extractor.
-             */
-            paper_text: string;
-        };
         /** CreateStreamRequest */
         CreateStreamRequest: {
             /** Client Policy */
@@ -12818,25 +12321,6 @@ export interface components {
             /** Source Ref */
             source_ref?: string | null;
         };
-        /** DatasetUploadResponse */
-        DatasetUploadResponse: {
-            /** First Date */
-            first_date: string;
-            /** Last Date */
-            last_date: string;
-            /**
-             * Ref
-             * @description Stored file name; pass it back as prices_ref or a characteristics_refs value.
-             */
-            ref: string;
-            /** Rows */
-            rows: number;
-            /**
-             * Tickers
-             * @description The header's ticker names, in file order.
-             */
-            tickers: string[];
-        };
         /**
          * DecarbonisationTrajectory
          * @description The EU PAB/CTB-shaped constraint, and the only part of the stack
@@ -12995,14 +12479,6 @@ export interface components {
          * @enum {string}
          */
         DecisionReason: "confirmed" | "wrong_value" | "wrong_unit_or_scale" | "wrong_period" | "wrong_entity" | "not_disclosed" | "bad_source" | "needs_expert" | "other" | "span_moved";
-        /** DecisionRequest */
-        DecisionRequest: {
-            /**
-             * Decision
-             * @enum {string}
-             */
-            decision: "graduate" | "shelve";
-        };
         /**
          * DecisionResult
          * @description The output of applying one framework version to one dataset.
@@ -13119,52 +12595,6 @@ export interface components {
             term: string;
             /** Text */
             text: string;
-        };
-        /**
-         * DeflatedSharpeAssessment
-         * @description Output of arp/replication/deflated_sharpe.py's Probabilistic/
-         *     Deflated Sharpe Ratio computation (Bailey & Lopez de Prado) for one
-         *     leg's monthly return series -- a multiple-testing-aware complement to
-         *     the plain t-stat check in compare.py, not a replacement for it: a
-         *     result can pass the plain t-stat hurdle and still fail here once the
-         *     number of variants actually tried (StrategySpec.num_trials_attempted)
-         *     is accounted for.
-         *
-         *     All Sharpe-ratio fields are in PER-PERIOD (monthly) units, not
-         *     annualized -- the PSR/DSR formulas are derived in per-period units,
-         *     and annualizing first would silently misapply them.
-         */
-        DeflatedSharpeAssessment: {
-            /**
-             * Deflated Sharpe Ratio
-             * @description PSR(expected_max_sharpe_under_null): probability the true Sharpe ratio exceeds what pure luck across n_trials variants would produce. The trial-count-aware figure; prefer this over probabilistic_sharpe_ratio whenever n_trials > 1.
-             */
-            deflated_sharpe_ratio?: number | null;
-            /**
-             * Expected Max Sharpe Under Null Period
-             * @description E[max Sharpe] expected from n_trials variants under zero true skill -- the DSR benchmark.
-             */
-            expected_max_sharpe_under_null_period?: number | null;
-            /** Kurtosis */
-            kurtosis?: number | null;
-            /** N Obs */
-            n_obs: number;
-            /** N Trials */
-            n_trials: number;
-            /**
-             * Notes
-             * @default
-             */
-            notes: string;
-            /**
-             * Probabilistic Sharpe Ratio
-             * @description PSR(0): probability the TRUE per-period Sharpe ratio exceeds zero, given n_obs/skew/kurtosis. Ignores n_trials.
-             */
-            probabilistic_sharpe_ratio?: number | null;
-            /** Sharpe Ratio Period */
-            sharpe_ratio_period?: number | null;
-            /** Skewness */
-            skewness?: number | null;
         };
         /**
          * DerivationMethod
@@ -13388,16 +12818,6 @@ export interface components {
         DisconfirmRequest: {
             /** Reason */
             reason: string;
-        };
-        /** DiscoverRequest */
-        DiscoverRequest: {
-            /**
-             * Max Candidates
-             * @default 10
-             */
-            max_candidates: number;
-            /** Topic */
-            topic: string;
         };
         /** DiscoverSourcesRequest */
         DiscoverSourcesRequest: {
@@ -13776,19 +13196,6 @@ export interface components {
          * @enum {string}
          */
         EscalationStage: "private_engagement" | "written_escalation_to_board" | "escalation_to_chair" | "vote_against_management" | "file_or_cofile_resolution" | "public_statement";
-        /** EvidenceReport */
-        EvidenceReport: {
-            /** Contamination Gap Ic */
-            contamination_gap_ic: number | null;
-            /** N Trials */
-            n_trials: number;
-            /** Overlap */
-            overlap: {
-                [key: string]: number | null;
-            };
-            /** Windows */
-            windows: components["schemas"]["WindowEvidence"][];
-        };
         /**
          * EvidenceSuggestion
          * @description A pending answer from Argus that a person confirms or rejects (`stw_evidence_suggestions`).
@@ -13871,78 +13278,6 @@ export interface components {
              * @default
              */
             note: string;
-        };
-        /** ExperimentDetail */
-        ExperimentDetail: {
-            /** Created At */
-            created_at: string;
-            /** Cutoff */
-            cutoff?: string | null;
-            /**
-             * Cutoff Status
-             * @enum {string}
-             */
-            cutoff_status: "none" | "recorded" | "unknown";
-            /** Data Version */
-            data_version: string;
-            /** Decided At */
-            decided_at?: string | null;
-            /** Decided By */
-            decided_by?: string | null;
-            /**
-             * Decision
-             * @default none
-             * @enum {string}
-             */
-            decision: "none" | "graduate" | "shelve";
-            evidence: components["schemas"]["EvidenceReport"];
-            /** Experiment Id */
-            experiment_id: string;
-            /** Model */
-            model: string | null;
-            /**
-             * Notes
-             * @default {}
-             */
-            notes: {
-                [key: string]: unknown;
-            };
-            recipe: components["schemas"]["Recipe"];
-        };
-        /** ExperimentSummary */
-        ExperimentSummary: {
-            /** Category */
-            category: string;
-            /** Cost Bps */
-            cost_bps: number;
-            /** Created At */
-            created_at: string;
-            /** Cutoff */
-            cutoff: string | null;
-            /**
-             * Cutoff Status
-             * @enum {string}
-             */
-            cutoff_status: "none" | "recorded" | "unknown";
-            /**
-             * Decision
-             * @enum {string}
-             */
-            decision: "none" | "graduate" | "shelve";
-            /** Experiment Id */
-            experiment_id: string;
-            /** Method */
-            method: string;
-            /** Model */
-            model: string | null;
-            /** N Trials */
-            n_trials: number;
-            /** Universe */
-            universe: string;
-            /** Window End */
-            window_end: string;
-            /** Window Start */
-            window_start: string;
         };
         /** Exploration */
         Exploration: {
@@ -14740,17 +14075,6 @@ export interface components {
              */
             portfolio_ids?: string[];
         };
-        /** IcSummary */
-        IcSummary: {
-            /** Hit Rate */
-            hit_rate: number | null;
-            /** Mean */
-            mean: number | null;
-            /** N */
-            n: number;
-            /** T Nw */
-            t_nw: number | null;
-        };
         /** IcioCode */
         IcioCode: {
             /** Code */
@@ -15216,31 +14540,6 @@ export interface components {
             theme: "light" | "dark";
         };
         /**
-         * LegPerformance
-         * @description One portfolio leg's (long, short, or long-short spread) performance --
-         *     either as reported by the paper, or as measured by a replication
-         *     backtest (arp/replication/metrics.py computes the latter with identical
-         *     field names so the two are directly comparable in compare.py).
-         */
-        LegPerformance: {
-            /** Alpha Annualized Pct */
-            alpha_annualized_pct?: number | null;
-            /** Annualized Return Pct */
-            annualized_return_pct?: number | null;
-            /** Annualized Volatility Pct */
-            annualized_volatility_pct?: number | null;
-            /** Beta */
-            beta?: number | null;
-            /** Max Drawdown Pct */
-            max_drawdown_pct?: number | null;
-            /** Monthly Mean Return Pct */
-            monthly_mean_return_pct?: number | null;
-            /** Sharpe Ratio */
-            sharpe_ratio?: number | null;
-            /** T Stat */
-            t_stat?: number | null;
-        };
-        /**
          * LevelCriterion
          * @description A criterion scored on the framework's fixed scale, from the company's
          *     own data only. Rules are tried in order and the first that holds sets
@@ -15634,13 +14933,6 @@ export interface components {
             /** Source Notes */
             source_notes: string;
             theme: components["schemas"]["ThemeDefinition"];
-        };
-        /** MethodInfo */
-        MethodInfo: {
-            /** Name */
-            name: string;
-            /** Runnable In App */
-            runnable_in_app: boolean;
         };
         /**
          * MetricThresholdScreen
@@ -16328,33 +15620,6 @@ export interface components {
             /** Weight */
             weight: number;
         };
-        /**
-         * PortfolioPeriodReturn
-         * @description One rebalance period's realized return for one leg, plus how many
-         *     names were actually available -- lets a thin/illiquid period be spotted
-         *     rather than silently averaged in with everything else.
-         */
-        PortfolioPeriodReturn: {
-            /** Benchmark Return Pct */
-            benchmark_return_pct?: number | null;
-            /** Long Return Pct */
-            long_return_pct: number;
-            /** Long Short Return Pct */
-            long_short_return_pct: number;
-            /** Num Long */
-            num_long: number;
-            /** Num Short */
-            num_short: number;
-            /** Period End */
-            period_end: string;
-            /** Short Return Pct */
-            short_return_pct: number;
-            /**
-             * Traded Weight
-             * @description Sum over both legs of |w_t - w_{t-1}| in absolute weight; the first emitted month trades the full 2.0.
-             */
-            traded_weight?: number | null;
-        };
         /** PortfolioPriceLens */
         PortfolioPriceLens: {
             /** As Of */
@@ -16758,41 +16023,6 @@ export interface components {
             /** Run Id */
             run_id: string;
         };
-        /**
-         * ProvenanceInfo
-         * @description Which model and which system-prompt version produced a persisted
-         *     extraction/verification, so a later prompt or model change is
-         *     detectable against previously persisted output instead of silently
-         *     mixing results from different pipeline versions. `*_prompt_version` is
-         *     a short hash of the agent's system prompt text (see
-         *     `LangChainAnthropicClient.complete_structured`), not a manually
-         *     maintained version number -- it changes automatically the moment the
-         *     prompt does, so it can't go stale the way a hand-bumped constant would.
-         */
-        ProvenanceInfo: {
-            /** Adjudicator Model */
-            adjudicator_model?: string | null;
-            /** Extractor Model */
-            extractor_model?: string | null;
-            /** Extractor Prompt Version */
-            extractor_prompt_version?: string | null;
-            /** Field Version */
-            field_version?: number | null;
-            /**
-             * Provider
-             * @default
-             */
-            provider: string;
-            /**
-             * Schema Version
-             * @default
-             */
-            schema_version: string;
-            /** Verifier Model */
-            verifier_model?: string | null;
-            /** Verifier Prompt Version */
-            verifier_prompt_version?: string | null;
-        };
         /** PublishAuthoritativeRequest */
         PublishAuthoritativeRequest: {
             /** Dataset Id */
@@ -17044,47 +16274,10 @@ export interface components {
             universe_path?: string | null;
         };
         /**
-         * RebalanceFrequency
-         * @enum {string}
-         */
-        RebalanceFrequency: "monthly" | "quarterly" | "annual" | "custom";
-        /**
          * Receptiveness
          * @enum {string}
          */
         Receptiveness: "very_good" | "good" | "neutral" | "insufficient" | "refusal";
-        /** Recipe */
-        Recipe: {
-            /**
-             * Category
-             * @enum {string}
-             */
-            category: "sentiment_narrative" | "earnings_call_tone" | "fundamental" | "price_momentum" | "analyst_revisions";
-            /**
-             * Cost Bps
-             * @default 10
-             */
-            cost_bps: number;
-            /**
-             * Forward Months
-             * @default 1
-             */
-            forward_months: number;
-            /** Method */
-            method: string;
-            /** Params */
-            params: {
-                [key: string]: unknown;
-            };
-            /** Text Source */
-            text_source: string | null;
-            /** Universe */
-            universe: string;
-            /** Window End */
-            window_end: string;
-            /** Window Start */
-            window_start: string;
-        };
         /** RecipeIn */
         RecipeIn: {
             home: components["schemas"]["RecipeNode"];
@@ -17340,44 +16533,6 @@ export interface components {
             /** Turn Id */
             turn_id: number;
         };
-        /** RegimeBucketPerformance */
-        RegimeBucketPerformance: {
-            long_short?: components["schemas"]["LegPerformance"];
-            /** Num Periods */
-            num_periods: number;
-            /**
-             * Regime
-             * @description 'low_volatility', 'mid_volatility', or 'high_volatility'.
-             */
-            regime: string;
-        };
-        /**
-         * RegimeStratifiedReport
-         * @description Long-short performance broken out by trailing-volatility regime
-         *     (terciles of the benchmark's own trailing realized volatility) rather
-         *     than pooled across the whole sample -- inspired by arXiv 2512.12924
-         *     ("Interpretable Hypothesis-Driven Trading")'s finding that a strategy's
-         *     performance can be strongly regime-dependent even when its full-sample
-         *     average looks unremarkable: averaging across regimes can hide a
-         *     strategy that only works in calm markets (or only in turbulent ones),
-         *     which a paper's single full-sample Sharpe ratio would never reveal.
-         *
-         *     Regimes are classified from the BENCHMARK's own trailing volatility,
-         *     never the strategy's own return series -- classifying by the
-         *     strategy's own volatility would be circular (its returns partly
-         *     define the buckets it's then evaluated within).
-         */
-        RegimeStratifiedReport: {
-            /** Buckets */
-            buckets?: components["schemas"]["RegimeBucketPerformance"][];
-            /**
-             * Notes
-             * @default
-             */
-            notes: string;
-            /** Trailing Window Months */
-            trailing_window_months: number;
-        };
         /**
          * Region
          * @description The three jurisdictions the matrix is rated for. Values are the literal
@@ -17463,68 +16618,6 @@ export interface components {
             /** Waiting */
             waiting: number;
         };
-        /**
-         * ReplicationComparisonReport
-         * @description The end product of one replication run: in-sample vs. the paper's
-         *     own reported numbers, plus an out-of-sample read on whether the effect
-         *     persists. See arp/replication/compare.py for the verdict logic.
-         */
-        ReplicationComparisonReport: {
-            /** @description Multiple-testing-aware Sharpe-ratio assessment of the in-sample long-short leg (see arp/replication/deflated_sharpe.py), computed whenever there are enough in-sample periods to estimate one. None does not mean 'passed' -- it means there wasn't enough data to compute it at all. */
-            deflated_sharpe?: components["schemas"]["DeflatedSharpeAssessment"] | null;
-            /** Generated At */
-            generated_at?: string;
-            in_sample: components["schemas"]["BacktestResult"];
-            /**
-             * In Sample Return Gap Pp
-             * @description In-sample long-short annualized return minus the paper's reported figure, in percentage points. Negative means the replication underperforms the paper.
-             */
-            in_sample_return_gap_pp?: number | null;
-            out_of_sample?: components["schemas"]["BacktestResult"] | null;
-            /**
-             * Out Of Sample Return Gap Pp
-             * @description Out-of-sample long-short annualized return minus the in-sample replication's own annualized return, in percentage points -- decay/persistence, not a comparison to the paper.
-             */
-            out_of_sample_return_gap_pp?: number | null;
-            /** Report Id */
-            report_id?: string;
-            reported_performance: components["schemas"]["ReportedPerformance"];
-            /** Spec Id */
-            spec_id: string;
-            verdict: components["schemas"]["ReplicationVerdict"];
-            /**
-             * Verdict Notes
-             * @default
-             */
-            verdict_notes: string;
-        };
-        /**
-         * ReplicationRunDetail
-         * @description Everything a completed `strategy_replication` run has produced so
-         *     far, bundled into one response -- a replication run is one strategy's
-         *     results (a spec + a couple of BacktestResults + a comparison report),
-         *     small enough to return whole rather than paginating like the
-         *     many-rows-per-company run types (theme/extraction) need to. Composition
-         *     only: every field is an existing model, assembled by dispatching each
-         *     `results.jsonl` row by its own `type` tag -- the same pattern
-         *     `arp/cli/replication.py`'s `sanity-check`/`regime-report` commands
-         *     already use to read a run's rows back.
-         */
-        ReplicationRunDetail: {
-            comparison: components["schemas"]["ReplicationComparisonReport"];
-            in_sample: components["schemas"]["BacktestResult"];
-            out_of_sample?: components["schemas"]["BacktestResult"] | null;
-            regime_report?: components["schemas"]["RegimeStratifiedReport"] | null;
-            /** Run Id */
-            run_id: string;
-            sanity_check?: components["schemas"]["SanityCheckAssessment"] | null;
-            spec: components["schemas"]["StrategySpec"];
-        };
-        /**
-         * ReplicationVerdict
-         * @enum {string}
-         */
-        ReplicationVerdict: "replicated" | "partially_replicated" | "not_replicated" | "decayed_out_of_sample" | "insufficient_data";
         /**
          * ReportImage
          * @description An image stored with a report under `reports/<id>/images/<name>.<ext>`.
@@ -17654,25 +16747,6 @@ export interface components {
              */
             speaker_notes: string;
             table?: components["schemas"]["TableSpec"] | null;
-        };
-        /**
-         * ReportedPerformance
-         * @description Performance as reported by the paper itself -- transcribed (or
-         *     LLM-extracted + grounded) from its results tables, never computed.
-         *     Any leg left as a default LegPerformance() means the paper didn't
-         *     report that figure, not that it was zero.
-         */
-        ReportedPerformance: {
-            /** Benchmark Name */
-            benchmark_name?: string | null;
-            long_leg?: components["schemas"]["LegPerformance"];
-            long_short?: components["schemas"]["LegPerformance"];
-            /**
-             * Notes
-             * @default
-             */
-            notes: string;
-            short_leg?: components["schemas"]["LegPerformance"];
         };
         /** RequiredRow */
         RequiredRow: {
@@ -17986,11 +17060,6 @@ export interface components {
             state: components["schemas"]["IndexState"];
             /** Trace */
             trace?: components["schemas"]["StageTrace"][];
-        };
-        /** ReviseSpecRequest */
-        ReviseSpecRequest: {
-            /** Instruction */
-            instruction: string;
         };
         /** RfpAnswerIn */
         RfpAnswerIn: {
@@ -18470,40 +17539,6 @@ export interface components {
              * @default false
              */
             value_chain: boolean;
-        };
-        /**
-         * SanityCheckAssessment
-         * @description A qualitative, LLM-generated second opinion on an already-computed
-         *     ReplicationComparisonReport -- advisory only. This is deliberately NOT
-         *     grounded/verified the way an extraction elsewhere in this codebase is:
-         *     there is no source document to check a quote against, only an opinion
-         *     about whether a set of numbers looks statistically plausible. Never
-         *     treat `plausible=True` as validation, or `plausible=False` as proof of
-         *     a bug -- it's a prompt for a human to look closer, nothing more.
-         */
-        SanityCheckAssessment: {
-            /** Findings */
-            findings?: components["schemas"]["SanityCheckFinding"][];
-            /**
-             * Plausible
-             * @description Overall: does this look like a real, robust finding rather than a likely artifact/bug/overfit?
-             */
-            plausible: boolean;
-            /** Summary */
-            summary: string;
-        };
-        /** SanityCheckFinding */
-        SanityCheckFinding: {
-            /**
-             * Concern
-             * @description Short label, e.g. 'implausible_sharpe', 'thin_universe', 'overfitting_signature'.
-             */
-            concern: string;
-            /**
-             * Explanation
-             * @description Why this specific result triggers the concern -- cite the actual number(s).
-             */
-            explanation: string;
         };
         /** SavePolicyRequest */
         SavePolicyRequest: {
@@ -19008,14 +18043,6 @@ export interface components {
             /** Shock Meur */
             shock_meur: number;
         };
-        /**
-         * SignalType
-         * @description Which deterministic signal implementation in arp/replication/signals.py
-         *     computes this spec's cross-sectional score. Extend as more strategy
-         *     families are added; each needs a matching function in signals.py.
-         * @enum {string}
-         */
-        SignalType: "momentum" | "value" | "text_sentiment" | "composite";
         /** SkippedUpload */
         SkippedUpload: {
             /** Company Id */
@@ -19498,152 +18525,6 @@ export interface components {
             subheading: string;
             /** Visual */
             visual?: string | null;
-        };
-        /**
-         * StrategySpec
-         * @description The methodology of one academic 'outperformance' strategy paper,
-         *     reduced to parameters the deterministic backtest engine
-         *     (arp/replication/backtest_engine.py) can execute directly. Produced
-         *     either by hand (see arp/replication/data/*.json for worked examples) or
-         *     by the extractor/verifier pipeline in arp/replication/spec_extraction.py,
-         *     which grounds every extracted field against the source paper text the
-         *     same way any other extraction in this codebase is grounded.
-         */
-        StrategySpec: {
-            /**
-             * Characteristic Lag Months
-             * @description VALUE/TEXT_SENTIMENT (or any future characteristic-based signal_type) only: how many months to lag the characteristic behind the ranking month, so the score reflects a value that was actually public at that time rather than a look-ahead figure (e.g. a fiscal-year-end book value isn't public until months later; a news article's sentiment is public immediately, so 0 is typical there). Ignored for MOMENTUM, which uses formation_period_months/skip_month instead.
-             * @default 0
-             */
-            characteristic_lag_months: number;
-            /**
-             * Characteristic Name
-             * @description VALUE/TEXT_SENTIMENT (or any future characteristic-based signal_type) only: name of the fundamental/derived field the signal ranks on, e.g. 'book_to_market' or 'news_sentiment' -- must match a column a CsvCharacteristicSource can serve (arp/replication/characteristics_data.py). Purely a label here; the actual data comes from whichever CsvCharacteristicSource the caller supplies to run_replication.
-             */
-            characteristic_name?: string | null;
-            /**
-             * Citations
-             * @description Grounded quotes from the source paper backing the fields above.
-             */
-            citations?: components["schemas"]["Citation"][];
-            /**
-             * Composite Components
-             * @description Required (2+) when signal_type=COMPOSITE: the sub-signals combined via weighted rank-averaging -- see arp/replication/signals.py::composite_scores. Ignored for every other signal_type.
-             */
-            composite_components?: components["schemas"]["CompositeSignalComponent"][];
-            /**
-             * Confidence
-             * @default 0
-             */
-            confidence: number;
-            /** Created At */
-            created_at?: string;
-            /**
-             * Extraction Notes
-             * @description Caveats about this spec: simplifications versus the paper's exact methodology, data limitations, etc. Always populate this for a hand-authored worked-example spec.
-             * @default
-             */
-            extraction_notes: string;
-            /**
-             * Formation Period Months
-             * @description MOMENTUM only: lookback window (J) the signal is computed over. Ignored (leave 0) for a characteristic-based signal_type such as VALUE, where compute_signal_scores instead reads characteristic_name/characteristic_lag_months.
-             * @default 0
-             */
-            formation_period_months: number;
-            /**
-             * Grounded
-             * @description True only if every citation in `citations` passed the programmatic grounding check.
-             * @default false
-             */
-            grounded: boolean;
-            /**
-             * Holding Period Months
-             * @description How long a formed portfolio is held (K) before being re-ranked. Used by every signal_type.
-             */
-            holding_period_months: number;
-            /**
-             * Long Leg Portfolio
-             * @description 1-indexed portfolio bucket that is bought, ranked best-signal-first (bucket 1 = highest signal).
-             * @default 1
-             */
-            long_leg_portfolio: number;
-            /**
-             * Needs Review
-             * @default false
-             */
-            needs_review: boolean;
-            /**
-             * Num Portfolios
-             * @description Number of cross-sectional buckets the signal splits the universe into, e.g. 10 for deciles.
-             * @default 10
-             */
-            num_portfolios: number;
-            /**
-             * Num Trials Attempted
-             * @description How many distinct strategy variants (alternative signals, universes, parameter values, ...) were effectively tried before arriving at this exact spec -- a hand-picked count, not something inferred from the backtest itself. Feeds the multiple-testing-aware significance hurdle and the Deflated Sharpe Ratio in compare.py/deflated_sharpe.py (Harvey, Liu & Zhu 2016; Bailey & Lopez de Prado's Deflated Sharpe Ratio): the default of 1 means 'no multiple-testing adjustment' (this exact spec was the only one considered), which is honest only when that's actually true -- a paper that tried many factors/parameter combinations and reported the best one should set this to that count, or the significance read here will overstate how surprising the result is.
-             * @default 1
-             */
-            num_trials_attempted: number;
-            /**
-             * Paper Citation
-             * @description Full citation, e.g. 'Jegadeesh & Titman (1993), Journal of Finance 48(1).'
-             */
-            paper_citation: string;
-            /** Paper Title */
-            paper_title: string;
-            /** @description Which extractor/verifier model + prompt-version produced this spec, mirroring ExtractedField's provenance in arp/extraction -- a later prompt/model change is detectable against a previously persisted spec instead of silently mixing pipeline versions. Left at its all-None default for a hand-authored spec (see arp/replication/data/*.json), never fabricated. */
-            provenance?: components["schemas"]["ProvenanceInfo"];
-            /**
-             * Rebalance Anchor Month
-             * @description Optional calendar month (1=Jan..12=Dec) rebalances are anchored to, instead of simply every `interval` months counted from the start of the fetched price panel -- e.g. 6 (June) with rebalance_frequency=ANNUAL reproduces the classic Fama & French June-aligned annual rebalance, or 2 (Feb) with QUARTERLY rebalances every Feb/May/Aug/Nov. Meaningless (ignored) when the effective interval is 1 month, since every month is already a rebalance month.
-             */
-            rebalance_anchor_month?: number | null;
-            /**
-             * @description How often a new portfolio is formed. MONTHLY/QUARTERLY/ANNUAL imply an interval of 1/3/12 months; CUSTOM reads rebalance_interval_months directly for any other schedule (e.g. every 2 months, every 18 months) a paper specifies -- see arp/replication/rebalance.py.
-             * @default monthly
-             */
-            rebalance_frequency: components["schemas"]["RebalanceFrequency"];
-            /**
-             * Rebalance Interval Months
-             * @description Required when rebalance_frequency=CUSTOM: how often, in months, a new portfolio is formed. Ignored for MONTHLY/QUARTERLY/ANNUAL, which imply their own fixed interval regardless of this field.
-             */
-            rebalance_interval_months?: number | null;
-            reported_performance?: components["schemas"]["ReportedPerformance"];
-            /**
-             * Sample Period End
-             * @description ISO date (YYYY-MM-DD), the paper's own in-sample end.
-             */
-            sample_period_end: string;
-            /**
-             * Sample Period Start
-             * @description ISO date (YYYY-MM-DD), the paper's own in-sample start.
-             */
-            sample_period_start: string;
-            /**
-             * Short Leg Portfolio
-             * @description 1-indexed portfolio bucket that is sold short.
-             */
-            short_leg_portfolio: number;
-            signal_type: components["schemas"]["SignalType"];
-            /**
-             * Skip Month
-             * @description MOMENTUM only: skip the most recent month between formation and holding, as some momentum papers do to avoid short-term reversal/microstructure effects. Ignored for a characteristic-based signal_type.
-             * @default false
-             */
-            skip_month: boolean;
-            /** Spec Id */
-            spec_id?: string;
-            /** Strategy Name */
-            strategy_name: string;
-            /**
-             * Universe Description
-             * @description e.g. 'NYSE/AMEX ordinary common shares' -- as defined by the paper, not necessarily what a given backtest run actually uses.
-             */
-            universe_description: string;
-            /** Verifier Notes */
-            verifier_notes?: string | null;
-            /** @default equal */
-            weighting: components["schemas"]["WeightingScheme"];
         };
         /** StyleCheckRequest */
         StyleCheckRequest: {
@@ -21003,11 +19884,6 @@ export interface components {
             /** Weight */
             weight: number;
         };
-        /**
-         * WeightingScheme
-         * @enum {string}
-         */
-        WeightingScheme: "equal" | "value";
         /** WeightsVersion */
         WeightsVersion: {
             /** Activated At */
@@ -21016,30 +19892,6 @@ export interface components {
             activated_by: string | null;
             /** Version */
             version: number;
-        };
-        /** WindowEvidence */
-        WindowEvidence: {
-            deflated_sharpe: components["schemas"]["DeflatedSharpeAssessment"] | null;
-            ic: components["schemas"]["IcSummary"];
-            long_short: components["schemas"]["LegPerformance"] | null;
-            /** Monthly Turnover Pct */
-            monthly_turnover_pct: number | null;
-            net_long_short: components["schemas"]["LegPerformance"] | null;
-            /** Periods */
-            periods: number;
-            /**
-             * Series
-             * @default []
-             */
-            series: [
-                string,
-                number
-            ][];
-            /**
-             * Window
-             * @enum {string}
-             */
-            window: "in_window" | "post_cutoff";
         };
         /** WithdrawRequest */
         WithdrawRequest: {
@@ -21321,13 +20173,6 @@ export interface components {
             portfolio_ids?: string[];
             /** Question */
             question: string;
-        };
-        /** CompareRequest */
-        arp__api__routers__signals__CompareRequest: {
-            /** A */
-            a: string;
-            /** B */
-            b: string;
         };
         /** CompareRequest */
         arp__api__routers__taxonomies__CompareRequest: {
@@ -29868,427 +28713,6 @@ export interface operations {
             };
         };
     };
-    discover_papers_api_replication_discover_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DiscoverRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_replication_run_api_replication_runs__run_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                run_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReplicationRunDetail"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    trigger_regime_report_api_replication_runs__run_id__regime_report_post: {
-        parameters: {
-            query?: {
-                trailing_window_months?: number;
-            };
-            header?: never;
-            path: {
-                run_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    trigger_sanity_check_api_replication_runs__run_id__sanity_check_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                run_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_spec_draft_api_replication_specs_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateSpecRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_spec_draft_api_replication_specs__spec_run_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                spec_run_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_spec_draft_api_replication_specs__spec_run_id__put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                spec_run_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["StrategySpec"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    approve_spec_draft_api_replication_specs__spec_run_id__approve_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                spec_run_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["ApproveSpecRequest"] | null;
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    run_backtest_from_spec_api_replication_specs__spec_run_id__backtest_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                spec_run_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BacktestRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    upload_characteristics_dataset_api_replication_specs__spec_run_id__datasets_characteristics__name__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                spec_run_id: string;
-                name: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_upload_characteristics_dataset_api_replication_specs__spec_run_id__datasets_characteristics__name__post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DatasetUploadResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    upload_price_dataset_api_replication_specs__spec_run_id__datasets_prices_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                spec_run_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_upload_price_dataset_api_replication_specs__spec_run_id__datasets_prices_post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DatasetUploadResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    revise_spec_draft_api_replication_specs__spec_run_id__revise_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                spec_run_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReviseSpecRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     list_reports_api_reports_get: {
         parameters: {
             query?: never;
@@ -32331,165 +30755,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    compare_api_signals_compare_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["arp__api__routers__signals__CompareRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Comparison"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_experiments_api_signals_experiments_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExperimentSummary"][];
-                };
-            };
-        };
-    };
-    get_experiment_api_signals_experiments__experiment_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                experiment_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExperimentDetail"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    decide_api_signals_experiments__experiment_id__decision_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                experiment_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DecisionRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExperimentDetail"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_methods_api_signals_methods_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MethodInfo"][];
-                };
-            };
-        };
-    };
-    run_api_signals_runs_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExperimentDetail"];
                 };
             };
         };

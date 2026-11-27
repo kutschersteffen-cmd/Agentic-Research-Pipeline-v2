@@ -197,15 +197,13 @@ export const WORKSPACES: Workspace[] = [
       ["#/emergingThemes", "Emerging Themes"],
       ["#/taxonomy", "Taxonomy Library"],
       ["#/theme", "Thematic Universe"],
-      ["#/strategyReplication", "Strategy Replication"],
-      ["#/signals", "Signals workbench"],
       ["#/valueChain", "Value Chain Explorer"],
       ["#/decision", "Decision Studio"],
       ["#/index", "Portfolio Builder"],
     ],
     // Emerging Themes is the second tab of Themes (the Themes hub).
     row: ["#/designStrategy", "#/themes", "#/decision", "#/index"],
-    more: ["#/taxonomy", "#/theme", "#/strategyReplication", "#/signals", "#/valueChain"],
+    more: ["#/taxonomy", "#/theme", "#/valueChain"],
     processes: [
       {
         id: "thematic",
@@ -233,30 +231,6 @@ export const WORKSPACES: Workspace[] = [
           { tab: "themes", label: "Research", does: "Risks, opportunities and transmission channels from approved authoritative sources." },
           { tab: "themes", label: "Find companies", does: "The exposed universe, measured against the latest ratified taxonomy version and reviewed." },
           { tab: "themes", label: "Position and standards", does: "The house position and the stewardship standards derived from it." },
-        ],
-      },
-      {
-        id: "strategy",
-        title: "Research a strategy",
-        cadence: "Per paper or idea",
-        outcome: "A strategy tested out of sample, compared to alternatives, and built as an index if it holds.",
-        steps: [
-          { tab: "strategyReplication", label: "Replicate", does: "Paper to executable spec; backtest with deflated Sharpe and PBO.", handsOn: "Backtest runs" },
-          { tab: "decision", label: "Compare", does: "Compare strategies side by side in Decision Studio.", handsOn: "Chosen strategy" },
-          { tab: "index", label: "Construct", does: "Implement it as rules with capping and a calibration.", handsOn: "Index composition", runTypes: ["calibration"] },
-          { tab: "reporting", label: "Report", does: "Investment committee deck." },
-        ],
-      },
-      {
-        id: "signal",
-        title: "Research a signal",
-        cadence: "Per signal idea",
-        outcome: "A signal with post-cutoff evidence, compared honestly, graduated or shelved.",
-        steps: [
-          { tab: "signals", label: "Run", does: "Upload a recipe and a price file; the app runs the methods that need no model." },
-          { tab: "signals", label: "Evidence", does: "IC per window, with in-window evidence labelled contaminated." },
-          { tab: "signals", label: "Compare", does: "Compare two signals; insufficient data is never ranked." },
-          { tab: "signals", label: "Decide", does: "An approver graduates or shelves the signal." },
         ],
       },
     ],

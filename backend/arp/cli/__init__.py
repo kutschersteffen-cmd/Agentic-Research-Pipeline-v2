@@ -22,7 +22,6 @@ from arp.cli.io_tables import io_app
 from arp.cli.plan import plan_app
 from arp.cli.portfolio import portfolio_app
 from arp.cli.publish import publish_app
-from arp.cli.replication import replicate_app
 from arp.cli.reporting import reporting_app
 from arp.cli.retention import retention_app
 from arp.cli.revenue_catalogue import revenue_catalogue_app
@@ -30,7 +29,6 @@ from arp.cli.rfp import rfp_app
 from arp.cli.runs import runs_app
 from arp.cli.scale import scale_app
 from arp.cli.showcase import showcase_app
-from arp.cli.signal_lab import signals_app
 from arp.cli.snapshots import snapshots_app
 from arp.cli.stewardship import stewardship_app
 from arp.cli.taxonomy import taxonomy_app
@@ -104,8 +102,6 @@ app.add_typer(transition_plan_app, name="transition-plan")
 app.add_typer(pageindex_app, name="pageindex")
 app.add_typer(transition_barrier_app, name="transition-barrier")
 app.add_typer(transition_alignment_app, name="transition-alignment")
-app.add_typer(replicate_app, name="replicate")
-app.add_typer(signals_app, name="signals")
 app.add_typer(discover_app, name="discover")
 app.add_typer(runs_app, name="runs")
 app.add_typer(scale_app, name="scale")
