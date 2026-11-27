@@ -12,7 +12,7 @@ pytestmark = [
 T = "2026-11-22T10:00:00Z"
 R1 = {"run_id": "r1", "run_type": "emerging_themes", "status": "running", "review_count": 0, "company_count": 480,
       "completed_count": 212, "failed_count": 0, "params": {}, "created_at": T, "updated_at": T}
-R5 = {**R1, "run_id": "r5", "run_type": "calibration"}
+R3 = {**R1, "run_id": "r3", "run_type": "theme"}
 SECTION = "section.hub-process:has(#process-thematic)"
 
 
@@ -131,12 +131,12 @@ def test_keys_zoom_and_scroll_and_leave_browser_zoom_alone(page):  # noqa: F811
     for _ in range(3):
         page.keyboard.press("ArrowRight")
     assert flow.evaluate("f => f.scrollLeft") > 0
-    page.locator("#step-thematic-6").focus()
-    assert page.locator("#step-thematic-6").evaluate("(s) => s.getBoundingClientRect().right <= s.closest('ol').getBoundingClientRect().right")
+    page.locator("#step-thematic-5").focus()
+    assert page.locator("#step-thematic-5").evaluate("(s) => s.getBoundingClientRect().right <= s.closest('ol').getBoundingClientRect().right")
 
 
 def test_drag_scrolls_and_does_not_open_the_step(page):  # noqa: F811
-    flow = _start(page)
+    flow = _start(page, width=900)
     box = page.locator("#step-thematic-1").bounding_box()
     x, y = box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
     page.mouse.move(x, y)
@@ -159,9 +159,9 @@ def test_drag_scrolls_and_does_not_open_the_step(page):  # noqa: F811
 
 
 def test_opens_on_the_running_step_once(page):  # noqa: F811
-    flow = _start(page, runs=(R5,))
-    page.locator("#step-thematic-5.hub-step-now").wait_for()
-    inside = page.locator("#step-thematic-5").evaluate("""(s) => { const r = s.getBoundingClientRect(), f = s.closest('ol').getBoundingClientRect();
+    flow = _start(page, runs=(R3,), width=800)
+    page.locator("#step-thematic-2.hub-step-now").wait_for()
+    inside = page.locator("#step-thematic-2").evaluate("""(s) => { const r = s.getBoundingClientRect(), f = s.closest('ol').getBoundingClientRect();
         return r.left >= f.left && r.right <= f.right; }""")
     assert inside and flow.evaluate("f => f.scrollLeft") > 0 and page.evaluate("window.scrollY") == 0
     flow.evaluate("f => (f.scrollLeft = 0)")
@@ -178,7 +178,7 @@ def test_first_step_running_stays_at_the_start(page):  # noqa: F811
 def test_folded_flow_has_its_bar_inside_the_fold(page):  # noqa: F811
     _start(page, runs=(), path="/#/rdLab")
     assert page.locator("[data-flow-zoom-bar]:visible").count() == 0
-    page.locator(SECTION).get_by_text("Show 7 steps").click()
+    page.locator(SECTION).get_by_text("Show 6 steps").click()
     assert page.locator("[data-flow-zoom-bar]:visible").count() == 1
 
 
