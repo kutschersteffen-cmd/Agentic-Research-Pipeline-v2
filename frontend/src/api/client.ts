@@ -398,8 +398,6 @@ export const api = {
     for (const k of ["holder_id", "kind", "as_of", "provider", "override_reason", "decimal", "weight_unit"] as const) if (f[k]) form.append(k, f[k]!);
     return request<IntakeResult>("/api/holdings/upload", { method: "POST", body: form });
   },
-  pullHolder: (kind: string, holderId: string) =>
-    request<IntakeResult>(`/api/holdings/holders/${kind}/${encodeURIComponent(holderId)}/pull`, { method: "POST" }),
   listOutputs: (kind?: OutputKind) => request<{ outputs: OutputItem[] }>(`/api/outputs${buildQuery({ kind })}`),
   listIssues: () => request<{ issues: DataIssue[] }>("/api/issues"),
   smartSearch: (question: string) =>

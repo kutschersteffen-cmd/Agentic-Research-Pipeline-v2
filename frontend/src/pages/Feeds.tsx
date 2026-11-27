@@ -41,9 +41,6 @@ export function Feeds() {
       } else if (r.feed === "esg") {
         const res = await api.pullEsg(r.source_id);
         announce(`ESG ${r.source_id}: ${res.status === "unchanged" ? "no change" : `${res.rows} rows written`}`);
-      } else {
-        const res = await api.pullHolder(r.feed === "index" ? "index" : "portfolio", r.source_id);
-        announce(`${r.source_id}: ${res.status === "unchanged" ? "no change" : `revision ${res.revision} written`}`);
       }
     } catch (e) {
       setError((e as Error).message);
@@ -92,7 +89,7 @@ export function Feeds() {
                   {r.detail && <span className="muted"> {r.detail}</span>}
                 </td>
                 <td>
-                  {(r.feed === "news" || r.feed === "esg" || ((r.feed === "holdings" || r.feed === "index") && r.channel === "api")) && (
+                  {(r.feed === "news" || r.feed === "esg") && (
                     <button className="secondary" onClick={() => void pull(r)} disabled={pulling !== null}>
                       {pulling === key(r) ? "Pulling…" : "Pull now"}
                     </button>

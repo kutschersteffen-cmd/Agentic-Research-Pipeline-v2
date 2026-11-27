@@ -86,7 +86,6 @@ function MonthlyRunPanel({ reloadKey }: { reloadKey: number }) {
 export function HoldingsIntake() {
   const [holders, setHolders] = useState<HolderStatus[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [pulling, setPulling] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   const [kind, setKind] = useState<(typeof KINDS)[number]>("portfolio");
@@ -115,23 +114,6 @@ export function HoldingsIntake() {
   useEffect(() => {
     void load();
   }, []);
-
-  async function pull(h: HolderStatus) {
-    setPulling(h.holder_id);
-    setNotice(null);
-    try {
-      const msg = summary(await api.pullHolder(h.kind, h.holder_id));
-      setNotice(msg);
-      announce(msg);
-    } catch (err) {
-      const msg = parseIntakeError(err as Error).message;
-      setNotice(msg);
-      announce(msg);
-    } finally {
-      setPulling(null);
-      void load();
-    }
-  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -189,12 +171,12 @@ export function HoldingsIntake() {
       <table className="data-table">
         <thead>
           <tr>
-            <th>Holder</th><th>Kind</th><th>Source</th><th>As of</th><th>Age</th><th>Last pull</th><th>Status</th><th />
+            <th>Holder</th><th>Kind</th><th>Source</th><th>As of</th><th>Age</th><th>Last pull</th><th>Status</th>
           </tr>
         </thead>
         <tbody>
           {holders.length === 0 && (
-            <tr><td colSpan={8} className="muted">No holders yet. Upload a file to create one.</td></tr>
+            <tr><td colSpan={7} className="muted">No holders yet. Upload a file to create one.</td></tr>
           )}
           {holders.map((h) => (
             <tr key={`${h.kind}/${h.holder_id}`}>
@@ -206,13 +188,6 @@ export function HoldingsIntake() {
               <td>{h.last_pull_at ? new Date(h.last_pull_at).toLocaleString() : "—"}</td>
               <td>
                 <span className={h.stale ? "badge badge-low" : "badge badge-neutral"} title={h.last_error ?? undefined}>{h.stale ? "Stale" : "Current"}</span>
-              </td>
-              <td>
-                {h.source === "api" && (
-                  <button className="secondary" onClick={() => void pull(h)} disabled={pulling !== null}>
-                    {pulling === h.holder_id ? "Pulling…" : "Pull now"}
-                  </button>
-                )}
               </td>
             </tr>
           ))}
