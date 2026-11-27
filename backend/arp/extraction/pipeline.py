@@ -143,6 +143,256 @@ def _moved_from(row: dict) -> str | None:
                  if c.get("rule") == "planned_move" and c.get("attribute") == "field_id"), None)
 
 
+def _record_skipped(traces: dict | None, field_id: str, reason: str, not_found_reason: str | None = None) -> None:
+    if traces is not None:
+        traces.setdefault("fields", {})[field_id] = trace.field_entry(
+            field_id, skipped=reason, not_found_reason=not_found_reason
+        )
+
+
+def _reuse_rows(rows: list[dict], history: RunHistory, company_id: str) -> list[ExtractedField]:
+    run = history.last_run_id(company_id)
+    return [ExtractedField.model_validate(r).model_copy(
+        update={"reused_from_run": run, "checks": [], "route_reasons": [], "route": None}) for r in rows]
+
+
+async def _load_company_documents(
+    company: CompanyRef,
+    registry: DocumentSourceRegistry,
+    documents: list[SourceDocument] | None,
+    history: RunHistory | None,
+    identifier_map: IdentifierMapStore | None,
+) -> tuple[list[SourceDocument], list[dict], dict[str, SourceDocument], bool]:
+    if documents is None:
+        documents = await registry.fetch_all(company)
+    documents = [confirm_entity(d, company, identifier_map) for d in documents]
+    released = history.released_documents() if history else set()
+    for d in documents:
+        if (company.company_id, d.content_key) in released:  # a human released it from a held list
+            d.match_status = MatchStatus.CONFIRMED
+    documents_by_id = {d.doc_id: d for d in documents}  # all docs, held ones included
+    kept = [d for d in documents if d.match_status != MatchStatus.MISMATCH]
+    held = [
+        {
+            "doc_id": d.doc_id, "title": d.title, "covered_entity": d.covered_entity, "match_status": d.match_status.value,
+            "content_key": d.content_key, "parser_version": d.parser_version, "doc_type": d.doc_type.value,
+        }
+        for d in documents
+        if d.match_status == MatchStatus.MISMATCH
+    ]
+    return kept, held, documents_by_id, bool(documents) and not kept
+
+
+def _plan_company_fields(
+    schema: DataPointSchema, company: CompanyRef, *, all_held: bool, traces: dict | None,
+) -> tuple[list[FieldDefinition], list[ExtractedField]]:
+    to_extract, fields = plan_fields(schema, company)
+    for f in fields:  # an all-held company's entries below replace these
+        _record_skipped(traces, f.field_id, "not_applicable")
+    to_extract = [f for f in to_extract if not f.derived_rule]  # derived fields never reach the LLM graph
+    if all_held:  # nothing left to extract from: every field is a held no-evidence row
+        fields = [no_evidence_field(f)[0].model_copy(update={"not_found_reason": None if f.derived_rule else "held"})
+                  for f in schema.fields]
+        to_extract = []
+        for f in schema.fields:  # no facts are fetched for an all-held company, so none is tagged
+            _record_skipped(
+                traces, f.field_id, "derived" if f.derived_rule else "documents_held", None if f.derived_rule else "held"
+            )
+    return to_extract, fields
+
+
+async def _load_fact_source(
+    company: CompanyRef,
+    to_extract: list[FieldDefinition],
+    kept: list[SourceDocument],
+    xbrl_source: XbrlFactSource | None,
+    settings: Settings,
+) -> FactSource | None:
+    if not (settings.xbrl_facts_enabled and any(f.xbrl_tags for f in to_extract)):
+        return None
+    sec: list[FactSource] = []
+    if xbrl_source is not None:
+        try:
+            cik = await xbrl_source.resolve_cik(company.cik, company.ticker)
+            if cik and (sec_facts := await xbrl_source.fact_source(cik)):
+                sec.append(sec_facts)
+        except httpx.HTTPError as exc:  # no facts: the tagged fields are extracted as before
+            logger.warning("XBRL facts unavailable for %s: %s", company.company_id, exc)
+    esef = await asyncio.to_thread(esef_fact_sources, kept)
+    sources = esef + sec if not company.cik else sec + esef  # ESEF first for a non-US filer
+    return ChainedFactSource(sources) if sources else None
+
+
+async def _extract_field_group(
+    items: list[tuple[FieldDefinition, str | None, list[ExtractedField]]],
+    *,
+    company: CompanyRef,
+    kept: list[SourceDocument],
+    llm: LLMClient,
+    settings: Settings,
+    planned_periods: list[str],
+    limit: asyncio.Semaphore,
+    traces: dict | None,
+    extract_field,
+) -> list[LLMUsage]:
+    """One extract call for the group over its fields' merged evidence; each field is then verified,
+    adjudicated and grounded on its own. A field the group call left out, or a failed group call,
+    falls back to the field's own extract call."""
+    explains = [None if traces is None else {} for _ in items]  # recorded only for the walkthrough trace
+    evidence = await asyncio.gather(*(asyncio.to_thread(field_evidence, f, kept, settings, None, ex)
+                                      for (f, _, _), ex in zip(items, explains, strict=True)))
+    source: dict[str, int] = {}
+    shared = merge_evidence(evidence, settings.evidence_max_chunks * 2, source)
+    shared_explain = None
+    if traces is not None:  # each passage keeps the scores of the field ranking it was taken from; no near-misses
+        first = next((ex for ex in explains if ex and "method" in ex), None)
+        shared_explain = {**(first or {}), "near_miss_chunks": [],
+                          "scores": {cid: explains[i].get("scores", {}).get(cid, {}) for cid, i in source.items()}}
+    drafts, usage = {}, None
+    if sum(1 for e in evidence if e) > 1:
+        try:
+            async with limit:
+                drafts, usage = await extract_group(
+                    company.name, [f for (f, _, _), e in zip(items, evidence, strict=True) if e], shared, llm,
+                    planned_periods,
+                )
+        except Exception as exc:  # noqa: BLE001 -- any failure: extract each field on its own, as without grouping
+            logger.warning("Group extraction failed for %s, extracting fields one by one: %s", company.company_id, exc)
+    if usage:  # a call outside the per-field graph: step 4's running cost would miss it
+        record_call_cost(estimate_cost_usd(usage.model or settings.llm_model, usage))
+    calls = [extract_field(f, h, slot, (drafts[f.field_id], shared, usage), shared_explain) if f.field_id in drafts
+             else extract_field(f, h, slot) for f, h, slot in items]
+    return [*([usage] if usage else []), *(u for us in await asyncio.gather(*calls) for u in us)]
+
+
+async def _extract_transition_plans(
+    defs: list[FieldDefinition],
+    plan_slots: dict[str, list[ExtractedField]],
+    *,
+    company: CompanyRef,
+    schema: DataPointSchema,
+    kept: list[SourceDocument],
+    llm: LLMClient,
+    settings: Settings,
+    limit: asyncio.Semaphore,
+    traces: dict | None,
+) -> list[LLMUsage]:
+    """P6: the plan's list fields, one call per transition plan document; no reuse or history. Plans run
+    newest first (P1's order) and a later assumption with the same (field, period_end, basis) is dropped:
+    it would share the newer one's item key."""
+    sector = sector_for_isic(load_benchmarks(), company.isic_code)
+    out, seen = [], set()
+    # shortcut: fetched_at stands in for first_seen_at (SourceDocument has no upload time); add it if ties matter
+    plans = sorted((d for d in kept if d.doc_type == DocType.TRANSITION_PLAN),
+                   key=lambda d: (d.published_at or "", d.fetched_at), reverse=True)
+    for d in plans:
+        if not (chunks := await asyncio.to_thread(plan_evidence, defs, d, settings)):
+            continue
+        drafts = []
+        async with limit:
+            rows, usage = await extract_plan(
+                company, sector, d, chunks, llm, fields=defs, fuzzy_threshold=settings.grounding_fuzzy_threshold,
+                schema_version=f"{schema.schema_id}:v{schema.version}", on_draft=drafts.append,
+            )
+        out.append(usage)
+        record_call_cost(estimate_cost_usd(usage.model or settings.llm_model, usage))
+        if traces is not None:
+            traces.setdefault("plans", {})[d.doc_id] = {
+                "passages": [trace.passage(c) for c in chunks], "extractor": trace.call(usage, drafts[0]),
+            }
+        for r in rows:
+            if r.field_id in plan_preset.ASSUMPTION_FIELDS:
+                if (key := (r.field_id, r.period_end, r.basis)) in seen:
+                    continue
+                seen.add(key)
+            plan_slots[r.field_id].append(r)
+    return out
+
+
+def _schedule_field_slots(
+    to_extract: list[FieldDefinition],
+    *,
+    schema_id: str,
+    company_id: str,
+    kept: list[SourceDocument],
+    planned_periods: list[str],
+    run_settings: dict,
+    history: RunHistory | None,
+    reuse: bool,
+) -> tuple[
+    list[list[ExtractedField]],
+    dict[str, list[ExtractedField]],
+    list[tuple[FieldDefinition, str | None, list[ExtractedField]]],
+    list[tuple[list[ExtractedField], list[dict]]],
+    dict[str, str | None],
+]:
+    # One slot per field, filled in place, so the record keeps the schema's field order.
+    slots: list[list[ExtractedField]] = []
+    plan_slots: dict[str, list[ExtractedField]] = {}
+    todo: list[tuple[FieldDefinition, str | None, list[ExtractedField]]] = []
+    moved: list[tuple[list[ExtractedField], list[dict]]] = []  # a re-asked field's slot, and its prior rows R4 moved there
+    input_hashes: dict[str, str | None] = {}
+
+    for field in to_extract:
+        if schema_id == plan_preset.SCHEMA_ID and field.field_id not in plan_preset.OPERATES_FIELDS:
+            slots.append(plan_slots.setdefault(field.field_id, []))
+            continue
+        h = input_hashes[field.field_id] = input_hash(field, route_documents(field, kept), planned_periods, run_settings)
+        prior = history.last_rows(company_id, field.field_id) if reuse and h else []
+        if prior and history.last_rejected(company_id, field.field_id):
+            prior = []  # a human rejected the last answer: ask again rather than reuse it
+        # shortcut: rows with failing non-rule checks re-extract; strip check-derived notes instead if that costs too many calls
+        if prior and all(
+            r.get("input_hash") == h and (r.get("provenance") or {}).get("field_version") == field.version
+            # a row R4 moved here came from another field's answer: re-asking this field cannot fix its checks
+            and (_moved_from(r)
+                 or not any(  # a rule failure is a reviewer prompt, not a reason to re-ask the model
+                     is_failing(res) and not res.check_id.startswith("rule.")
+                     for res in map(CheckResult.model_validate, r.get("checks", []))
+                 ))
+            for r in prior
+        ):
+            slots.append(_reuse_rows(prior, history, company_id))
+            continue
+        slots.append([])
+        todo.append((field, h, slots[-1]))
+        if carry := [r for r in prior if _moved_from(r)]:
+            moved.append((slots[-1], carry))
+    return slots, plan_slots, todo, moved, input_hashes
+
+
+def _route_and_derive(
+    schema: DataPointSchema,
+    fields: list[ExtractedField],
+    *,
+    qualities: dict[tuple[str, int], FieldQuality] | None,
+    all_held: bool,
+    trial: bool,
+    traces: dict | None,
+) -> list[ExtractedField]:
+    specs = {f.field_id: f for f in schema.fields}
+
+    def _route(f: ExtractedField) -> ExtractedField:
+        spec = specs[f.field_id]
+        quality = (qualities or {}).get((spec.field_id, spec.version)) or FieldQuality(field_id=spec.field_id, version=spec.version)
+        r = route(f, quality, spec, held="entity_mismatch" if all_held else None, trial=trial)
+        return f.model_copy(update={"route": r.kind, "route_reasons": r.reasons})
+
+    routed = [_route(f) for f in fields]
+    # Derived rows come last, from the routed inputs: an input that failed a check or is not auto-accepted
+    # holds the derived row back. A rule skipped by applicability or an all-held run already has its row.
+    # First row per field_id: latest period.
+    by_id: dict[str, ExtractedField] = {}
+    for f in routed:
+        by_id.setdefault(f.field_id, f)
+    for d in schema.fields:
+        if d.derived_rule and d.field_id not in by_id:
+            by_id[d.field_id] = row = _route(evaluate_derived(d, by_id))
+            routed.append(row)
+            _record_skipped(traces, d.field_id, "derived")
+    return routed
+
+
 async def _extract_company(
     company: CompanyRef,
     schema: DataPointSchema,
@@ -185,42 +435,11 @@ async def _extract_company(
 
     `traces`, when supplied, is filled with the company's walkthrough trace: `fields` (an entry per field processed
     this run; reused fields add none) and `plans` (per plan document). Built from values already held: no extra call."""
-    if documents is None:
-        documents = await registry.fetch_all(company)
-    documents = [confirm_entity(d, company, identifier_map) for d in documents]
-    released = history.released_documents() if history else set()
-    for d in documents:
-        if (company.company_id, d.content_key) in released:  # a human released it from a held list
-            d.match_status = MatchStatus.CONFIRMED
-    documents_by_id = {d.doc_id: d for d in documents}  # all docs, held ones included
-    kept = [d for d in documents if d.match_status != MatchStatus.MISMATCH]
-    held = [
-        {
-            "doc_id": d.doc_id, "title": d.title, "covered_entity": d.covered_entity, "match_status": d.match_status.value,
-            "content_key": d.content_key, "parser_version": d.parser_version, "doc_type": d.doc_type.value,
-        }
-        for d in documents
-        if d.match_status == MatchStatus.MISMATCH
-    ]
-
-    def _skipped(field_id: str, reason: str, not_found_reason: str | None = None) -> None:
-        if traces is not None:
-            traces.setdefault("fields", {})[field_id] = trace.field_entry(
-                field_id, skipped=reason, not_found_reason=not_found_reason
-            )
-
+    kept, held, documents_by_id, all_held = await _load_company_documents(
+        company, registry, documents, history, identifier_map
+    )
     usages: list[LLMUsage] = []
-    to_extract, fields = plan_fields(schema, company)
-    for f in fields:  # an all-held company's entries below replace these
-        _skipped(f.field_id, "not_applicable")
-    to_extract = [f for f in to_extract if not f.derived_rule]  # derived fields never reach the LLM graph
-    all_held = bool(documents) and not kept
-    if all_held:  # nothing left to extract from: every field is a held no-evidence row
-        fields = [no_evidence_field(f)[0].model_copy(update={"not_found_reason": None if f.derived_rule else "held"})
-                  for f in schema.fields]
-        to_extract = []
-        for f in schema.fields:  # no facts are fetched for an all-held company, so none is tagged
-            _skipped(f.field_id, "derived" if f.derived_rule else "documents_held", None if f.derived_rule else "held")
+    to_extract, fields = _plan_company_fields(schema, company, all_held=all_held, traces=traces)
     key, scheme = issuer_key(company, identifier_map)
     recorded = history.recorded_periods(key) if history else set()
     for d in kept:
@@ -230,20 +449,7 @@ async def _extract_company(
     # A cache refresh (set by "Restart from here") asks for fresh answers: never reuse then.
     reuse = history is not None and not (settings.llm_cache_refresh or settings.llm_verifier_cache_refresh)
 
-    facts = None
-    if settings.xbrl_facts_enabled and any(f.xbrl_tags for f in to_extract):
-        sec: list[FactSource] = []
-        if xbrl_source is not None:
-            try:
-                cik = await xbrl_source.resolve_cik(company.cik, company.ticker)
-                if cik and (sec_facts := await xbrl_source.fact_source(cik)):
-                    sec.append(sec_facts)
-            except httpx.HTTPError as exc:  # no facts: the tagged fields are extracted as before
-                logger.warning("XBRL facts unavailable for %s: %s", company.company_id, exc)
-        esef = await asyncio.to_thread(esef_fact_sources, kept)
-        sources = esef + sec if not company.cik else sec + esef  # ESEF first for a non-US filer
-        facts = ChainedFactSource(sources) if sources else None
-
+    facts = await _load_fact_source(company, to_extract, kept, xbrl_source, settings)
     limit = field_limit or asyncio.Semaphore(settings.max_concurrent_llm_calls)
 
     async def _extract(field: FieldDefinition, h: str | None, slot: list[ExtractedField], grouped=None, grouped_explain=None) -> list[LLMUsage]:
@@ -269,118 +475,41 @@ async def _extract_company(
         slot.extend(f.model_copy(update={"input_hash": h}) for f in extracted)
         return field_usages
 
-    async def _extract_group(items: list[tuple[FieldDefinition, str | None, list[ExtractedField]]]) -> list[LLMUsage]:
-        """One extract call for the group over its fields' merged evidence; each field is then verified,
-        adjudicated and grounded on its own. A field the group call left out, or a failed group call,
-        falls back to the field's own extract call."""
-        explains = [None if traces is None else {} for _ in items]  # recorded only for the walkthrough trace
-        evidence = await asyncio.gather(*(asyncio.to_thread(field_evidence, f, kept, settings, None, ex)
-                                          for (f, _, _), ex in zip(items, explains, strict=True)))
-        source: dict[str, int] = {}
-        shared = merge_evidence(evidence, settings.evidence_max_chunks * 2, source)
-        shared_explain = None
-        if traces is not None:  # each passage keeps the scores of the field ranking it was taken from; no near-misses
-            first = next((ex for ex in explains if ex and "method" in ex), None)
-            shared_explain = {**(first or {}), "near_miss_chunks": [],
-                              "scores": {cid: explains[i].get("scores", {}).get(cid, {}) for cid, i in source.items()}}
-        drafts, usage = {}, None
-        if sum(1 for e in evidence if e) > 1:
-            try:
-                async with limit:
-                    drafts, usage = await extract_group(
-                        company.name, [f for (f, _, _), e in zip(items, evidence, strict=True) if e], shared, llm,
-                        planned_periods,
-                    )
-            except Exception as exc:  # noqa: BLE001 -- any failure: extract each field on its own, as without grouping
-                logger.warning("Group extraction failed for %s, extracting fields one by one: %s", company.company_id, exc)
-        if usage:  # a call outside the per-field graph: step 4's running cost would miss it
-            record_call_cost(estimate_cost_usd(usage.model or settings.llm_model, usage))
-        calls = [_extract(f, h, slot, (drafts[f.field_id], shared, usage), shared_explain) if f.field_id in drafts
-                 else _extract(f, h, slot) for f, h, slot in items]
-        return [*([usage] if usage else []), *(u for us in await asyncio.gather(*calls) for u in us)]
-
-    async def _extract_plans(defs: list[FieldDefinition]) -> list[LLMUsage]:
-        """P6: the plan's list fields, one call per transition plan document; no reuse or history. Plans run
-        newest first (P1's order) and a later assumption with the same (field, period_end, basis) is dropped:
-        it would share the newer one's item key."""
-        sector = sector_for_isic(load_benchmarks(), company.isic_code)
-        out, seen = [], set()
-        # shortcut: fetched_at stands in for first_seen_at (SourceDocument has no upload time); add it if ties matter
-        plans = sorted((d for d in kept if d.doc_type == DocType.TRANSITION_PLAN),
-                       key=lambda d: (d.published_at or "", d.fetched_at), reverse=True)
-        for d in plans:
-            if not (chunks := await asyncio.to_thread(plan_evidence, defs, d, settings)):
-                continue
-            drafts = []
-            async with limit:
-                rows, usage = await extract_plan(
-                    company, sector, d, chunks, llm, fields=defs, fuzzy_threshold=settings.grounding_fuzzy_threshold,
-                    schema_version=f"{schema.schema_id}:v{schema.version}", on_draft=drafts.append,
-                )
-            out.append(usage)
-            record_call_cost(estimate_cost_usd(usage.model or settings.llm_model, usage))
-            if traces is not None:
-                traces.setdefault("plans", {})[d.doc_id] = {
-                    "passages": [trace.passage(c) for c in chunks], "extractor": trace.call(usage, drafts[0]),
-                }
-            for r in rows:
-                if r.field_id in plan_preset.ASSUMPTION_FIELDS:
-                    if (key := (r.field_id, r.period_end, r.basis)) in seen:
-                        continue
-                    seen.add(key)
-                plan_slots[r.field_id].append(r)
-        return out
-
-    # One slot per field, filled in place, so the record keeps the schema's field order.
-    slots: list[list[ExtractedField]] = []
-    plan_slots: dict[str, list[ExtractedField]] = {}
-    todo: list[tuple[FieldDefinition, str | None, list[ExtractedField]]] = []
-    moved: list[tuple[list[ExtractedField], list[dict]]] = []  # a re-asked field's slot, and its prior rows R4 moved there
-    input_hashes: dict[str, str | None] = {}
-
-    def _reused(rows: list[dict]) -> list[ExtractedField]:
-        run = history.last_run_id(company.company_id)
-        return [ExtractedField.model_validate(r).model_copy(
-            update={"reused_from_run": run, "checks": [], "route_reasons": [], "route": None}) for r in rows]
-
-    for field in to_extract:
-        if schema.schema_id == plan_preset.SCHEMA_ID and field.field_id not in plan_preset.OPERATES_FIELDS:
-            slots.append(plan_slots.setdefault(field.field_id, []))
-            continue
-        h = input_hashes[field.field_id] = input_hash(field, route_documents(field, kept), planned_periods, run_settings)
-        prior = history.last_rows(company.company_id, field.field_id) if reuse and h else []
-        if prior and history.last_rejected(company.company_id, field.field_id):
-            prior = []  # a human rejected the last answer: ask again rather than reuse it
-        # shortcut: rows with failing non-rule checks re-extract; strip check-derived notes instead if that costs too many calls
-        if prior and all(
-            r.get("input_hash") == h and (r.get("provenance") or {}).get("field_version") == field.version
-            # a row R4 moved here came from another field's answer: re-asking this field cannot fix its checks
-            and (_moved_from(r)
-                 or not any(  # a rule failure is a reviewer prompt, not a reason to re-ask the model
-                     is_failing(res) and not res.check_id.startswith("rule.")
-                     for res in map(CheckResult.model_validate, r.get("checks", []))
-                 ))
-            for r in prior
-        ):
-            slots.append(_reused(prior))
-            continue
-        slots.append([])
-        todo.append((field, h, slots[-1]))
-        if carry := [r for r in prior if _moved_from(r)]:
-            moved.append((slots[-1], carry))
+    slots, plan_slots, todo, moved, input_hashes = _schedule_field_slots(
+        to_extract,
+        schema_id=schema.schema_id,
+        company_id=company.company_id,
+        kept=kept,
+        planned_periods=planned_periods,
+        run_settings=run_settings,
+        history=history,
+        reuse=reuse,
+    )
     size = settings.extraction_group_size
     grouping = [size > 1 and not f.high_risk and not f.xbrl_tags for f, _, _ in todo]
     groupable = [t for t, g in zip(todo, grouping, strict=True) if g]
     pending = [_extract(*t) for t, g in zip(todo, grouping, strict=True) if not g]
-    pending += [_extract_group(groupable[i:i + size]) for i in range(0, len(groupable), size or 1)]  # schema order
+    pending += [
+        _extract_field_group(
+            groupable[i:i + size],
+            company=company, kept=kept, llm=llm, settings=settings,
+            planned_periods=planned_periods, limit=limit, traces=traces, extract_field=_extract,
+        )
+        for i in range(0, len(groupable), size or 1)
+    ]  # schema order
     if plan_slots:
-        pending.append(_extract_plans([f for f in to_extract if f.field_id in plan_slots]))
+        pending.append(
+            _extract_transition_plans(
+                [f for f in to_extract if f.field_id in plan_slots], plan_slots,
+                company=company, schema=schema, kept=kept, llm=llm, settings=settings, limit=limit, traces=traces,
+            )
+        )
     for field_usages in await asyncio.gather(*pending):
         usages.extend(field_usages)
     asked = {f.field_id for f, _, _ in todo}
     for slot, rows in moved:  # re-asking this field never yields a moved row; R4 redoes a move only if its source is re-asked
         covered = {r.period_end for r in slot}
-        slot.extend(_reused([r for r in rows if _moved_from(r) not in asked and r.get("period_end") not in covered]))
+        slot.extend(_reuse_rows([r for r in rows if _moved_from(r) not in asked and r.get("period_end") not in covered], history, company.company_id))
     fields.extend(f for slot in slots for f in slot)
     if corrections:  # reused rows already carry theirs; the rules leave a corrected row unchanged
         fields = apply_corrections(schema, fields, documents_by_id=documents_by_id,
@@ -405,27 +534,7 @@ async def _extract_company(
         ),
     )
 
-    specs = {f.field_id: f for f in schema.fields}
-
-    def _route(f: ExtractedField) -> ExtractedField:
-        spec = specs[f.field_id]
-        quality = (qualities or {}).get((spec.field_id, spec.version)) or FieldQuality(field_id=spec.field_id, version=spec.version)
-        r = route(f, quality, spec, held="entity_mismatch" if all_held else None, trial=trial)
-        return f.model_copy(update={"route": r.kind, "route_reasons": r.reasons})
-
-    routed = [_route(f) for f in fields]
-    # Derived rows come last, from the routed inputs: an input that failed a check or is not auto-accepted
-    # holds the derived row back. A rule skipped by applicability or an all-held run already has its row.
-    # First row per field_id: latest period.
-    by_id: dict[str, ExtractedField] = {}
-    for f in routed:
-        by_id.setdefault(f.field_id, f)
-    for d in schema.fields:
-        if d.derived_rule and d.field_id not in by_id:
-            by_id[d.field_id] = row = _route(evaluate_derived(d, by_id))
-            routed.append(row)
-            _skipped(d.field_id, "derived")
-    fields = routed
+    fields = _route_and_derive(schema, fields, qualities=qualities, all_held=all_held, trial=trial, traces=traces)
 
     confidences = [f.confidence for f in fields if f.value is not None]
     overall_confidence = sum(confidences) / len(confidences) if confidences else 0.0
