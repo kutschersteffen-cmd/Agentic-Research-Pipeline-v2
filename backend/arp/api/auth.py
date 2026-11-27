@@ -6,28 +6,29 @@ import logging
 import threading
 from collections.abc import Callable
 from pathlib import Path
-from typing import Literal, get_args
 
 from fastapi import Depends, HTTPException, Request
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import Field, ValidationError
 
 from arp.api.deps import settings_dep
 from arp.config import Settings
+from arp.core.auth import (
+    GRANTS as GRANTS,
+)
+from arp.core.auth import (
+    ROLE_RANK as ROLE_RANK,
+)
+from arp.core.auth import (
+    Grant as Grant,
+)
+from arp.core.auth import (
+    Principal as Principal,
+)
 from arp.errors import NotConfigured
 
-ROLE_RANK: dict[str, int] = {"viewer": 0, "analyst": 1, "approver": 2}
 LOOPBACK_HOSTS = {"127.0.0.1", "::1"}
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
-Grant = Literal["snapshot_reader", "holdings_reader"]
-GRANTS: tuple[str, ...] = get_args(Grant)
 logger = logging.getLogger(__name__)
-
-
-class Principal(BaseModel):
-    user_id: str
-    name: str
-    role: Literal["viewer", "analyst", "approver"]
-    roles: list[Grant] = Field(default_factory=list)  # grants beyond the role rank; a typo fails at load
 
 
 class _UserRow(Principal):

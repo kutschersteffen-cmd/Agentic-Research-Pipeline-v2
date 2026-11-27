@@ -10,9 +10,9 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from arp.api.auth import Principal
 from arp.argus.companies import problem_of
 from arp.argus.flows import ArgusFlow
+from arp.core.auth import Principal
 from arp.db.models import Company, CompanyIdentifier
 from arp.orchestration.review_queue import effective_decisions
 from arp.review.items import list_open_items

@@ -10,7 +10,7 @@ from arp.schemas.review import ReviewDecision
 from arp.storage.run_store import RunStore
 
 if TYPE_CHECKING:  # runtime import would cycle: api.auth -> api.deps -> research.pipeline -> here
-    from arp.api.auth import Principal
+    from arp.core.auth import Principal
 
 
 def queue_for_review(

@@ -16,9 +16,9 @@ from uuid import uuid4
 from fastapi import Depends
 from pydantic import BaseModel, Field
 
-from arp.api.auth import Principal
 from arp.api.deps import settings_dep
 from arp.config import Settings
+from arp.core.auth import Principal
 from arp.schemas.common import CompanyRef, now_iso
 from arp.storage.atomic_io import atomic_write_text, read_text_utf8
 from arp.storage.locks import KeyedLock

@@ -18,8 +18,8 @@ from typing import Any
 import httpx
 from pydantic import BaseModel
 
-from arp.api.auth import Principal
 from arp.config import Settings, get_settings
+from arp.core.auth import Principal
 from arp.orchestration.capabilities import CATALOG
 
 SANDBOX_CAPABILITIES = {c.id: c for c in CATALOG if c.lane == "sandbox"}

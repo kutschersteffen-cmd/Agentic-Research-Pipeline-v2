@@ -7,10 +7,10 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from arp.api.auth import Principal
 from arp.argus.documents import FlowFile
 from arp.argus.flows import ArgusFlow, SchemaChoice
 from arp.argus.rows import _prior_runs
+from arp.core.auth import Principal
 from arp.ingestion.registry import read_only_documents
 from arp.schemas.common import RunManifest
 from arp.storage.run_store import RunStore

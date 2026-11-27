@@ -6,7 +6,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
-from arp.api.auth import Principal
+from arp.core.auth import Principal
 from arp.errors import ClientInputError
 from arp.publish.candidates import Skip, run_candidates
 from arp.publish.facts import (

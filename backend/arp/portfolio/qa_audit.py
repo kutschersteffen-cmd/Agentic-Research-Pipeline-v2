@@ -6,8 +6,8 @@ import hashlib
 import logging
 import threading
 
-from arp.api.auth import Principal
 from arp.config import Settings
+from arp.core.auth import Principal
 from arp.schemas.common import now_iso
 from arp.storage.jsonl_io import append_jsonl, read_jsonl
 
