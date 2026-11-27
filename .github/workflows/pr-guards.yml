@@ -27,16 +27,38 @@ jobs:
       - name: Self-test the guard
         run: python3 .github/scripts/test_guard.py --selftest
 
-      # The label approves the commits the owner saw, not later ones: a new push drops it.
+      # Override labels approve the commits the owner saw, not later ones: a new push drops them.
       - name: Drop the override on a new push
-        if: ${{ github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'tests-weakened-ok') }}
-        run: gh pr edit ${{ github.event.pull_request.number }} --remove-label tests-weakened-ok
+        if: ${{ github.event.action == 'synchronize' && (contains(github.event.pull_request.labels.*.name, 'tests-weakened-ok') || contains(github.event.pull_request.labels.*.name, 'dead-code-cleanup')) }}
+        run: |
+          if [ "$HAS_TESTS_WEAKENED_OK" = "true" ]; then
+            gh pr edit ${{ github.event.pull_request.number }} --remove-label tests-weakened-ok
+          fi
+          if [ "$HAS_DEAD_CODE_CLEANUP" = "true" ]; then
+            gh pr edit ${{ github.event.pull_request.number }} --remove-label dead-code-cleanup
+          fi
         env:
           GH_TOKEN: ${{ github.token }}
+          HAS_TESTS_WEAKENED_OK: ${{ contains(github.event.pull_request.labels.*.name, 'tests-weakened-ok') }}
+          HAS_DEAD_CODE_CLEANUP: ${{ contains(github.event.pull_request.labels.*.name, 'dead-code-cleanup') }}
 
       - name: Compare test counts with main
-        if: ${{ github.event.action == 'synchronize' || !contains(github.event.pull_request.labels.*.name, 'tests-weakened-ok') }}
+        if: ${{ github.event.action == 'synchronize' || (!contains(github.event.pull_request.labels.*.name, 'tests-weakened-ok') && !contains(github.event.pull_request.labels.*.name, 'dead-code-cleanup')) }}
         run: python3 .github/scripts/test_guard.py origin/${{ github.base_ref }}
+
+  arch-guard:
+    name: Architecture & import cycles
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Self-test the guard
+        run: python3 .github/scripts/arch_guard.py --selftest
+
+      - name: Enforce layer DAG and ban new import cycles
+        run: python3 .github/scripts/arch_guard.py
 
   context-guard:
     name: Generated context guard

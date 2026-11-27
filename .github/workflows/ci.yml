@@ -127,6 +127,9 @@ jobs:
       - name: Ruff lint
         run: ruff check .
 
+      - name: Dead code check (vulture)
+        run: vulture
+
       - name: API contract snapshot up to date
         run: python scripts/export_openapi.py --check
 
@@ -163,6 +166,9 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      - name: Dead code check (knip)
+        run: npm run dead-code:check
 
       # schema.gen.ts must match the committed openapi.json; contract.ts then type-checks against it.
       - name: Generated API types up to date

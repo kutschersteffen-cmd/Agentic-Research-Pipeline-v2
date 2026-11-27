@@ -1,0 +1,16 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/main.tsx",
+    "src/boardDiagram.ts",
+    "src/api/contract.ts",
+    "tests/*.test.ts"
+  ],
+  "project": [
+    "src/**/*.{ts,tsx}",
+    "tests/**/*.ts"
+  ],
+  "ignore": [
+    "src/api/schema.gen.ts"
+  ]
+}

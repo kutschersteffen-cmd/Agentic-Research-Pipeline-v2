@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
+    "dead-code": "knip --reporter compact",
+    "dead-code:check": "knip --max-issues 200 --reporter compact",
     "gen:api": "npx --yes openapi-typescript@7.13.0 src/api/openapi.json -o src/api/schema.gen.ts",
     "test": "node --test --experimental-strip-types tests/*.test.ts",
     "test:coverage": "node --test --experimental-strip-types --experimental-test-coverage --test-coverage-exclude=tests/** --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=lcov.info tests/*.test.ts",
@@ -30,6 +32,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/three": "0.186.0",
     "@vitejs/plugin-react": "^6.0.4",
+    "knip": "^6.48.0",
     "oxlint": "^1.75.0",
     "typescript": "~6.0.2",
     "vite": "^8.3.8"

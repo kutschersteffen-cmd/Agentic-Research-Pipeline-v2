@@ -128,7 +128,10 @@ def main() -> int:
     print("Tests or asserts were removed (test functions + asserts + it/test/expect calls):")
     for path, before, after in found:
         print(f"  {path}: {before} -> {after}")
-    print("\nRestore them, or have the owner add the `tests-weakened-ok` label if the removal is intended.")
+    print(
+        "\nRestore them, or have the owner add the `tests-weakened-ok` or `dead-code-cleanup` label "
+        "if the removal is intended."
+    )
     return 1
 
 
