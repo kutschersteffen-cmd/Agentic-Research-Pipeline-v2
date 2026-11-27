@@ -32,7 +32,7 @@ def test_ac25_process_state_square(page):  # noqa: F811
 def _stub_pending_draft(pg):
     """Give StewardIQ's Drafting step one pending draft so its Engage and draft process is open and waiting."""
     pg.route(
-        "**/api/stewardship/drafting",
+        "**/api/stewardship/drafts",
         lambda route: route.fulfill(json={"drafts": [{"draft_id": "drf_e2e_wait", "status": "draft"}]}),
     )
 
