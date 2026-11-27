@@ -110,7 +110,7 @@ describe("TanStack Query integration in App", () => {
         if (url.includes("/api/waiting")) {
           waitingCalls += 1;
           if (failWaiting) return new Response(JSON.stringify({ detail: "down" }), { status: 500, headers: { "Content-Type": "application/json" } });
-          return new Response(JSON.stringify({ total: waitingCalls, by_type: {} }), {
+          return new Response(JSON.stringify({ review: 3, decisions: 0, ballots: 0, total: 3 }), {
             status: 200,
             headers: { "Content-Type": "application/json" },
           });
@@ -140,11 +140,11 @@ describe("TanStack Query integration in App", () => {
       </QueryClientProvider>,
     );
 
-    await waitFor(() => expect(waitingCalls).toBeGreaterThanOrEqual(1));
+    await waitFor(() => expect(document.querySelector(".nav-count")?.textContent).toBe("3"));
     const before = waitingCalls;
     failWaiting = true;
     window.dispatchEvent(new Event("arp:decided"));
     await waitFor(() => expect(waitingCalls).toBeGreaterThan(before));
-    await waitFor(() => expect(document.querySelector(".start-topbar-badge")).toBeNull());
+    await waitFor(() => expect(document.querySelector(".nav-count")).toBeNull());
   });
 });
