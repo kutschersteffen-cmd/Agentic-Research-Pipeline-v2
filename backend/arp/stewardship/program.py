@@ -5,8 +5,7 @@ A program is calibration parameters stored on the client stream; the
 simulation is recomputed from them on every request, through engines that
 already exist:
 
-1. Tilt: the index engine's `MetricTilt` on `score.clti` over the benchmark
-   weights (`arp.index.weighting.apply_tilts`).
+1. Tilt: a metric tilt on `score.clti` over the benchmark weights.
 2. Selection: CLTI laggards on climate plus monitoring triggers on other
    themes, ranked by leverage (portfolio weight x gap).
 3. Escalation: the client's escalation graph, chained on the house one, per
@@ -25,16 +24,14 @@ from __future__ import annotations
 
 import copy
 from datetime import UTC, datetime
-from math import fsum
+from math import fsum, sqrt
 from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
 from arp.engagement.orchestrator import is_stalled
-from arp.index.weighting import apply_tilts, normalise
 from arp.schemas.engagement import OLD_STAGES, EngagementRecord
-from arp.schemas.index import IndexCandidate, MetricTilt
 from arp.schemas.reporting import (
     ChartSpec,
     ChartType,
@@ -67,6 +64,7 @@ from arp.stewardship.tracking import OPEN
 VOTE_STEP = escalation.STEPS.index("vote_against_management")
 SEVERITY_WEIGHT = {"high": 1.0, "medium": 0.6, "low": 0.3}
 POOLED = {"CCF", "ETF"}
+_EPS = 1e-12
 
 
 class ProgramParams(BaseModel):
@@ -98,22 +96,40 @@ def _light(ok: bool, warn: bool) -> str:
     return "green" if ok else "amber" if warn else "red"
 
 
+def _normalise(weights: dict[str, float]) -> dict[str, float]:
+    total = fsum(weights[k] for k in sorted(weights))
+    if total <= 0:
+        raise ValueError("Cannot normalise weights summing to zero")
+    return {k: v / total for k, v in weights.items()}
+
+
+def _metric_multipliers(values: dict[str, float], normalisation: str, floor: float, ceiling: float) -> dict[str, float]:
+    members = sorted(values)
+    member_values = [values[m] for m in members]
+    if normalisation == "max":
+        peak = max((abs(v) for v in member_values), default=0.0)
+        scaled = {m: values[m] / peak if peak > _EPS else 1.0 for m in members}
+    elif normalisation == "rank_percentile":
+        order = sorted(members, key=lambda m: (values[m], m))
+        n = len(order)
+        scaled = {m: (rank + 0.5) / n if n else 0.5 for rank, m in enumerate(order)}
+    else:  # zscore, squashed into 0..1 so the tilt stays bounded before floor/ceiling
+        n = len(member_values)
+        mean = fsum(member_values) / n if n else 0.0
+        var = fsum((v - mean) ** 2 for v in member_values) / n if n else 0.0
+        sd = sqrt(var)
+        scaled = {m: 0.5 + max(-3.0, min(3.0, (values[m] - mean) / sd if sd > _EPS else 0.0)) / 6.0 for m in members}
+
+    span = ceiling - floor
+    return {m: max(floor, min(ceiling, floor + span * max(0.0, min(1.0, val)))) for m, val in scaled.items()}
+
+
 def _tilt(sample: dict, p: ProgramParams) -> list[dict]:
     issuers = sample["issuers"]
-    bench = normalise({i["issuer_id"]: i["holding"]["index_weight_pct"] for i in issuers})
-    candidates = [
-        IndexCandidate(
-            company_id=i["issuer_id"],
-            name=i["name"],
-            sector=i["sector"],
-            price=1.0,
-            shares_outstanding=1.0,
-            metrics={"clti": i["fields"]["score.clti"]} if i["fields"].get("score.clti") is not None else {},
-        )
-        for i in issuers
-    ]
-    rule = MetricTilt(field="clti", normalisation=p.normalisation, floor=p.tilt_floor, ceiling=p.tilt_ceiling, missing="pass")
-    tilted, multipliers, _ = apply_tilts(bench, candidates, [rule])
+    bench = _normalise({i["issuer_id"]: i["holding"]["index_weight_pct"] for i in issuers})
+    values = {i["issuer_id"]: float(i["fields"]["score.clti"]) if i["fields"].get("score.clti") is not None else 0.0 for i in issuers}
+    multipliers = _metric_multipliers(values, p.normalisation, p.tilt_floor, p.tilt_ceiling)
+    tilted = _normalise({k: v * multipliers.get(k, 1.0) for k, v in bench.items()})
     return [
         {
             "issuer_id": i["issuer_id"],

@@ -5,7 +5,6 @@ import { NO_MODEL_CALLS, progressUnit, spentNothing } from "../src/lib/runs.ts";
 import { intervalError, NO_COMPANIES, NOVELTY_HELP, SCANNING, scanActive } from "../src/lib/emergingThemes.ts";
 import { stepLinkText } from "../src/lib/dossiers.ts";
 import { reviewHref, type PlanCall } from "../src/lib/plans.ts";
-import { DEMO_BANNER, exceptionText, indexErrorText, ruleTitle, SOLVER_MISSING } from "../src/lib/indexBuilder.ts";
 import { companies } from "../src/lib/themeBuilder.ts";
 import { citedLabel } from "../src/lib/position.ts";
 
@@ -50,48 +49,6 @@ test("a step waiting for review links to where it is reviewed", () => {  // AC-6
   assert.equal(reviewHref(call({ kind: "financials_extraction" })), "#/review/financials/r");
   assert.equal(reviewHref(call({ kind: "report_render", run_id: null, result_ref: "report:7" })), "#/reporting");
   assert.equal(reviewHref(call({ kind: "xbrl_facts" })), null);
-});
-
-const METHODS = [
-  { name: "least_squares", label: "Least-squares projection" },
-  { name: "min_tracking_error", label: "Minimum tracking error" },
-];
-const fallback = (m: string) =>
-  `solver.method='${m}' but cvxpy is not installed; fell back to the deterministic waterfall (pip install -e ".[optimize]")`;
-
-test("the cvxpy fallback reads in plain words, other exceptions as they are", () => {  // AC-66, AC-67, AC-68
-  assert.equal(exceptionText(fallback("least_squares"), METHODS),
-    'The optimiser is not installed on this server, so this review used step-by-step capping instead of "Least-squares projection". Ask your administrator.');
-  assert.equal(exceptionText(fallback("min_tracking_error"), METHODS),
-    'The optimiser is not installed on this server, so this review used step-by-step capping instead of "Minimum tracking error". Ask your administrator.');
-  assert.equal(exceptionText(fallback("max_score"), METHODS),
-    'The optimiser is not installed on this server, so this review used step-by-step capping instead of "max_score". Ask your administrator.');
-  assert.equal(exceptionText("anything else", METHODS), "anything else");
-});
-
-test("Index Construction banner and solver notice", () => {  // AC-65, AC-69
-  assert.equal(DEMO_BANNER,
-    "Demo data: reviews on this page run on a built-in synthetic universe of 60 companies. The results describe nothing real.");
-  assert.equal(SOLVER_MISSING,
-    "The optimiser is not installed on this server. A calibration that asks for it falls back to step-by-step capping, and the review says so. Ask your administrator.");
-  assert.ok(!SOLVER_MISSING.includes("pip install"));
-});
-
-const CATALOGUE = {
-  screens: [{ type: "metric_threshold", label: "Metric threshold" }],
-  tilts: [{ type: "metric_tilt", label: "Metric tilt" }],
-};
-
-test("rule cards and errors use the catalogue's labels", () => {  // AC-70, AC-71, AC-124, AC-125
-  assert.equal(ruleTitle("metric_threshold", CATALOGUE.screens), "Metric threshold");
-  assert.equal(ruleTitle("metric_tilt", CATALOGUE.tilts), "Metric tilt");
-  assert.equal(ruleTitle("x_tilt", CATALOGUE.tilts), "x_tilt");
-  assert.equal(
-    indexErrorText("422: spec › screens › 0 › metric_threshold: metric_threshold needs at least one of min_value / max_value", CATALOGUE),
-    "Screen 1 (Metric threshold): needs at least one of min_value / max_value");
-  assert.equal(indexErrorText("422: spec › tilts › 2 › x_tilt: bad; spec › screens › 1 › metric_threshold: worse", CATALOGUE),
-    "Tilt 3 (x_tilt): bad; Screen 2 (Metric threshold): worse");
-  assert.equal(indexErrorText("500: boom", null), "boom");
 });
 
 test("one company is singular", () => {  // AC-80, AC-99, AC-126

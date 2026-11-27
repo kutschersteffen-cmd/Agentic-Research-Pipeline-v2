@@ -155,9 +155,9 @@ test("pol_menu_purpose", () => {
 // UI polish 1, F11: titles of a workspace's failed processes.
 test("pol_ac11_failed_processes", () => {
   const lab = ws("R&D Lab");
-  const watching = lab.processes.filter((p) => p.steps.some((s) => s.runTypes?.includes("calibration"))).map((p) => p.title);
+  const watching = lab.processes.filter((p) => p.steps.some((s) => s.runTypes?.includes("taxonomy_research"))).map((p) => p.title);
   assert.ok(watching.length >= 1);
-  assert.deepEqual(failedProcesses(lab, [run("calibration", "failed")], null, null), watching);
+  assert.deepEqual(failedProcesses(lab, [run("taxonomy_research", "failed")], null, null), watching);
   assert.deepEqual(failedProcesses(lab, [run("emerging_themes", "failed")], null, null), ["Build a thematic portfolio"]);
   assert.deepEqual(failedProcesses(lab, [], null, null), []);
   assert.deepEqual(failedProcesses(lab, null, null, null), []);

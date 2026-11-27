@@ -11,14 +11,12 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from arp.api.auth import current_user
-from arp.api.deps import get_decision_store, get_index_store, get_portfolio_store, get_run_store, settings_dep
+from arp.api.deps import get_decision_store, get_portfolio_store, get_run_store, settings_dep
 from arp.api.routers import decision as decision_router
-from arp.api.routers import index as index_router
 from arp.config import Settings
 from arp.stewardship.process import load_sample
 from arp.stewardship.tiers import tier_contexts
 from arp.storage.decision_store import DecisionStore
-from arp.storage.index_store import IndexStore
 from arp.storage.run_store import RunStore
 from tests.conftest import PRINCIPAL
 
@@ -35,13 +33,11 @@ def client(tmp_path, pg):
     store = DecisionStore(settings.frameworks_dir)
     app = FastAPI()
     app.include_router(decision_router.router)
-    app.include_router(index_router.router)
     app.dependency_overrides[settings_dep] = lambda: settings
     app.dependency_overrides[current_user] = lambda: PRINCIPAL
     app.dependency_overrides[get_decision_store] = lambda: store
     app.dependency_overrides[get_run_store] = lambda: RunStore(pg, settings.runs_dir)
     app.dependency_overrides[get_portfolio_store] = lambda: None
-    app.dependency_overrides[get_index_store] = lambda: IndexStore(tmp_path / "indices")
     with TestClient(app) as c:
         c.frameworks_dir = settings.frameworks_dir
         yield c
@@ -49,7 +45,7 @@ def client(tmp_path, pg):
 
 def _framework(client, tmp_path) -> tuple[str, str]:
     """The example table with a Company_Id column: row 1 is a stewardship
-    issuer, row 2 an index demo candidate, the rest match nothing."""
+    issuer, the rest match nothing."""
     rows = list(csv.reader(SAMPLE.open()))
     ids = ["SYN01", "demo000"] + [f"X{i}" for i in range(len(rows) - 3)]
     path = tmp_path / "with_ids.csv"
@@ -82,19 +78,6 @@ def test_publish_needs_a_ratified_framework_then_freezes_rows_by_id(client, tmp_
     contexts = {c["issuer_id"]: c for c in tier_contexts(load_sample(client.frameworks_dir), [])}
     assert contexts["SYN01"]["issuer"]["decision"][framework_id]["tier"] == row["tier"]
     assert "decision" not in contexts["SYN02"]["issuer"]
-
-    # Index: the published score joins the matching candidate; the review records what it read.
-    spec = client.get("/api/index/presets/exclusion_only").json()
-    run = {"review_date": "2999-01-01", "spec": spec, "decision_snapshot_ids": [snapshot["snapshot_id"]]}
-    review = client.post("/api/index/run", json=run)
-    assert review.status_code == 200, review.text
-    assert review.json()["decision_snapshot_ids"] == [snapshot["snapshot_id"]]
-    assert "matched 1 of 60 candidates" in review.json()["input_notes"][0]
-
-    # A review dated before the publication cannot read it.
-    early = client.post("/api/index/run", json={**run, "review_date": "2000-01-01"})
-    assert early.status_code == 400
-    assert "did not exist yet" in early.json()["detail"]
 
 
 def _upload(client, tmp_path, name, drop=(), edit=None):

@@ -45,7 +45,6 @@ const Issues = lazy(() => import("./pages/Issues").then((x) => ({ default: x.Iss
 const SmartSearch = lazy(() => import("./pages/SmartSearch").then((x) => ({ default: x.SmartSearch })));
 const Outputs = lazy(() => import("./pages/Outputs").then((x) => ({ default: x.Outputs })));
 const DecisionStudio = lazy(() => import("./pages/DecisionStudio").then((x) => ({ default: x.DecisionStudio })));
-const IndexBuilder = lazy(() => import("./pages/IndexBuilder").then((x) => ({ default: x.IndexBuilder })));
 const ArgusWalkthrough = lazy(() => import("./pages/ArgusWalkthrough").then((x) => ({ default: x.ArgusWalkthrough })));
 const Company = lazy(() => import("./pages/Company").then((x) => ({ default: x.Company })));
 const DesignStrategy = lazy(() => import("./pages/DesignStrategy").then((x) => ({ default: x.DesignStrategy })));
@@ -84,7 +83,6 @@ const TABS = [
   { id: "reporting", label: "Presentations & Reports" },
   { id: "valueChain", label: "Value Chain Explorer" },
   { id: "decision", label: "Decision Studio" },
-  { id: "index", label: "Portfolio Builder" },
   { id: "rfp", label: "RFP Answers" },
   { id: "library", label: "Data Library" },
   // Reached from company names elsewhere (#/companies/<ref>) and the palette; not in the sidebar.
@@ -322,7 +320,6 @@ function App() {
         {active === "reporting" && <ReportBuilder />}
         {active === "valueChain" && <ValueChainExplorer key={route.params.join("/")} params={route.params} />}
         {active === "decision" && <DecisionStudio key={route.params.join("/")} initialSource={route.params[0]} initialRunId={route.params[1]} />}
-        {active === "index" && <IndexBuilder />}
         {active === "argusWalkthrough" && <ArgusWalkthrough key={route.params.join("/")} params={route.params} />}
         {active === "rfp" && <RfpAnswers projectId={rfpId(route.params[0])} onOpen={(id) => (id === null ? navigate("rfp") : navigate("rfp", String(id)))} />}
         {active === "library" && <DataLibrary />}

@@ -186,24 +186,22 @@ export const WORKSPACES: Workspace[] = [
       ["#/theme", "Thematic Universe"],
       ["#/valueChain", "Value Chain Explorer"],
       ["#/decision", "Decision Studio"],
-      ["#/index", "Portfolio Builder"],
     ],
     // Emerging Themes is the second tab of Themes (the Themes hub).
-    row: ["#/designStrategy", "#/themes", "#/decision", "#/index"],
+    row: ["#/designStrategy", "#/themes", "#/decision"],
     more: ["#/taxonomy", "#/theme", "#/valueChain"],
     processes: [
       {
         id: "thematic",
         title: "Build a thematic portfolio",
         cadence: "Per idea",
-        outcome: "A ratified theme, a reviewed universe and an effective-dated index calibration.",
+        outcome: "A ratified theme, a reviewed universe and published scores.",
         steps: [
           { tab: "emergingThemes", label: "Spot", does: "Candidate themes from filings and news, gated on corporate action.", handsOn: "Promoted theme", carried: true, runTypes: ["emerging_themes"] },
           { tab: "taxonomy", label: "Define", does: "The theme's activities; ratify a version.", handsOn: "Ratified taxonomy", carried: true, runTypes: ["taxonomy_research"] },
           { tab: "theme", label: "Match", does: "Companies matched to activities with exposure estimates and cited rationale.", handsOn: "Theme universe", carried: true, runTypes: ["theme"], reviewedElsewhere: true },
           { tab: "review", label: "Review", does: "Resolve contested classifications.", handsOn: "Reviewed universe", carried: true, runTypes: ["theme"] },
           { tab: "decision", label: "Score", does: "Score and tier the universe in Decision Studio; ratify, then publish.", handsOn: "Published scores", carried: true },
-          { tab: "index", label: "Construct", does: "Screen, select, weight and cap from the published scores; save an effective-dated calibration.", handsOn: "Index composition", runTypes: ["calibration"] },
           { tab: "reporting", label: "Report", does: "Committee deck." },
         ],
       },

@@ -17,20 +17,6 @@ from arp.storage.run_store import RunStore
 from arp.storage.taxonomy_store import TaxonomyStore
 
 
-class _NoIndex:
-    def list_indices(self):
-        return ["IDX"]
-
-    def list_review_dates(self, index_id):
-        return ["2026-09-30"]
-
-    def get_review(self, index_id, day):
-        return SimpleNamespace(decision_snapshot_ids=["pub_1"], calibration_id=None)
-
-    def list_calibrations(self):
-        return []
-
-
 class _Reports:
     def list_reports(self):
         return [SimpleNamespace(report_id="rpt_1", title="Q3 pack")]
@@ -53,7 +39,7 @@ def test_catalog_lists_every_kind_with_what_uses_it(tmp_path, pg):
     decisions.save_published(PublishedDecision(snapshot_id="pub_1", framework_id="fw", framework_version=2, framework_name="Green",
                                                dataset_id="ds", dataset_name="scores", id_column="Company_Id", published_by="IC"))
 
-    out = catalog.catalog(runs_dir=settings.runs_dir, run_store=rs, decisions=decisions, taxonomy=taxonomy, index=_NoIndex(),
+    out = catalog.catalog(runs_dir=settings.runs_dir, run_store=rs, decisions=decisions, taxonomy=taxonomy,
                           reports=_Reports())
     by = {(o["kind"], o["id"]): o for o in out}
 
@@ -65,9 +51,9 @@ def test_catalog_lists_every_kind_with_what_uses_it(tmp_path, pg):
     assert [c["kind"] for c in by[("run", extraction)]["used_by"]] == ["dataset"]
     pub = by[("publication", "pub_1")]
     assert pub["name"] == "Green v2 · scores" and pub["by"] == "IC"
-    assert sorted(c["kind"] for c in pub["used_by"]) == ["index_review", "report"]
+    assert sorted(c["kind"] for c in pub["used_by"]) == ["report"]
 
-    only = catalog.catalog(runs_dir=settings.runs_dir, run_store=rs, decisions=decisions, taxonomy=taxonomy, index=_NoIndex(),
+    only = catalog.catalog(runs_dir=settings.runs_dir, run_store=rs, decisions=decisions, taxonomy=taxonomy,
                            reports=_Reports(), kind="universe")
     assert {o["kind"] for o in only} == {"universe"}
 

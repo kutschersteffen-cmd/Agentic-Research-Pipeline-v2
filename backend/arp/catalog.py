@@ -2,9 +2,9 @@
 uses it. Read-only and stateless: it reads the existing stores and the input links consumers already record; nothing
 new is stored.
 
-Kinds: universe (saved company lists), run, publication (Decision Studio), taxonomy, calibration (Index Construction).
+Kinds: universe (saved company lists), run, publication (Decision Studio), taxonomy.
 "Used by" comes from: a run's universe_path / taxonomy_id (params or inputs.json), a Decision Studio dataset's source
-run, an index review's publications and calibration, and a report's run and decision refs.
+run, and a report's run and decision refs.
 """
 
 from __future__ import annotations
@@ -15,12 +15,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from arp.storage.decision_store import DecisionStore
-from arp.storage.index_store import IndexStore
 from arp.storage.reporting_store import ReportingStore
 from arp.storage.run_store import RunStore
 from arp.storage.taxonomy_store import TaxonomyStore
 
-KINDS = ("universe", "run", "publication", "taxonomy", "calibration")
+KINDS = ("universe", "run", "publication", "taxonomy")
 
 
 def _path_key(p: str) -> str:
@@ -63,14 +62,7 @@ def taxonomies(store: TaxonomyStore) -> list[dict]:
     } for t in store.list_all()]
 
 
-def calibrations(store: IndexStore) -> list[dict]:
-    return [{
-        "kind": "calibration", "id": c.calibration_id, "version": c.version, "as_of": c.effective_from,
-        "status": "approved" if c.is_approved else "draft", "name": c.name, "by": c.created_by,
-    } for c in store.list_calibrations()]
-
-
-def used_by(run_store: RunStore, decisions: DecisionStore, index: IndexStore, reports: ReportingStore) -> dict[tuple[str, str], list[dict]]:
+def used_by(run_store: RunStore, decisions: DecisionStore, reports: ReportingStore) -> dict[tuple[str, str], list[dict]]:
     """(input kind, input id) -> the consumers that recorded reading it."""
     links: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for m in run_store.list_runs():
@@ -84,16 +76,6 @@ def used_by(run_store: RunStore, decisions: DecisionStore, index: IndexStore, re
     for d in decisions.list_datasets():
         if d.source_ref:
             links[("run", d.source_ref)].append({"kind": "dataset", "id": d.dataset_id, "label": f"Decision Studio table {d.name}"})
-    for index_id in index.list_indices():
-        for day in index.list_review_dates(index_id):
-            r = index.get_review(index_id, day)
-            if r is None:
-                continue
-            consumer = {"kind": "index_review", "id": f"{index_id}:{day}", "label": f"index {index_id} review {day}"}
-            for snap in r.decision_snapshot_ids:
-                links[("publication", snap)].append(consumer)
-            if r.calibration_id:
-                links[("calibration", r.calibration_id)].append(consumer)
     for rep in reports.list_reports():
         req = reports.load_request(rep.report_id)
         for ref in (req.run_refs if req else []):
@@ -102,13 +84,13 @@ def used_by(run_store: RunStore, decisions: DecisionStore, index: IndexStore, re
     return links
 
 
-def catalog(*, runs_dir: Path, run_store: RunStore, decisions: DecisionStore, taxonomy: TaxonomyStore, index: IndexStore,
+def catalog(*, runs_dir: Path, run_store: RunStore, decisions: DecisionStore, taxonomy: TaxonomyStore,
             reports: ReportingStore, kind: str | None = None) -> list[dict]:
     """Every output (or one kind), newest first, each with `used_by`."""
     sources = {
         "universe": lambda: universes(runs_dir), "run": lambda: runs(run_store), "publication": lambda: publications(decisions),
-        "taxonomy": lambda: taxonomies(taxonomy), "calibration": lambda: calibrations(index),
+        "taxonomy": lambda: taxonomies(taxonomy),
     }
     items = [i for k, load in sources.items() if kind in (None, k) for i in load()]
-    links = used_by(run_store, decisions, index, reports)
+    links = used_by(run_store, decisions, reports)
     return sorted(({**i, "used_by": links.get((i["kind"], i["id"]), [])} for i in items), key=lambda i: i["as_of"] or "", reverse=True)

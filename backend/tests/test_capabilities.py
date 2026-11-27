@@ -11,7 +11,7 @@ from arp.orchestration.plan_planner import SYSTEM, step_stubs
 
 SANDBOX = ["benchmark_sectors", "portfolio_exposure", "smart_search", "transition_plan"]
 PLAN = ["decision_score", "document_discovery", "extraction", "financials_extraction", "identity_resolution",
-        "index_construct", "report_render", "tnfd_extraction", "universe_build", "xbrl_facts"]
+        "report_render", "tnfd_extraction", "universe_build", "xbrl_facts"]
 
 
 def test_route_orders_sandbox_then_plan():  # AC-11, AC-12

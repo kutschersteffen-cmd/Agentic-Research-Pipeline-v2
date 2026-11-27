@@ -1388,8 +1388,8 @@ export function DecisionStudio({ initialSource, initialRunId }: { initialSource?
               >
                 <p>
                   Freezes version {config.version}'s result on <strong>{dataset.name}</strong>, matched to issuers by their id column. Steward
-                  Workflow's coverage rules and Portfolio Builder can then read the tiers and scores. Nothing changes there until a
-                  person confirms tiers or runs an index review.
+                  Workflow's coverage rules can then read the tiers and scores. Nothing changes there until a
+                  person confirms tiers.
                 </p>
                 <label className="field-label" htmlFor="publish-id-column">
                   Match issuers by
@@ -1418,8 +1418,7 @@ export function DecisionStudio({ initialSource, initialRunId }: { initialSource?
               <p className="status-text" role="status">
                 Published {published.rows.length} entities (matched on <code>{published.id_column}</code>) as{" "}
                 <code>decision.{published.framework_id}</code>
-                {published.cuts_held_from ? ` on the cut-points of its first publication (${published.cut_points?.map((c) => c.toFixed(1)).join(" / ")})` : ""}. Next: <a href="#/stewardship/selection">use the tiers in coverage rules</a> or{" "}
-                <a href="#/index">join the scores in an index</a>. Lineage:{" "}
+                {published.cuts_held_from ? ` on the cut-points of its first publication (${published.cut_points?.map((c) => c.toFixed(1)).join(" / ")})` : ""}. Next: <a href="#/stewardship/selection">use the tiers in coverage rules</a>. Lineage:{" "}
                 <FileLink url={api.lineageUrl(published.snapshot_id, "csv")} name={`lineage-${published.snapshot_id}.csv`}>Download lineage (CSV)</FileLink>{" "}
                 <FileLink url={api.lineageUrl(published.snapshot_id, "json")} name={`lineage-${published.snapshot_id}.json`}>Download lineage (JSON)</FileLink>
               </p>

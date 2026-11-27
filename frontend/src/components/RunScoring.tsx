@@ -192,15 +192,15 @@ export function RunScoringPanel({ runId, runType, fieldNames, presetFields }: Pa
         >
           <p>
             Freezes {decision.framework.name} v{decision.framework.version}&apos;s tiers for the {decision.result.entities.length}{" "}
-            companies in this run, matched to issuers by company id. Steward Workflow&apos;s coverage rules and Portfolio Builder can
-            then read them. Nothing changes there until a person confirms tiers or runs an index review.
+            companies in this run, matched to issuers by company id. Steward Workflow&apos;s coverage rules can
+            then read them. Nothing changes there until a person confirms tiers.
           </p>
         </ConfirmSignedIn>
       )}
       {published && (
         <p className="status-text" role="status">
           Published {published.rows.length} companies as <code>decision.{published.framework_id}</code>. Next:{" "}
-          <a href="#/stewardship/selection">use the tiers in coverage rules</a> or <a href="#/index">join the scores in an index</a>.
+          <a href="#/stewardship/selection">use the tiers in coverage rules</a>.
         </p>
       )}
       {error && <p className="error-text" role="alert">{error}</p>}

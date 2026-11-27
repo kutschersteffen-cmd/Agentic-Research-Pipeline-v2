@@ -19,8 +19,8 @@ target, then the fields that apply to it (leave the others null):
 - "issues": open data problems. source: "feed" (a feed failed or is behind), "security_master" (a held security the
   master does not map to exactly one issuer), "check" (an extracted value failing a data check). severity: "block"
   or "warn".
-- "outputs": stored outputs other functions consume. kind: "universe", "run", "publication", "taxonomy",
-  "calibration". status: e.g. "draft", "ratified", "approved", "published", "failed", "completed". unused: true for
+- "outputs": stored outputs other functions consume. kind: "universe", "run", "publication", "taxonomy".
+  status: e.g. "draft", "ratified", "approved", "published", "failed", "completed". unused: true for
   outputs nothing has used yet.
 - "feeds": input feeds. feed: "security_master", "holdings", "index", "esg", "news". behind: true for feeds behind.
   failed: true for feeds whose last load failed.
@@ -38,7 +38,7 @@ class SearchFilter(BaseModel):
     target: Literal["issues", "outputs", "feeds"] = "issues"
     source: Literal["feed", "security_master", "check"] | None = None
     severity: Literal["block", "warn"] | None = None
-    kind: Literal["universe", "run", "publication", "taxonomy", "calibration"] | None = None
+    kind: Literal["universe", "run", "publication", "taxonomy"] | None = None
     status: str | None = None
     unused: bool | None = None
     feed: Literal["security_master", "holdings", "index", "esg", "news"] | None = None
