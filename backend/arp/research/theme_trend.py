@@ -299,8 +299,12 @@ def snapshot(taxonomy_id: str, symbols_path: str | Path, quarter: str | None, st
              facts_for: Callable[[str], dict | None], today: date) -> list[str]:
     """Computes every quarter, then stores them; any refusal or error raises first and writes nothing."""
     quarters = resolve_quarters(quarter, start, stop, today)
-    try:  # `TaxonomyStore.get` creates the directory of an unknown id
-        known = (taxonomy_store.taxonomies_dir / safe_id(taxonomy_id, label="taxonomy_id")).is_dir()
+    try:
+        safe_id(taxonomy_id, label="taxonomy_id")
+        if getattr(taxonomy_store, "_versions_repo", None) is not None:
+            known = True
+        else:  # file-backed `TaxonomyStore.get` creates the directory of an unknown id
+            known = taxonomy_store.taxonomies_dir is not None and (taxonomy_store.taxonomies_dir / taxonomy_id).is_dir()
     except ValueError:
         known = False
     taxonomy = taxonomy_store.get(taxonomy_id) if known else None

@@ -1,4 +1,4 @@
-"""Postgres `app_documents` persistence tests for the 6 JSONB-backed stores."""
+"""Postgres `app_documents` persistence tests for the 7 JSONB-backed stores."""
 
 from __future__ import annotations
 
@@ -185,6 +185,9 @@ def test_programme_log_pg_round_trip(pg):
     log.change("water_stewardship", names, add=[], remove=[], end=["c1"], reason="Target met", by="bob")
     assert log.programme("water_stewardship")["confirmed"] == 0
     assert "c1" not in log.memberships()
+    assert log.confirm("water_stewardship", by="bob") == 0
+    with pytest.raises(ValueError, match="signed-in user"):
+        log.confirm("water_stewardship", by="   ")
 
 
 def test_security_master_load_writes_pg_idmap_and_sectors(pg, tmp_path):
