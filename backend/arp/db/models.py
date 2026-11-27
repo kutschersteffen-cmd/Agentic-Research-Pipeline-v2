@@ -797,6 +797,20 @@ class DeskTurn(Base):
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class AppDocument(Base):
+    """Generic Postgres JSONB document store for small document-like application state
+    (schemas, taxonomies, schedules, notes, reporting configs), keyed by `(namespace, doc_key)`."""
+
+    __tablename__ = "app_documents"
+
+    namespace: Mapped[str] = mapped_column(Text, primary_key=True)
+    doc_key: Mapped[str] = mapped_column(Text, primary_key=True)
+    payload: Mapped[dict] = mapped_column(JSONB, default=dict, server_default=text("'{}'::jsonb"))
+    version: Mapped[int] = mapped_column(Integer, default=1, server_default=text("1"))
+    created_at: Mapped[datetime] = _ts()
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_NOW, server_default=_NOW)
+
+
 import arp.agent.models  # noqa: E402,F401  (registers the explorations table on Base)
 import arp.agent_board.models  # noqa: E402,F401  (registers the agent board tables on Base)
 import arp.authoritative.models  # noqa: E402,F401  (registers the authoritative layer tables on Base)
