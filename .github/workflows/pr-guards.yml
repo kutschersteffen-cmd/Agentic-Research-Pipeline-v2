@@ -41,6 +41,7 @@ jobs:
           fi
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           HAS_TESTS_WEAKENED_OK: ${{ contains(github.event.pull_request.labels.*.name, 'tests-weakened-ok') }}
           HAS_DEAD_CODE_CLEANUP: ${{ contains(github.event.pull_request.labels.*.name, 'dead-code-cleanup') }}
@@ -56,8 +57,7 @@ jobs:
       - name: Compare test counts with main
         run: |
           if [ "$EVENT_ACTION" = "labeled" ] || [ "$EVENT_ACTION" = "unlabeled" ]; then
-            live_labels=$(gh pr view "$PR_NUMBER" --json labels --jq '[.labels[].name]')
-            if echo "$live_labels" | grep -Eq '"(tests-weakened-ok|dead-code-cleanup)"'; then
+            if gh pr view "$PR_NUMBER" --json labels --jq '.labels[].name' | grep -Fxiq -e 'tests-weakened-ok' -e 'dead-code-cleanup'; then
               echo "Override label active on live PR; skipping test count comparison."
               exit 0
             fi
@@ -65,6 +65,7 @@ jobs:
           python3 .github/scripts/test_guard.py "origin/$BASE_REF"
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           EVENT_ACTION: ${{ github.event.action }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           BASE_REF: ${{ github.base_ref }}

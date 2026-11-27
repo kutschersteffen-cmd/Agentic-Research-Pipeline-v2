@@ -1,7 +1,8 @@
 """Fail when a PR removes tests or asserts under backend/tests or frontend/tests.
 
 CI twin of the test-guard mod (.claude/mods/test-guard): same paths, same markers, but it
-blocks instead of warning. The owner overrides it with the `tests-weakened-ok` PR label.
+blocks instead of warning. The owner overrides it with the `tests-weakened-ok` or
+`dead-code-cleanup` PR label.
 
 Usage: python3 test_guard.py <base-ref>        compare <base-ref>...HEAD
        python3 test_guard.py --selftest
