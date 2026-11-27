@@ -4,8 +4,7 @@ import asyncio
 import logging
 from collections.abc import Awaitable, Callable
 
-from arp.api.deps import get_llm_client, get_verifier_llm_client
-from arp.config import Settings
+from arp.config import Settings, get_settings
 from arp.core.auth import Principal
 from arp.db.session import require_dsn
 from arp.llm.base import LLMClient
@@ -16,6 +15,14 @@ from arp.storage.run_store import RunStore
 
 logger = logging.getLogger(__name__)
 _tasks: set[asyncio.Task] = set()  # strong refs: a running task is never garbage-collected
+
+
+def get_llm_client() -> LLMClient:
+    return build_llm_client(get_settings())
+
+
+def get_verifier_llm_client() -> LLMClient:
+    return build_verifier_llm_client(get_settings())
 
 
 def _log_failure(task: asyncio.Task) -> None:

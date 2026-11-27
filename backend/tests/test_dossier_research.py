@@ -46,6 +46,7 @@ def env(tmp_path, pg, monkeypatch):
                         taxonomies_dir=tmp_path / "tax", cache_dir=tmp_path / "cache")
     monkeypatch.setattr(standins, "get_settings", lambda: settings)
     monkeypatch.setattr(deps, "get_settings", lambda: settings)
+    monkeypatch.setattr(run_scheduling, "get_settings", lambda: settings)
     run_store, taxonomies = RunStore(pg, settings.runs_dir), TaxonomyStore(settings.taxonomies_dir)
     jobs, who = [], {"user": USERS["ana"]}
 

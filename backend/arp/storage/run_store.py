@@ -1,24 +1,16 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
+from arp.db.run_files import done_keys_from_rows  # noqa: F401
 from arp.schemas.common import CompanyRef, RunManifest, now_iso
 from arp.storage.atomic_io import atomic_write_text, read_text_utf8
 from arp.storage.jsonl_io import append_jsonl, read_jsonl
 from arp.storage.locks import KeyedLock
 from arp.storage.safe_path import safe_id
-
-
-def done_keys_from_rows(result_rows: Iterable[dict], error_rows: Iterable[dict] = ()) -> set[str]:
-    """Keys of items not to run again: every result row's `_key`, plus every
-    error row a worker stopped for review (`review` set) -- a person decides
-    those, so a resume must not redo them."""
-    done = {row["_key"] for row in result_rows if row.get("_key")}
-    done.update(row["key"] for row in error_rows if row.get("review") and row.get("key"))
-    return done
 
 
 def __getattr__(name: str):

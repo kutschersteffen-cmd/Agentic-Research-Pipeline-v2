@@ -97,7 +97,7 @@ class ObservationIn:
 
 
 def _same(a, b) -> bool:
-    from arp.orchestration.review_queue import same_value  # review_queue -> RunStore -> this module
+    from arp.review.state import same_value
 
     if isinstance(a, dict | list) or isinstance(b, dict | list):
         return a == b
@@ -271,7 +271,7 @@ def record(
     A run's value against an accepted fact (data rule 1): the same value stores nothing (None in the result);
     a different one is stored, leaves the fact and is appended to `conflicts` as (observation, row, fact);
     the same one is appended to `settled`, so its review item is not queued either."""
-    from arp.db.runs import _jsonb_safe  # runs imports this module
+    from arp.db.run_files import _jsonb_safe
 
     if not observations:
         return []
@@ -514,8 +514,7 @@ def apply_review(
     needs one), the facts behind it take it (`apply_decision` decides which).
     Until then they stay as they are. `*_upto` (row ids) replay the item as it stood then, `at`
     dates the fact change (default: now)."""
-    from arp.orchestration.review_queue import FINAL_STATES, item_state
-    from arp.review.items import cosign_rule  # imports the extraction pipeline
+    from arp.review.state import FINAL_STATES, cosign_rule, item_state
 
     item = session.scalar(select(ReviewItem).where(ReviewItem.run_id == run_id, ReviewItem.item_key == item_key))
     if item is None:
