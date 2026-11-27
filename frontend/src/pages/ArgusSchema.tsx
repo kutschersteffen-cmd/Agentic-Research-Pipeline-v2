@@ -472,7 +472,7 @@ export function ArgusSchema({ flow, busy, act }: { flow: Flow; busy: boolean; ac
         </button>
         {choice && pastRuns && (
           <span className="muted" role="note">
-            {lastRunText(pastRuns.filter((r) => choice.kind === "profile" || r.params.schema_id === choice.schema_id))}
+            {lastRunText(pastRuns.filter((r) => r.params.schema_id === choice.schema_id))}
           </span>
         )}
         {choice?.kind === "schema" && schema && draftHint(released, companies.length, role === "approver") && (
