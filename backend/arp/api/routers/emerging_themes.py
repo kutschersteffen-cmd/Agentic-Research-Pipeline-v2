@@ -13,6 +13,7 @@ from arp.api.deps import (
     get_xbrl_source,
     settings_dep,
 )
+from arp.api.dossier_deps import get_dossier_store
 from arp.api.run_scheduling import keep_task
 from arp.api.saved_universe import check_schedule_universe, load_saved_universe
 from arp.config import Settings
@@ -32,7 +33,7 @@ from arp.schemas.emerging_themes import EmergingThemesScheduleConfig
 from arp.storage.run_store import RunStore
 from arp.storage.taxonomy_store import TaxonomyStore
 from arp.storage.topic_store import TopicStateStore
-from arp.themes.dossiers import DossierStore, TaxonomyTaken, get_dossier_store
+from arp.themes.dossiers import DossierStore, TaxonomyTaken
 
 router = APIRouter(prefix="/api/emerging-themes", tags=["emerging-themes"])
 

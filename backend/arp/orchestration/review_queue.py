@@ -81,6 +81,14 @@ def decision_history(run_store: RunStore, run_id: str, item_key: str) -> list[di
     return [r for r in rows if r["item_key"] == item_key]
 
 
+def get_review_queue(run_store: RunStore, run_id: str) -> dict:
+    rows = run_store.read_review_queue(run_id)
+    decisions = latest_decisions(run_store, run_id)
+    pending = [r for r in rows if r["item_key"] not in decisions]
+    decided = [{"item": r, "decision": decisions[r["item_key"]]} for r in rows if r["item_key"] in decisions]
+    return {"pending": pending, "decided": decided}
+
+
 def record_cosign(run_store: RunStore, run_id: str, item_key: str, principal: Principal) -> None:
     """Second sign-off on the latest decision for item_key. Bound to that
     decision's decided_at, so any later decision invalidates it."""

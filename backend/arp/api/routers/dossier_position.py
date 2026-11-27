@@ -17,6 +17,7 @@ from arp.api.deps import (
     resolve,
     settings_dep,
 )
+from arp.api.dossier_deps import get_dossier_store, get_research_store
 from arp.api.routers.dossier_research import _dossier
 from arp.config import Settings
 from arp.db.fields import SchemaRegistry, released_fields
@@ -24,7 +25,7 @@ from arp.db.session import require_dsn
 from arp.schemas.common import JobStatus, now_iso
 from arp.stewardship.process import StreamStore
 from arp.stewardship.trigger_store import TriggerStore
-from arp.themes.dossiers import Dossier, DossierStore, exposed_companies, get_dossier_store
+from arp.themes.dossiers import Dossier, DossierStore, exposed_companies
 from arp.themes.position import (
     POLICY,
     PositionApproval,
@@ -45,7 +46,7 @@ from arp.themes.position import (
     standards_triggers,
     standards_view,
 )
-from arp.themes.research import ResearchStore, get_research_store
+from arp.themes.research import ResearchStore
 
 router = APIRouter(prefix="/api/dossiers/{dossier_id}", tags=["dossiers"])
 _approver = require_role("approver")

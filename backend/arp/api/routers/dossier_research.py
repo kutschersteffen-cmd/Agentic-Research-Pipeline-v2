@@ -7,6 +7,7 @@ from pydantic import BaseModel, field_validator
 
 from arp.api.auth import Principal, current_user
 from arp.api.deps import get_run_store, get_taxonomy_store, settings_dep
+from arp.api.dossier_deps import get_dossier_store, get_research_store
 from arp.api.run_scheduling import schedule_llm_run
 from arp.config import Settings
 from arp.discovery.site_finder import SearchUnreachable, build_web_search_client
@@ -17,7 +18,7 @@ from arp.schemas.taxonomy import Taxonomy, TaxonomyStatus
 from arp.storage.run_store import RunStore
 from arp.storage.safe_path import UnsafeIdentifierError, safe_filename
 from arp.storage.taxonomy_store import TaxonomyStore
-from arp.themes.dossiers import Dossier, DossierStore, get_dossier_store
+from arp.themes.dossiers import Dossier, DossierStore
 from arp.themes.research import (
     MAX_SOURCES,
     UPLOAD_SUFFIXES,
@@ -28,7 +29,6 @@ from arp.themes.research import (
     ResearchSource,
     ResearchStore,
     SourceFile,
-    get_research_store,
     merge_proposals,
     open_round,
     propose_sources,
