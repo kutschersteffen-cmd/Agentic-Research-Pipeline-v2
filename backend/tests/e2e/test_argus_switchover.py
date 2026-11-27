@@ -163,7 +163,7 @@ def test_a_failed_hand_over_shows_the_error_and_stays(page):
 
 # AC-69: stored runs of every Argus run type open from Run History with the same counts once the old screens are gone.
 OLD_RUNS = [  # run type, results, review items
-    ("extraction", 3, 2), ("transition_plan", 2, 1), ("financials", 2, 1), ("tnfd", 1, 1), ("identity", 2, 2), ("discovery", 3, 0),
+    ("extraction", 3, 2), ("transition_plan", 2, 1), ("identity", 2, 2), ("discovery", 3, 0),
 ]
 
 

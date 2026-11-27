@@ -9,9 +9,9 @@ import { rowWalkthroughHref } from "./walkthrough.ts";
 
 // An Argus flow (#/argus/<flow_id>/<step>): step 1's text, as the spec writes it.
 
-/** The review a kept company's run opens in: its profile's review, else the extraction review. */
-export const flowReviewHref = (choice: { kind: string; profile?: string } | null | undefined, runId: string) =>
-  `#/review/${choice?.kind === "profile" && (choice.profile === "financials" || choice.profile === "tnfd") ? choice.profile : "extraction"}/${encodeURIComponent(runId)}`;
+/** The review a kept company's run opens in. */
+export const flowReviewHref = (_choice: { kind: string; profile?: string } | null | undefined, runId: string) =>
+  `#/review/extraction/${encodeURIComponent(runId)}`;
 
 /** Reads every id; one that fails is listed in `failed` and the rest still load. Never rejects. */
 export async function readEach<T>(ids: string[], read: (id: string) => Promise<T>): Promise<{ loaded: { runId: string; value: T }[]; failed: string[] }> {

@@ -90,7 +90,6 @@ import type {
   PipelineShape,
   RunCompany,
   RunSteps,
-  TnfdRecord,
   TransitionPlanIndicatorDef,
 } from "../types";
 import type { AuthorityDraft, AuthorityRunRequest, AuthorityRunState } from "../types";
@@ -465,24 +464,9 @@ export const api = {
       method: "POST",
       body: JSON.stringify(body),
     }),
-  getTnfdResults: (runId: string, offset = 0, limit = 500) =>
-    request<{ total: number; results: TnfdRecord[] }>(`/api/tnfd/runs/${runId}/results?offset=${offset}&limit=${limit}`),
-  getFinancialsResults: (runId: string, offset = 0, limit = 500) =>
-    request(`/api/financials/runs/${runId}/results?offset=${offset}&limit=${limit}`),
-  submitFinancialsReview: (runId: string, body: unknown) =>
-    request(`/api/financials/runs/${runId}/review`, { method: "POST", body: JSON.stringify(body) }),
-  getFinancialsReviewDecisions: (runId: string) => request(`/api/financials/runs/${runId}/review-decisions`),
-  getFinancialsReviewHistory: (runId: string, itemKey: string) =>
-    request(`/api/financials/runs/${runId}/review-history?item_key=${encodeURIComponent(itemKey)}`),
-  getFinancialsResultsForCompany: (companyId: string) =>
-    request(`/api/financials/companies/${encodeURIComponent(companyId)}/results`),
 
   // Transition Plan Assessment (64-indicator walk/talk RAG disclosure assessment)
   getTransitionPlanIndicators: () => request<TransitionPlanIndicatorDef[]>("/api/transition-plan/indicators"),
-  getTnfdReviewHistory: (runId: string, itemKey: string) =>
-    request(`/api/tnfd/runs/${runId}/review-history?item_key=${encodeURIComponent(itemKey)}`),
-  submitTnfdReview: (runId: string, body: unknown) =>
-    request(`/api/tnfd/runs/${runId}/review`, { method: "POST", body: JSON.stringify(body) }),
   submitTransitionPlanReview: (runId: string, body: unknown) =>
     request(`/api/transition-plan/runs/${runId}/review`, { method: "POST", body: JSON.stringify(body) }),
   getTransitionPlanReviewDecisions: (runId: string) => request(`/api/transition-plan/runs/${runId}/review-decisions`),

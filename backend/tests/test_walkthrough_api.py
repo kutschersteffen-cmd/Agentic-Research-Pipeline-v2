@@ -16,9 +16,7 @@ from arp.api.deps import get_document_content_store, get_run_store, settings_dep
 from arp.api.main import app
 from arp.config import Settings
 from arp.extraction.pipeline import load_run_schema
-from arp.extraction.tnfd_extractor_agent import GeneralRequirementsDraft
 from arp.extraction.verifier_agent import VerifierOutput
-from arp.ingestion.local_files import parser_version
 from arp.orchestration.review_queue import append_decision
 from arp.review.quality import seed_known_answers
 from arp.schemas.common import RunManifest
@@ -28,7 +26,6 @@ from arp.storage.document_store import DocumentContentStore
 from arp.storage.run_store import RunStore
 from arp.walkthrough import trace
 from tests import test_extraction_corrections_pipeline as corr
-from tests import test_walkthrough_financials_tnfd as fintnfd
 from tests.conftest import FakeLLMClient
 from tests.postgres_helpers import pg_dsn
 from tests.test_review_quality import _real_run, qenv  # noqa: F401 - qenv is a fixture
@@ -270,75 +267,6 @@ async def test_text_not_available(tmp_path, fake_llm):  # Review Focus 2
     assert all(p["text"] is None and p["doc_title"] == "ESG" for p in body["passages"])
 
 
-# --- Financials and TNFD ---
-
-
-async def test_financials_capex(tmp_path, fake_llm):  # AC-10
-    doc = fintnfd.fin._doc()
-    store, run_id = await fintnfd._fin_run(tmp_path, fake_llm(fintnfd._fin_responses(doc)), doc)
-    body = _ok(store, run_id, "capex", period_end="2025-12-31")  # ignored for a section
-    assert (body["recorded"], body["adjudicator"], body["run_type"], body["trace_run_id"]) == (
-        True, None, "financials", run_id)
-    assert body["rows"] == [_company(store, run_id, "financials")["capex"]]
-    record = _trace(store, run_id)["record"]
-    assert (body["extractor"], body["verifier"]) == (record["extractor"], record["verifier"])
-    assert [p["rank"] for p in body["passages"]] == list(range(1, len(record["passages"]) + 1))
-
-
-async def test_financials_passage_text(tmp_path, fake_llm):
-    doc = fintnfd.fin._doc()
-    store, run_id = await fintnfd._fin_run(tmp_path, fake_llm(fintnfd._fin_responses(doc)), doc)
-    content = _content(tmp_path, doc=None)
-    content.store("k-fin", key_kind="file", parser_version=parser_version(), source_suffix=".txt",
-                  byte_size=len(doc.full_text), text=doc.full_text, page_breaks=[])
-    content.register_document(doc_id=doc.doc_id, company_id="c1", doc_type=doc.doc_type.value, content_key="k-fin",
-                              title="Acme 10-K", local_path=None, source_url=None)
-    p = _ok(store, run_id, "capex", content=content)["passages"][0]
-    assert p["doc_title"] == "Acme 10-K"
-    assert p["text"] is not None and p["text"] == doc.full_text[p["char_start"]:p["char_end"]]
-
-
-async def test_financials_old_run(tmp_path, fake_llm):  # AC-68
-    doc = fintnfd.fin._doc()
-    store, run_id = await fintnfd._fin_run(tmp_path, fake_llm(fintnfd._fin_responses(doc)), doc)
-    shutil.rmtree(store.run_dir(run_id) / "traces")
-    body = _ok(store, run_id, "capex")
-    _assert_not_recorded(body, "before_traces")
-    assert body["rows"] == [_company(store, run_id, "financials")["capex"]]
-
-
-async def _tnfd(tmp_path, fake_llm, general_requirements=None):
-    doc = fintnfd.tnfd._doc()
-    script = fintnfd._tnfd_responses(doc)
-    if general_requirements:
-        draft = script["TNFDExtractionDraft"][0]
-        script["TNFDExtractionDraft"] = [draft.model_copy(update={"general_requirements": general_requirements})]
-    return await fintnfd._tnfd_run(tmp_path, fake_llm(script), doc)
-
-
-async def test_tnfd_disclosures(tmp_path, fake_llm):  # AC-11
-    store, run_id = await _tnfd(tmp_path, fake_llm)
-    body = _ok(store, run_id, "disclosures")
-    assert body["recorded"] is True
-    disclosures = _company(store, run_id, "tnfd")["disclosures"]
-    assert disclosures and body["rows"] == disclosures
-
-
-async def test_tnfd_general_requirements_object(tmp_path, fake_llm):  # AC-12
-    gr = GeneralRequirementsDraft(materiality_approach="double", disclosure_scope="direct_operations",
-                                  location_specificity="site", iplc_engagement_described=False)
-    store, run_id = await _tnfd(tmp_path, fake_llm, gr)
-    expected = _company(store, run_id, "tnfd")["general_requirements"]
-    assert expected is not None
-    assert _ok(store, run_id, "general_requirements")["rows"] == [expected]
-
-
-async def test_tnfd_general_requirements_none(tmp_path, fake_llm):  # AC-13
-    store, run_id = await _tnfd(tmp_path, fake_llm)
-    assert _company(store, run_id, "tnfd")["general_requirements"] is None
-    assert _ok(store, run_id, "general_requirements")["rows"] == []
-
-
 # --- transition-plan list fields ---
 
 
@@ -383,12 +311,6 @@ async def test_not_found_cases(tmp_path, fake_llm, pg):  # AC-16, AC-70
     hand = RunStore(pg, tmp_path / "hand" / "runs")
     _hand_run(hand, "extraction_two", fields=[_row()], schema_fields=(F1, _num_field("f2")))
     assert _walk(hand, "extraction_two", "f2", **p).status_code == 404
-
-    fin_doc = fintnfd.fin._doc()
-    fstore, fin_run = await fintnfd._fin_run(tmp_path / "fin", fake_llm(fintnfd._fin_responses(fin_doc)), fin_doc)
-    assert _walk(fstore, fin_run, "disclosures", **p).status_code == 404
-    tstore, tnfd_run = await _tnfd(tmp_path / "tnfd", fake_llm)
-    assert _walk(tstore, tnfd_run, "capex", **p).status_code == 404
 
 
 async def test_requires_sign_in(tmp_path, fake_llm):  # AC-18

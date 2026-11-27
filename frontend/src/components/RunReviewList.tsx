@@ -18,10 +18,8 @@ import type { Citation, ReviewDecision, ReviewItem, ReviewItemKind, ReviewableRu
 export const REVIEW_KIND_LABEL: Record<ReviewableRunKind, string> = {
   theme: "Thematic universe",
   extraction: "Data-point extraction",
-  financials: "Company financials",
   identity: "Identity resolution",
   transition_plan: "Transition plan",
-  tnfd: "TNFD",
   transition_barrier_derivation: "Transition barrier ratings",
   discovery: "Document discovery",
 };
@@ -29,17 +27,13 @@ export const REVIEW_KIND_LABEL: Record<ReviewableRunKind, string> = {
 // eslint-disable-next-line react-refresh/only-export-components
 export const SUBMIT_FNS: Partial<Record<ReviewableRunKind, (runId: string, body: unknown) => Promise<unknown>>> = {
   theme: api.submitThemeReview,
-  financials: api.submitFinancialsReview,
   transition_plan: api.submitTransitionPlanReview,
-  tnfd: api.submitTnfdReview,
 };
 
 // Kinds without a per-item history endpoint get no History button.
 // eslint-disable-next-line react-refresh/only-export-components
 export const HISTORY_FNS: Partial<Record<ReviewableRunKind, (runId: string, itemKey: string) => Promise<unknown>>> = {
-  financials: api.getFinancialsReviewHistory,
   transition_plan: api.getTransitionPlanReviewHistory,
-  tnfd: api.getTnfdReviewHistory,
 };
 
 /** "C1:net_zero_target" reads as "C1 · net zero target" when an item carries no name. */

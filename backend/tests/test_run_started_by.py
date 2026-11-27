@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from arp.api import deps, run_scheduling
 from arp.api.auth import Principal, current_user
-from arp.api.routers import extraction, financials
+from arp.api.routers import extraction
 from arp.config import Settings
 from arp.orchestration.job_manager import JobManager
 from arp.storage.run_store import RunStore
@@ -33,17 +33,14 @@ def client(tmp_path, monkeypatch, pg):
     monkeypatch.setattr(run_scheduling, "get_job_launcher", _Launcher)
     monkeypatch.setattr(run_scheduling, "get_llm_client", lambda: "llm")
     monkeypatch.setattr(run_scheduling, "get_verifier_llm_client", lambda: "verifier")
-    for module, create, execute in ((extraction, "create_extraction_run", "execute_extraction_run"),
-                                    (financials, "create_financials_extraction_run", "execute_financials_extraction_run")):
-        monkeypatch.setattr(module, create, lambda *_a, _t=module.__name__, **_k: JobManager(store).create_run(_t, {}, 1).run_id)
+    monkeypatch.setattr(extraction, "create_extraction_run", lambda *_a, **_k: JobManager(store).create_run("extraction", {}, 1).run_id)
 
-        async def _execute(*_a, **_k):
-            return None
+    async def _execute(*_a, **_k):
+        return None
 
-        monkeypatch.setattr(module, execute, _execute)
+    monkeypatch.setattr(extraction, "execute_extraction_run", _execute)
     app = FastAPI()
     app.include_router(extraction.router)
-    app.include_router(financials.router)
     app.dependency_overrides[deps.settings_dep] = lambda: settings
     app.dependency_overrides[deps.get_run_store] = lambda: store
     for dep in (deps.get_registry, deps.get_xbrl_source):
@@ -63,7 +60,8 @@ def test_extraction_runs_records_the_signed_in_user(client):
 
 def test_extraction_start_records_the_signed_in_user(client):
     c, store = client
-    r = c.post("/api/extraction/start", json={"profile": "financials", "companies": [{"company_id": "c1", "name": "Acme"}]})
+    r = c.post("/api/extraction/start", json={"profile": "custom", "companies": [{"company_id": "c1", "name": "Acme"}],
+                                              "datapoint_schema": {"schema_id": "s", "name": "s", "fields": []}})
     assert r.status_code == 200, r.text
     params = store.load_manifest(r.json()["run_id"]).params
     assert (params["started_by"], params["started_by_name"]) == ("u-1", "Alice Smith")

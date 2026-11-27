@@ -61,11 +61,11 @@ def test_documents_registered_and_on_disk(tmp_path):
 def test_extraction_runs_counted_and_latest_reported(tmp_path):
     e = Env(tmp_path)
     e.run("extraction", [{"company_id": "acme"}, {"company_id": "acme"}])
-    e.run("tnfd", [{"company_id": "acme"}, {"company_id": "beta"}])
-    new = e.run("financials", [{"company_id": "acme"}])
+    e.run("transition_plan", [{"company_id": "acme"}, {"company_id": "beta"}])
+    new = e.run("extraction", [{"company_id": "acme"}])
     out = e.avail("acme", "beta")
     assert out["acme"].extraction.runs == 3
-    assert out["acme"].extraction.run_types == ["extraction", "financials", "tnfd"]
+    assert out["acme"].extraction.run_types == ["extraction", "transition_plan"]
     assert out["acme"].extraction.last_run_id == new.run_id
     assert out["acme"].extraction.last_run_at == "2026-01-03T00:00:00+00:00"
     assert out["beta"].extraction.runs == 1
@@ -101,7 +101,7 @@ def test_each_results_file_read_once(tmp_path, monkeypatch):
     e = Env(tmp_path)
     ids = [f"c{i}" for i in range(100)]
     e.run("extraction", [{"company_id": i} for i in ids])
-    e.run("tnfd", [{"company_id": i} for i in ids])
+    e.run("transition_plan", [{"company_id": i} for i in ids])
     e.run("identity", [_ident(i) for i in ids])
     calls = []
     real = RunStore.read_results

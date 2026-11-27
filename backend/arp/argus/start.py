@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from arp.argus.documents import FlowFile, expected_year
+from arp.argus.documents import FlowFile
 from arp.argus.flows import ArgusFlow
 from arp.argus.repeat import RepeatRow, kept_content
 from arp.errors import ClientInputError
@@ -34,10 +34,7 @@ def start_request(
         "mode": s.mode, "batch": s.batch,
         "step_settings": StepSettings(evidence_max_chunks=s.evidence_passages) if s.evidence_passages else None,
     }
-    if choice.kind == "profile":
-        body |= {"profile": choice.profile, "as_of": f"FY{expected_year(flow)}" if choice.profile == "tnfd" else None}
-    else:
-        trial = not schema.release_flag  # a draft runs as a trial on one company and writes no facts
-        companies = companies[:1] if trial else companies
-        body |= {"profile": "custom", "datapoint_schema": schema, "trial": trial}
+    trial = not schema.release_flag  # a draft runs as a trial on one company and writes no facts
+    companies = companies[:1] if trial else companies
+    body |= {"profile": "custom", "datapoint_schema": schema, "trial": trial}
     return {**body, "companies": companies}, {c.company_id: kept[c.company_id] for c in companies}

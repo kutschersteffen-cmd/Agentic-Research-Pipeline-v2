@@ -11,10 +11,6 @@ import type { ArgusFlow as Flow, DataPointSchema, FieldDefinition, RuleSuggestio
 type SavedSchema = { schema_id: string; version: number; name: string; release_flag: boolean; field_count: number };
 type Preset = { preset_id: string; name: string; field_count: number };
 type Choice = NonNullable<Flow["schema_choice"]>;
-const PROFILES: ["financials" | "tnfd", string][] = [
-  ["financials", "Financials"],
-  ["tnfd", "TNFD"],
-];
 
 const asChoice = (c: Partial<Choice> & Pick<Choice, "kind">): Choice => ({ schema_id: null, version: null, profile: null, ...c });
 
@@ -100,7 +96,7 @@ export function ArgusSchema({ flow, busy, act }: { flow: Flow; busy: boolean; ac
     api.getMe().then((m) => setRole(m.role), () => setRole(null));
     api.getTransitionPlanIndicators().then((i) => setIndicatorCount(i.length), () => setIndicatorCount(null));
   }, []);
-  const runType = choice?.kind === "profile" ? choice.profile! : "extraction";
+  const runType = "extraction";
   useEffect(() => {
     setPastRuns(null);
     if (!choice) return;
@@ -181,7 +177,6 @@ export function ArgusSchema({ flow, busy, act }: { flow: Flow; busy: boolean; ac
 
   const evidenceValue = () => (evidence.trim() ? Number(evidence) : null);
   const shown = editing ?? schema;
-  const profileName = choice?.kind === "profile" ? PROFILES.find(([p]) => p === choice.profile)?.[1] ?? "" : "";
   const keptBy = new Map<string, number>();
   // as the run counts them: kept files with a content key (every stored file has one)
   for (const f of flow.files) if (f.state === "kept" && f.content_key) keptBy.set(f.company_id, (keptBy.get(f.company_id) ?? 0) + 1);
@@ -190,11 +185,11 @@ export function ArgusSchema({ flow, busy, act }: { flow: Flow; busy: boolean; ac
   const companies = flow.companies.filter((c) => keptBy.has(c.company_id) && !skipped(c.company_id));
   const added = new Map(flow.repeat_rows.filter((r) => r.kind === "added").map((r) => [r.company_id, r.added]));
   const nameOf = (cid: string) => flow.companies.find((c) => c.company_id === cid)?.name ?? cid;
-  const released = choice?.kind === "profile" || !!schema?.release_flag;
+  const released = !!schema?.release_flag;
   const label = choice
-    ? startLabel(choice.kind === "profile" ? profileName : schema?.name ?? null, choice.kind === "profile" ? null : choice.version ?? null, released, companies.length)
+    ? startLabel(schema?.name ?? null, choice.version ?? null, released, companies.length)
     : editing ? "Save the schema to continue" : "Choose what to extract";
-  const ready = !!choice && !editing && (choice.kind === "profile" || !!schema) && companies.length > 0 && canStart(flow.repeat_rows, flow.repeat);
+  const ready = !!choice && !editing && !!schema && companies.length > 0 && canStart(flow.repeat_rows, flow.repeat);
   const isChosen = (s: SavedSchema) => choice?.kind === "schema" && choice.schema_id === s.schema_id && choice.version === s.version;
 
   return (
@@ -236,12 +231,11 @@ export function ArgusSchema({ flow, busy, act }: { flow: Flow; busy: boolean; ac
             Template
             <select
               id="argus-template"
-              value={choice?.kind === "profile" ? `f:${choice.profile}` : ""}
+              value=""
               disabled={busy}
               onChange={(e) => {
                 const [kind, key] = [e.target.value.slice(0, 1), e.target.value.slice(2)];
-                if (kind === "f") choose({ kind: "profile", profile: key as (typeof PROFILES)[number][0] });
-                else if (kind === "p")
+                if (kind === "p")
                   act(async () => {
                     const s = await api.installPreset(key);
                     edit(null);
@@ -253,9 +247,6 @@ export function ArgusSchema({ flow, busy, act }: { flow: Flow; busy: boolean; ac
               <option value="" disabled>Choose one…</option>
               <optgroup label="Schema templates">
                 {presets.map((p) => <option key={p.preset_id} value={`p:${p.preset_id}`}>{p.name} · {presetCountText(p, indicatorCount)}</option>)}
-              </optgroup>
-              <optgroup label="Fixed profiles">
-                {PROFILES.map(([p, name]) => <option key={p} value={`f:${p}`}>{name} · fixed fields</option>)}
               </optgroup>
             </select>
           </label>
@@ -288,9 +279,7 @@ export function ArgusSchema({ flow, busy, act }: { flow: Flow; busy: boolean; ac
         </section>
 
         <section className="argus-schema-fields" aria-label="Fields">
-          {choice?.kind === "profile" && !editing ? (
-            <p className="muted">{profileName} is a fixed profile: its fields are set by the app and cannot be edited here.</p>
-          ) : !shown ? (
+          {!shown ? (
             <p className="muted">Choose a saved schema or a template, or describe what to extract.</p>
           ) : (
             <>

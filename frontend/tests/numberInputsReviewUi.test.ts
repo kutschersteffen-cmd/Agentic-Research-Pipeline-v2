@@ -50,8 +50,6 @@ test("waiting counts conflicts", () => {
 });
 
 test("flowReviewHref, readEach, earlierFailedLine", async () => {
-  assert.equal(flowReviewHref({ kind: "profile", profile: "tnfd" }, "run_1"), "#/review/tnfd/run_1");
-  assert.equal(flowReviewHref({ kind: "profile", profile: "financials" }, "run_1"), "#/review/financials/run_1");
   assert.equal(flowReviewHref({ kind: "schema" }, "run_1"), "#/review/extraction/run_1");
   assert.equal(flowReviewHref(null, "run_1"), "#/review/extraction/run_1");
   assert.deepEqual(await readEach(["a", "b", "c"], (id) => (id === "b" ? Promise.reject(new Error("x")) : Promise.resolve(id + "!"))),

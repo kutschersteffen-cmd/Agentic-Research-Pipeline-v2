@@ -46,7 +46,6 @@ test("a step waiting for review links to where it is reviewed", () => {  // AC-6
   assert.equal(reviewHref(call({ run_id: "r_1" })), "#/review/extraction/r_1");
   assert.equal(reviewHref(call({ kind: "universe_build" })), "#/review/theme/r");
   assert.equal(reviewHref(call({ kind: "document_discovery" })), "#/review/discovery/r");
-  assert.equal(reviewHref(call({ kind: "financials_extraction" })), "#/review/financials/r");
   assert.equal(reviewHref(call({ kind: "report_render", run_id: null, result_ref: "report:7" })), "#/reporting");
   assert.equal(reviewHref(call({ kind: "xbrl_facts" })), null);
 });

@@ -86,7 +86,7 @@ export type AskResponse = Served<S["AskResponse"]>;
 
 // The run types the Review Queue endpoints exist for -- a subset of every
 // run_type, since most run types have no review queue.
-export type ReviewableRunKind = "theme" | "extraction" | "financials" | "identity" | "transition_plan" | "tnfd" | "transition_barrier_derivation" | "discovery";
+export type ReviewableRunKind = "theme" | "extraction" | "identity" | "transition_plan" | "transition_barrier_derivation" | "discovery";
 
 export interface CompanyRef {
   company_id: string;
@@ -1992,7 +1992,7 @@ export interface TnfdRecord {
   needs_review: boolean;
 }
 
-export type ExtractionProfile = "custom" | "financials" | "tnfd" | "transition_plan";
+export type ExtractionProfile = "custom" | "transition_plan";
 
 /** Per-run step settings from the node editor; a key left out keeps the app's setting. */
 export interface StepSettings {

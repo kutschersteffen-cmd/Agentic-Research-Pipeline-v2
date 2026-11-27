@@ -39,10 +39,9 @@ def test_schema_choice_and_settings_round_trip(client, fid):
     assert flow["settings"] == {"mode": "max", "evidence_passages": 3, "batch": True}
 
 
-def test_profile_choice_has_no_schema_id(client, fid):
+def test_retired_profile_choice_is_rejected(client, fid):
     r = client.patch(f"/api/argus/flows/{fid}", json={"schema_choice": {"kind": "profile", "profile": "tnfd", "schema_id": "sch_x"}})
-    assert r.status_code == 200
-    assert r.json()["schema_choice"] == {"kind": "profile", "schema_id": None, "version": None, "profile": "tnfd"}
+    assert r.status_code == 422
 
 
 def test_repeat_choice_only_for_flow_companies(client, fid):

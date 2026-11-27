@@ -10,7 +10,6 @@ import pytest
 from arp.config import Settings
 from arp.discovery.identity_pipeline import create_identity_run
 from arp.discovery.pipeline import create_discovery_run
-from arp.extraction.financials_pipeline import create_financials_extraction_run
 from arp.orchestration.job_manager import JobManager
 from arp.orchestration.jobs import LocalJobLauncher, RunBusy, _mark_failed, hold_run, run_lease
 from arp.research.pipeline import create_theme_run
@@ -146,7 +145,6 @@ def test_creators_store_companies(tmp_path, pg):
     store = RunStore(pg, tmp_path)
     settings = Settings()
     ids = [
-        create_financials_extraction_run(COMPANIES, settings, store),
         create_theme_run(ThemeDefinition(name="T", description=""), COMPANIES, settings, store),
         create_identity_run(COMPANIES, store),
         create_discovery_run(COMPANIES, None, "test", store),

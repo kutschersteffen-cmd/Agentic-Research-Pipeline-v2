@@ -36,7 +36,6 @@ from arp.api.routers import (
     emerging_themes,
     engagement,
     extraction,
-    financials,
     holdings,
     identity,
     outputs,
@@ -60,7 +59,6 @@ from arp.api.routers import (
     taxonomies,
     taxonomy_researcher,
     themes,
-    tnfd,
     transition_alignment,
     transition_barrier,
     transition_plan,
@@ -161,8 +159,6 @@ app.include_router(stewardship.router, dependencies=[Depends(authorize)])
 app.include_router(stewardship_cockpit.router, dependencies=[Depends(authorize)])
 app.include_router(stewardship_intake.router, dependencies=[Depends(authorize)])
 app.include_router(stewardship_worklist.router, dependencies=[Depends(authorize)])
-app.include_router(financials.router, dependencies=[Depends(authorize)])
-app.include_router(tnfd.router, dependencies=[Depends(authorize)])
 app.include_router(transition_plan.router, dependencies=[Depends(authorize)])
 app.include_router(transition_barrier.router, dependencies=[Depends(authorize)])
 app.include_router(transition_alignment.router, dependencies=[Depends(authorize)])

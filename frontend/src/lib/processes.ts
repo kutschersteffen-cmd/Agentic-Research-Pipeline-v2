@@ -44,7 +44,7 @@ export type Workspace = {
 };
 
 const REVIEWABLE = [...REVIEWABLE_RUN_TYPES];
-const EXTRACTION_RUNS = ["extraction", "financials", "tnfd", "transition_plan"];
+const EXTRACTION_RUNS = ["extraction", "transition_plan"];
 
 export const WORKSPACES: Workspace[] = [
   {
