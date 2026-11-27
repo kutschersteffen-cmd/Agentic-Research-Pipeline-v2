@@ -88,6 +88,37 @@ services:
       # an empty directory by Docker. Edits take effect without a restart.
       - ./config:/app/config:ro
 
+  worker:
+    image: ghcr.io/kutschersteffen-cmd/arp-backend:${ARP_IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["arp", "worker", "run"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - path: backend/.env
+        required: false
+    environment:
+      ARP_POSTGRES_DSN: postgresql+psycopg://arp:arp@postgres:5432/arp
+      ARP_NEO4J_URI: bolt://neo4j:7687
+      ARP_NEO4J_PASSWORD: arp_neo4j_test
+      ARP_SANDBOX_URL: http://sandbox:8790
+    volumes:
+      - arp_runs:/app/runs
+      - arp_schemas:/app/schemas
+      - arp_taxonomies:/app/taxonomies
+      - arp_portfolios:/app/portfolios
+      - arp_documents:/app/data/documents
+      - arp_blobs:/app/data/blobs
+      - arp_engagements:/app/engagements
+      - arp_ballots:/app/ballots
+      - arp_cache:/app/backend/.cache
+      - arp_discovery_state:/app/backend/.discovery_state
+      - arp_document_store:/app/backend/.document_store
+      - ./config:/app/config:ro
+
   frontend:
     image: ghcr.io/kutschersteffen-cmd/arp-frontend:${ARP_IMAGE_TAG:-latest}
     build:
