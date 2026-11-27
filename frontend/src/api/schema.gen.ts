@@ -2024,27 +2024,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/extraction/runs/{run_id}/remuneration-summary": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Remuneration Summary
-         * @description Per company, plan (STI, LTI) and period of a sch_esg_remuneration run: mechanism, ESG weight or multiplier
-         *     range, the computed effective weight and its below-10% or 10%-or-above class.
-         */
-        get: operations["get_remuneration_summary_api_extraction_runs__run_id__remuneration_summary_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/extraction/runs/{run_id}/restart": {
         parameters: {
             query?: never;
@@ -2337,135 +2316,6 @@ export interface paths {
          * @description Pulls new stories from Refinitiv News; each is tied to an issuer through the security master's PermIDs only.
          */
         post: operations["post_news_pull_api_feeds_news_pull_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/financials/companies/{company_id}/results": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Financials Results For Company
-         * @description The company-centric complement to /runs/{run_id}/results -- every
-         *     result this company has ever had across every financials run, not just
-         *     one run's, for the Data Library's "By company" view.
-         */
-        get: operations["get_financials_results_for_company_api_financials_companies__company_id__results_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/financials/runs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Start Financials Extraction Run */
-        post: operations["start_financials_extraction_run_api_financials_runs_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/financials/runs/{run_id}/results": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Financials Extraction Results */
-        get: operations["get_financials_extraction_results_api_financials_runs__run_id__results_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/financials/runs/{run_id}/review": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Submit Financials Review */
-        post: operations["submit_financials_review_api_financials_runs__run_id__review_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/financials/runs/{run_id}/review-decisions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Financials Review Decisions
-         * @description Latest decision per item_key (keyed at company_id -- the review unit
-         *     is a company's whole segments/CapEx/R&D record, since a misread evidence
-         *     set usually affects more than one section).
-         */
-        get: operations["get_financials_review_decisions_api_financials_runs__run_id__review_decisions_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/financials/runs/{run_id}/review-history": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Financials Review History */
-        get: operations["get_financials_review_history_api_financials_runs__run_id__review_history_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/financials/runs/{run_id}/review-queue": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Financials Review Queue */
-        get: operations["get_financials_review_queue_api_financials_runs__run_id__review_queue_get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5991,113 +5841,6 @@ export interface paths {
         };
         /** Get Theme Review Queue */
         get: operations["get_theme_review_queue_api_themes_runs__run_id__review_queue_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/tnfd/runs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Start Tnfd Extraction Run */
-        post: operations["start_tnfd_extraction_run_api_tnfd_runs_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/tnfd/runs/{run_id}/results": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Tnfd Extraction Results */
-        get: operations["get_tnfd_extraction_results_api_tnfd_runs__run_id__results_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/tnfd/runs/{run_id}/review": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Submit Tnfd Review */
-        post: operations["submit_tnfd_review_api_tnfd_runs__run_id__review_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/tnfd/runs/{run_id}/review-decisions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Tnfd Review Decisions
-         * @description Latest decision per item_key (keyed at company_id -- the review unit
-         *     is a company's whole TNFD record, since a misread evidence set usually
-         *     affects more than one section).
-         */
-        get: operations["get_tnfd_review_decisions_api_tnfd_runs__run_id__review_decisions_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/tnfd/runs/{run_id}/review-history": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Tnfd Review History */
-        get: operations["get_tnfd_review_history_api_tnfd_runs__run_id__review_history_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/tnfd/runs/{run_id}/review-queue": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Tnfd Review Queue */
-        get: operations["get_tnfd_review_queue_api_tnfd_runs__run_id__review_queue_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -12652,16 +12395,17 @@ export interface components {
         };
         /**
          * SchemaChoice
-         * @description What step 3 extracts: a saved schema version, or a fixed profile.
+         * @description What step 3 extracts: a saved schema version.
          */
         SchemaChoice: {
             /**
              * Kind
-             * @enum {string}
+             * @default schema
+             * @constant
              */
-            kind: "schema" | "profile";
+            kind: "schema";
             /** Profile */
-            profile?: ("financials" | "tnfd") | null;
+            profile?: null;
             /** Schema Id */
             schema_id?: string | null;
             /** Version */
@@ -13220,7 +12964,7 @@ export interface components {
              * Profile
              * @enum {string}
              */
-            profile: "custom" | "financials" | "tnfd" | "transition_plan";
+            profile: "custom" | "transition_plan";
             /** @description Per-run step settings from the node editor. */
             step_settings?: components["schemas"]["StepSettings"] | null;
             /**
@@ -14543,19 +14287,6 @@ export interface components {
             /** Universe Path */
             universe_path?: string | null;
         };
-        /** RunRequest */
-        arp__api__routers__financials__RunRequest: {
-            /**
-             * Batch
-             * @description Run through the Message Batches API: 50% cheaper, slower.
-             * @default false
-             */
-            batch: boolean;
-            /** Companies */
-            companies?: components["schemas"]["CompanyRef"][] | null;
-            /** Universe Path */
-            universe_path?: string | null;
-        };
         /** AskRequest */
         arp__api__routers__portfolio__AskRequest: {
             /**
@@ -14622,21 +14353,6 @@ export interface components {
              * @default false
              */
             use_sample_io: boolean;
-        };
-        /** RunRequest */
-        arp__api__routers__tnfd__RunRequest: {
-            /** As Of */
-            as_of: string;
-            /**
-             * Batch
-             * @description Run through the Message Batches API: 50% cheaper, slower.
-             * @default false
-             */
-            batch: boolean;
-            /** Companies */
-            companies?: components["schemas"]["CompanyRef"][] | null;
-            /** Universe Path */
-            universe_path?: string | null;
         };
         /** AskRequest */
         arp__ask__AskRequest: {
@@ -18339,7 +18055,7 @@ export interface operations {
     get_pipeline_api_extraction_pipeline_get: {
         parameters: {
             query: {
-                profile: "custom" | "financials" | "tnfd" | "transition_plan";
+                profile: "custom" | "transition_plan";
             };
             header?: never;
             path?: never;
@@ -18565,39 +18281,6 @@ export interface operations {
             query?: {
                 eu_taxonomy_run_id?: string | null;
             };
-            header?: never;
-            path: {
-                run_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_remuneration_summary_api_extraction_runs__run_id__remuneration_summary_get: {
-        parameters: {
-            query?: never;
             header?: never;
             path: {
                 run_id: string;
@@ -19119,248 +18802,6 @@ export interface operations {
             };
             header?: never;
             path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_financials_results_for_company_api_financials_companies__company_id__results_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                company_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    start_financials_extraction_run_api_financials_runs_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["arp__api__routers__financials__RunRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_financials_extraction_results_api_financials_runs__run_id__results_get: {
-        parameters: {
-            query?: {
-                offset?: number;
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                run_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    submit_financials_review_api_financials_runs__run_id__review_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                run_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReviewDecisionRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_financials_review_decisions_api_financials_runs__run_id__review_decisions_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                run_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_financials_review_history_api_financials_runs__run_id__review_history_get: {
-        parameters: {
-            query: {
-                item_key: string;
-            };
-            header?: never;
-            path: {
-                run_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_financials_review_queue_api_financials_runs__run_id__review_queue_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                run_id: string;
-            };
             cookie?: never;
         };
         requestBody?: never;
@@ -25875,215 +25316,6 @@ export interface operations {
         };
     };
     get_theme_review_queue_api_themes_runs__run_id__review_queue_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                run_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    start_tnfd_extraction_run_api_tnfd_runs_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["arp__api__routers__tnfd__RunRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_tnfd_extraction_results_api_tnfd_runs__run_id__results_get: {
-        parameters: {
-            query?: {
-                offset?: number;
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                run_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    submit_tnfd_review_api_tnfd_runs__run_id__review_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                run_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReviewDecisionRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_tnfd_review_decisions_api_tnfd_runs__run_id__review_decisions_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                run_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_tnfd_review_history_api_tnfd_runs__run_id__review_history_get: {
-        parameters: {
-            query: {
-                item_key: string;
-            };
-            header?: never;
-            path: {
-                run_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_tnfd_review_queue_api_tnfd_runs__run_id__review_queue_get: {
         parameters: {
             query?: never;
             header?: never;

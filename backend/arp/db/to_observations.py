@@ -11,10 +11,8 @@ from uuid import UUID
 
 from arp.db.models import CitationRole, Route, SourceKind, ValueState
 from arp.db.observations import RULE_NOT_APPLICABLE, CitationIn, ObservationIn
-from arp.normalise.period import resolve_period
 from arp.schemas.common import Citation
 from arp.schemas.datapoints import ExtractionRecord
-from arp.schemas.financials import CompanyFinancialsRecord
 from arp.schemas.review import field_item_key, period_key
 
 logger = logging.getLogger(__name__)
@@ -123,19 +121,24 @@ def _extraction(company_id: UUID, run_id: str, result: dict, trial: bool, errors
 
 
 def _financials(company_id: UUID, run_id: str, result: dict, trial: bool, fiscal_year_end: str | None) -> list[ObservationIn]:
-    rec = CompanyFinancialsRecord.model_validate(result)
-    # "FY2024", "2024", "FY24", "fiscal 2024" end on the company's year end (MM-DD, default 12-31); else None
-    period_end = resolve_period(rec.fiscal_period, fiscal_year_end=fiscal_year_end).end
-    return [
-        ObservationIn(
+    from arp.normalise.period import resolve_period
+
+    period_end = resolve_period(result.get("fiscal_period"), fiscal_year_end=fiscal_year_end).end
+    currency = result.get("currency")
+    route = Route.REVIEW if result.get("needs_review") else Route.AUTO_ACCEPT
+    out: list[ObservationIn] = []
+    for field_id, key in (("capex_total", "capex"), ("rnd_total", "rnd")):
+        section = result.get(key) or {}
+        total = section.get("total") or {}
+        value = total.get("value")
+        out.append(ObservationIn(
             company_id=company_id, field_id=field_id, field_version=1, source_kind=SourceKind.EXTRACTION,
-            period_end=period_end, value=s.total.value, value_state=_state(s.total.value), unit=rec.currency,
-            confidence=s.confidence, route=Route.REVIEW if rec.needs_review else Route.AUTO_ACCEPT, run_id=run_id,
-            conflicting_sources=s.conflicting_sources, trial=trial,
-            citations=_cited(s.total.citations),
-        )
-        for field_id, s in (("capex_total", rec.capex), ("rnd_total", rec.rnd))
-    ]
+            period_end=period_end, value=value, value_state=_state(value), unit=currency,
+            confidence=section.get("confidence", 0.0), route=route, run_id=run_id,
+            conflicting_sources=bool(section.get("conflicting_sources", False)), trial=trial,
+            citations=_cited(total.get("citations")),
+        ))
+    return out
 
 
 def _theme(company_id: UUID, run_id: str, result: dict, trial: bool) -> list[ObservationIn]:
@@ -175,7 +178,7 @@ def to_observations(
     fiscal_year_end: str | None = None,
 ) -> list[ObservationIn]:
     """`errors` collects `{"kind": "invalid_value", "field_id", "raw"}` for values left out.
-    `fiscal_year_end` (the run's company ref, MM-DD) dates a financials `fiscal_period` such as "FY2024"."""
+    `fiscal_year_end` (the run's company ref, MM-DD) dates a historic financials `fiscal_period` such as "FY2024"."""
     if run_type == "extraction":
         return _extraction(company_id, run_id, result, trial, errors if errors is not None else [])
     if run_type == "financials":

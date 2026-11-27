@@ -30,7 +30,6 @@ from arp.orchestration.review_queue import effective_decisions, item_states, pub
 from arp.orchestration.step_tally import step_counts
 from arp.presets.green import green_summary
 from arp.presets.registry import PRESETS, install_preset
-from arp.presets.remuneration import remuneration_summary
 from arp.presets.transition_plan import SCHEMA_ID as TRANSITION_PLAN_SCHEMA_ID
 from arp.review.context import run_field_names, similar_decisions, visible_history
 from arp.review.decide import DecisionError, bulk_accept
@@ -223,8 +222,6 @@ async def start_extraction(
 
 
 async def _dispatch(req: StartRequest, settings: Settings, run_store: RunStore, registry, xbrl_source, principal) -> dict:
-    from arp.api.routers import financials, tnfd
-
     companies = req.companies or (load_saved_universe(req.universe_path, settings) if req.universe_path else None)
     if not companies:
         raise HTTPException(400, "Provide either `companies` or `universe_path`.")
@@ -233,21 +230,13 @@ async def _dispatch(req: StartRequest, settings: Settings, run_store: RunStore, 
         "batch": req.batch,
     }
     stores = {"settings": settings, "run_store": run_store, "registry": registry, "principal": principal}
-    if req.profile in ("custom", "transition_plan"):
-        if req.profile == "transition_plan":  # the preset, installed (a no-op when saved) and run like a custom schema
-            schema = install_preset(TRANSITION_PLAN_SCHEMA_ID, _registry_for(settings))
-        elif req.datapoint_schema is None:
-            raise HTTPException(400, "The custom profile needs `datapoint_schema`.")
-        else:
-            schema = req.datapoint_schema
-        started, run_type = await start_extraction_run(RunRequest(datapoint_schema=schema, trial=req.trial, **common), **stores, xbrl_source=xbrl_source), "extraction"
-    elif req.profile == "financials":
-        started = await financials.start_financials_extraction_run(financials.RunRequest(**common), **stores, xbrl_source=xbrl_source)
-        run_type = "financials"
+    if req.profile == "transition_plan":  # the preset, installed (a no-op when saved) and run like a custom schema
+        schema = install_preset(TRANSITION_PLAN_SCHEMA_ID, _registry_for(settings))
+    elif req.datapoint_schema is None:
+        raise HTTPException(400, "The custom profile needs `datapoint_schema`.")
     else:
-        if not req.as_of:
-            raise HTTPException(400, "The TNFD profile needs `as_of`, the reporting period the run covers.")
-        started, run_type = await tnfd.start_tnfd_extraction_run(tnfd.RunRequest(as_of=req.as_of, **common), **stores), "tnfd"
+        schema = req.datapoint_schema
+    started, run_type = await start_extraction_run(RunRequest(datapoint_schema=schema, trial=req.trial, **common), **stores, xbrl_source=xbrl_source), "extraction"
     run_dir = run_store.run_dir(started["run_id"])
     # What the run used, overrides or not, for its step view; and what it
     # was started with, companies resolved, so it can be restarted.
@@ -413,16 +402,6 @@ def get_green_summary(
         eu = {r.get("company_id"): r.get("fields", []) for r in run_store.read_results(eu_taxonomy_run_id)}
     return {"rows": [{"company_id": r.get("company_id"), "name": r.get("name"), **s.model_dump()}
                      for r in rows for s in green_summary(r.get("fields", []), eu.get(r.get("company_id")))]}
-
-
-@router.get("/runs/{run_id}/remuneration-summary")
-def get_remuneration_summary(run_id: str, run_store: RunStore = Depends(get_run_store)) -> dict:
-    """Per company, plan (STI, LTI) and period of a sch_esg_remuneration run: mechanism, ESG weight or multiplier
-    range, the computed effective weight and its below-10% or 10%-or-above class."""
-    _manifest_or_404(run_store, run_id)
-    rows = run_store.read_results(run_id)
-    return {"rows": [{"company_id": r.get("company_id"), "name": r.get("name"), **s.model_dump()}
-                     for r in rows for s in remuneration_summary(r.get("fields", []))]}
 
 
 @router.get("/companies/{company_id}/results")

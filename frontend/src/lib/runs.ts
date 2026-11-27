@@ -4,14 +4,12 @@ import type { ExtractionRecord, ReviewableRunKind, RunManifest } from "../types"
 export const ACTIVE_STATUSES = new Set(["running", "pending"]);
 
 // Run types whose flagged items go to the Review Queue.
-export const REVIEWABLE_RUN_TYPES: ReadonlySet<string> = new Set<ReviewableRunKind>(["theme", "extraction", "financials", "identity", "transition_plan", "tnfd", "transition_barrier_derivation", "discovery"]);
+export const REVIEWABLE_RUN_TYPES: ReadonlySet<string> = new Set<ReviewableRunKind>(["theme", "extraction", "identity", "transition_plan", "transition_barrier_derivation", "discovery"]);
 
 // Run types the backend can resume, and the statuses a resume applies to.
 export const RESUMABLE_RUN_TYPES: ReadonlySet<string> = new Set([
   "theme",
   "extraction",
-  "financials",
-  "tnfd",
   "identity",
   "discovery",
   "xbrl_fetch",
@@ -65,10 +63,8 @@ export const RUN_TYPE_LABEL: Record<string, string> = {
   transition_barrier_derivation: "Transition barrier derivation",
   taxonomy_research: "Taxonomy Researcher",
   calibration: "Calibration Agent",
-  financials: "Company financials",
   identity: "Identity resolution",
   emerging_themes: "Emerging themes",
-  tnfd: "TNFD extraction",
 };
 
 /** A run's timestamp as tables show it: date and minute, no seconds. */

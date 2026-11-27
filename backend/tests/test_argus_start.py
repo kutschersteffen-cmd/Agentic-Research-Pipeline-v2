@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 from arp.api.deps import get_run_store, settings_dep
 from arp.api.main import app
-from arp.api.routers import extraction, financials, tnfd
+from arp.api.routers import extraction
 from arp.config import Settings
 from arp.db.fields import SchemaRegistry
 from arp.errors import NotConfigured
@@ -65,8 +65,6 @@ def calls(monkeypatch):
         return start
 
     monkeypatch.setattr(extraction, "start_extraction_run", fake("custom"))
-    monkeypatch.setattr(financials, "start_financials_extraction_run", fake("financials"))
-    monkeypatch.setattr(tnfd, "start_tnfd_extraction_run", fake("tnfd"))
     return calls
 
 
@@ -133,12 +131,6 @@ def test_draft_schema_is_a_trial_on_one_company(client, fid, calls, settings):
     assert client.post(f"/api/argus/flows/{fid}/start").status_code == 200
     req = calls[0][1]
     assert req.trial is True and [c.company_id for c in req.companies] == ["aapl"]
-
-
-def test_tnfd_profile_uses_the_reporting_year(client, fid, calls):
-    client.patch(f"/api/argus/flows/{fid}", json={"schema_choice": {"kind": "profile", "profile": "tnfd"}})
-    assert client.post(f"/api/argus/flows/{fid}/start").status_code == 200
-    assert calls[0][0] == "tnfd" and calls[0][1].as_of == "FY2025"
 
 
 def test_skipped_company_is_left_out_and_unanswered_repeat_blocks(client, fid, calls, settings, run_store, tmp_path):

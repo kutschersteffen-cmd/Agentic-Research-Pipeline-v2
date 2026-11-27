@@ -5,7 +5,6 @@ from types import SimpleNamespace
 
 from arp.extraction.adjudicator import AdjudicatorOutput
 from arp.extraction.extractor_agent import GroupDraft, draft_model_for
-from arp.extraction.tnfd_extractor_agent import TNFDExtractionDraft
 from arp.extraction.verifier_agent import VerifierOutput
 from arp.llm.gemini_client import GeminiClient
 from arp.schemas.datapoints import FieldDataType, FieldDefinition
@@ -135,11 +134,6 @@ async def test_ac12_top_level_item_drop_is_counted_and_warned(tmp_path, caplog):
     assert "items.1" in w.getMessage()
 
 
-async def test_ac13_tnfd_bad_item_is_dropped_and_counted(tmp_path):
-    out, usage, calls = await run_anthropic(tmp_path, [{"core_global_metrics": [{"value": "Not disclosed"}], "confidence": 0.5}], model=TNFDExtractionDraft)
-    assert len(calls) == 1 and out.core_global_metrics == [] and usage.dropped_items == 1
-
-
 async def test_ac14_valid_draft_is_untouched(tmp_path, caplog):
     out, usage, calls = await run_anthropic(tmp_path, [VALID])
     assert (len(calls), usage.dropped_items) == (1, 0) and not warnings(caplog)
@@ -167,14 +161,6 @@ async def test_ac18_a_retry_discards_the_first_answers_drops(tmp_path, caplog):
     out, usage, calls = await run_anthropic(tmp_path, [first, second])
     assert (len(calls), usage.attempts, usage.dropped_items) == (2, 2, 0)
     assert len(out.values[0].citations) == 2 and not warnings(caplog)
-
-
-async def test_ac19_tnfd_metric_keeps_its_value(tmp_path):
-    metric = {"category": "c", "metric_kind": "k", "metric_name": "n", "value": 5.0, "citations": [GOOD, BAD]}
-    out, usage, calls = await run_anthropic(tmp_path, [{"core_global_metrics": [metric], "confidence": 0.5}], model=TNFDExtractionDraft)
-    assert (len(calls), usage.dropped_items) == (1, 1)
-    [m] = out.core_global_metrics
-    assert m.value == 5.0 and len(m.citations) == 1
 
 
 async def test_ac20_verifier_top_level_citation_is_dropped(tmp_path):

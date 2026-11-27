@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 
 from arp.config import Settings
 
-ExtractionProfile = Literal["custom", "financials", "tnfd", "transition_plan"]
+ExtractionProfile = Literal["custom", "transition_plan"]
 
 
 class StepSettings(BaseModel):
@@ -105,21 +105,13 @@ PROFILES: dict[str, dict] = {
         "try_tagged": ["xbrl_facts_enabled"], "gather_evidence": ["hybrid_retrieval_enabled", "evidence_max_chunks", "rerank_enabled"],
         "extract": ["llm_model", "extraction_group_size"], "verify": ["llm_verifier_model"], "adjudicate": ["llm_verifier_model"],
         "aggregate": [*_REVIEW, "vision_fallback_enabled"]}},
-    "financials": {"item": "each company", "settings": {
-        "gather_evidence": ["hybrid_retrieval_enabled", "xbrl_facts_enabled"], "extract": ["llm_model"], "verify": ["llm_verifier_model"], "aggregate": _REVIEW}},
-    "tnfd": {"item": "each company", "settings": {
-        "gather_evidence": ["hybrid_retrieval_enabled"], "extract": ["llm_model"], "verify": ["llm_verifier_model"], "aggregate": _REVIEW}},
 }
 PROFILES["transition_plan"] = PROFILES["custom"]  # the preset runs the field pipeline
 
 
 def _graph(profile: str):
-    if profile in ("custom", "transition_plan"):
-        from arp.extraction.field_graph import _COMPILED_GRAPH
-    elif profile == "financials":
-        from arp.extraction.financials_graph import _COMPILED_GRAPH
-    else:
-        from arp.extraction.tnfd_graph import _COMPILED_GRAPH
+    from arp.extraction.field_graph import _COMPILED_GRAPH
+
     return _COMPILED_GRAPH.get_graph()
 
 

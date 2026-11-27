@@ -5,7 +5,7 @@ import { ConfidenceBadge, GroundedBadge } from "./ConfidenceBadge";
 import { ReviewControls } from "./ReviewControls";
 import { CitationList } from "./CitationList";
 import type { ActiveSource } from "./SourcePanel";
-import type { BusinessSegment, CompanyFinancialsRecord, ExtractedField, ExtractionRecord, ReviewDecision, ReviewStates, SpendSummary } from "../types";
+import type { ExtractedField, ExtractionRecord, ReviewDecision, ReviewStates } from "../types";
 import { fieldItemKey } from "../lib/reviewKeys";
 import { correctionLine, recordFieldNames } from "../lib/corrections";
 import { failedChecks, routeLabel, valueLabel, withEditedValue } from "../lib/fieldValue";
@@ -14,62 +14,12 @@ import { activatable } from "../lib/activatable";
 import { notesInWords } from "../lib/routeReasons";
 import { ProposedTag } from "./ProposedTag";
 import { WalkthroughLink } from "./WalkthroughLink";
-import { recordWalkthroughHref, rowWalkthroughHref } from "../lib/walkthrough";
+import { rowWalkthroughHref } from "../lib/walkthrough";
 import { OriginTag } from "./ReviewTiles";
 import { editedText, matchesTile, type ReviewTileCounts } from "../lib/stagedFlow";
 
 type TileFilter = keyof ReviewTileCounts | null;
 const NO_MATCH = <p className="muted">No items match this filter.</p>;
-
-// Shared between Extraction.tsx (a run just started in this browser session)
-// and DataLibrary.tsx (any past run, picked by run_id) -- both render the
-// same result shapes, so the rendering lives here once.
-
-export function fmtAmount(value?: number | null): string {
-  return value == null ? "—" : value.toLocaleString();
-}
-
-export function SegmentDetail({ segment, onOpenSource }: { segment: BusinessSegment; onOpenSource: (s: ActiveSource) => void }) {
-  return (
-    <div className="field-detail">
-      <strong>{segment.name}</strong> <GroundedBadge grounded={segment.grounded} /> <ConfidenceBadge value={segment.confidence} />
-      {segment.description && <p>{segment.description}</p>}
-      <CitationList citations={segment.description_citations} onOpenSource={onOpenSource} />
-      <div className="table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Metric</th>
-              <th>Value</th>
-              <th>Grounded</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(["revenue", "income", "assets"] as const).map((metric) => (
-              <tr key={metric}>
-                <td style={{ textTransform: "capitalize" }}>{metric}</td>
-                <td>
-                  {fmtAmount(segment[metric].value)}
-                  {segment[metric].raw_value_text && <span className="muted"> ({segment[metric].raw_value_text})</span>}
-                </td>
-                <td><GroundedBadge grounded={segment[metric].grounded} /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {(["revenue", "income", "assets"] as const).map((metric) =>
-        segment[metric].citations.length > 0 ? (
-          <div key={metric}>
-            <span className="muted" style={{ textTransform: "capitalize" }}>{metric} citations:</span>
-            <CitationList citations={segment[metric].citations} onOpenSource={onOpenSource} />
-          </div>
-        ) : null
-      )}
-      {segment.conflicting_sources && <p className="error-text" role="alert">Conflicting figures across sources.</p>}
-    </div>
-  );
-}
 
 export function FieldDetail({ field, fieldNames = {}, walkthroughHref, onOpenSource }: { field: ExtractedField; fieldNames?: Record<string, string>; walkthroughHref?: string; onOpenSource: (s: ActiveSource) => void }) {
   return (
@@ -92,52 +42,6 @@ export function FieldDetail({ field, fieldNames = {}, walkthroughHref, onOpenSou
       {field.verifier_notes && <p className="muted">{notesInWords(field.verifier_notes)}</p>}
       <CitationList citations={field.citations} onOpenSource={onOpenSource} />
       {walkthroughHref && <WalkthroughLink href={walkthroughHref} />}
-    </div>
-  );
-}
-
-export function SpendDetail({ label, spend, onOpenSource }: { label: string; spend: SpendSummary; onOpenSource: (s: ActiveSource) => void }) {
-  return (
-    <div className="field-detail">
-      <strong>{label} total:</strong> {fmtAmount(spend.total.value)}
-      {spend.total.raw_value_text && <span className="muted"> ({spend.total.raw_value_text})</span>}{" "}
-      <GroundedBadge grounded={spend.grounded} /> <ConfidenceBadge value={spend.confidence} />
-      <CitationList citations={spend.total.citations} onOpenSource={onOpenSource} />
-      {spend.description && (
-        <>
-          <p>{spend.description}</p>
-          <CitationList citations={spend.description_citations} onOpenSource={onOpenSource} />
-        </>
-      )}
-      {spend.categories.length > 0 && (
-        <>
-          <p className="muted">Category breakdown:</p>
-          <div className="table-wrap">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Category</th>
-                  <th>Description</th>
-                  <th>Amount</th>
-                  <th>Grounded</th>
-                </tr>
-              </thead>
-              <tbody>
-                {spend.categories.map((c, ci) => (
-                  <tr key={ci}>
-                    <td>{c.name}</td>
-                    <td>{c.description ?? "—"}</td>
-                    <td>{fmtAmount(c.amount.value)}</td>
-                    <td><GroundedBadge grounded={c.grounded} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
-      {spend.verifier_notes && <p className="muted">{spend.verifier_notes}</p>}
-      {spend.conflicting_sources && <p className="error-text" role="alert">Conflicting figures across sources.</p>}
     </div>
   );
 }
@@ -259,104 +163,6 @@ export function ExtractionResultsTable({
             </Fragment>
             );
           })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-interface FinancialsResultsTableProps {
-  results: CompanyFinancialsRecord[];
-  runId: string;
-  expanded: string | null;
-  onToggleExpanded: (companyId: string) => void;
-  reviewDecisions: Record<string, ReviewDecision>;
-  reviewer: string;
-  onReviewDone: () => void;
-  onOpenSource: (s: ActiveSource) => void;
-  filter?: TileFilter;
-}
-
-export function FinancialsResultsTable({
-  results,
-  runId,
-  expanded,
-  onToggleExpanded,
-  reviewDecisions,
-  reviewer,
-  onReviewDone,
-  onOpenSource,
-  filter = null,
-}: FinancialsResultsTableProps) {
-  const central = useCentralIds(runId);
-  if (results.length === 0) return null;
-  // Items are companies; flagged = needs_review.
-  const shown = results.filter((r) => matchesTile(filter, r.needs_review, reviewDecisions[r.company_id]));
-  if (shown.length === 0) return NO_MATCH;
-  return (
-    <div className="table-wrap">
-      <table className="data-table">
-        <thead>
-          <tr>
-            <th>Company</th>
-            <th>Segments</th>
-            <th>CapEx</th>
-            <th>R&amp;D</th>
-            <th>Confidence</th>
-            <th>Needs review</th>
-          </tr>
-        </thead>
-        <tbody>
-          {shown.map((r) => (
-            <Fragment key={r.company_id}>
-              <tr className="clickable-row" {...activatable(() => onToggleExpanded(r.company_id), expanded === r.company_id)}>
-                <td><CompanyLink companyId={r.company_id} entityId={central[r.company_id]}>{r.name}</CompanyLink> {r.ticker && <span className="muted">({r.ticker})</span>}</td>
-                <td>{r.segments.length === 0 ? "none found" : `${r.segments.length} segment(s)`}</td>
-                <td>{fmtAmount(r.capex.total.value)} {r.currency ?? ""}</td>
-                <td>{fmtAmount(r.rnd.total.value)} {r.currency ?? ""}</td>
-                <td><ConfidenceBadge value={r.overall_confidence} /></td>
-                <td>{r.needs_review ? <ProposedTag /> : ""}</td>
-              </tr>
-              {expanded === r.company_id && (
-                <tr>
-                  <td colSpan={6} className="detail-cell">
-                    <h3>Business Segments</h3>
-                    <WalkthroughLink href={recordWalkthroughHref(runId, r.company_id, "segments")} />
-                    {r.segments.length === 0 && <p className="muted">No segment reporting evidence found.</p>}
-                    {r.segments.map((s, si) => (
-                      <SegmentDetail key={si} segment={s} onOpenSource={onOpenSource} />
-                    ))}
-                    {r.segments_verifier_notes && <p className="muted">{r.segments_verifier_notes}</p>}
-
-                    <h3>CapEx</h3>
-                    <WalkthroughLink href={recordWalkthroughHref(runId, r.company_id, "capex")} />
-                    <SpendDetail label="CapEx" spend={r.capex} onOpenSource={onOpenSource} />
-
-                    <h3>R&amp;D</h3>
-                    <WalkthroughLink href={recordWalkthroughHref(runId, r.company_id, "rnd")} />
-                    <SpendDetail label="R&D" spend={r.rnd} onOpenSource={onOpenSource} />
-
-                    {editedText(reviewDecisions[r.company_id]) !== undefined && (
-                      <p><strong>Edited value:</strong> {editedText(reviewDecisions[r.company_id])}</p>
-                    )}
-                    <OriginTag
-                      decision={reviewDecisions[r.company_id]}
-                      systemValue={`CapEx ${fmtAmount(r.capex.total.value)}, R&D ${fmtAmount(r.rnd.total.value)}`}
-                    />
-                    <ReviewControls
-                      runId={runId}
-                      itemKey={r.company_id}
-                      current={reviewDecisions[r.company_id]}
-                      reviewer={reviewer}
-                      onDone={onReviewDone}
-                      submitFn={api.submitFinancialsReview}
-                      historyFn={api.getFinancialsReviewHistory}
-                    />
-                  </td>
-                </tr>
-              )}
-            </Fragment>
-          ))}
         </tbody>
       </table>
     </div>

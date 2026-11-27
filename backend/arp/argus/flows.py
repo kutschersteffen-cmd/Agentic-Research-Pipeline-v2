@@ -45,18 +45,12 @@ class SkippedUpload(BaseModel):
 
 
 class SchemaChoice(BaseModel):
-    """What step 3 extracts: a saved schema version, or a fixed profile."""
+    """What step 3 extracts: a saved schema version."""
 
-    kind: Literal["schema", "profile"]
+    kind: Literal["schema"] = "schema"
     schema_id: str | None = None
     version: int | None = None
-    profile: Literal["financials", "tnfd"] | None = None
-
-    def model_post_init(self, _context) -> None:
-        if self.kind == "profile":
-            self.schema_id = self.version = None
-        else:
-            self.profile = None
+    profile: None = None
 
 
 class FlowSettings(BaseModel):

@@ -307,22 +307,6 @@ async def _resume_extraction(run_id, manifest, companies, *, settings, run_store
                                         settings=settings, run_store=run_store, xbrl_source=_xbrl_source(settings))
 
 
-async def _resume_financials(run_id, manifest, companies, *, settings, run_store, llm, verifier_llm, registry) -> str:
-    from arp.extraction.financials_pipeline import execute_financials_extraction_run
-
-    return await execute_financials_extraction_run(
-        run_id, companies, llm=llm, verifier_llm=verifier_llm, registry=registry, settings=settings, run_store=run_store,
-        xbrl_source=_xbrl_source(settings),
-    )
-
-
-async def _resume_tnfd(run_id, manifest, companies, *, settings, run_store, llm, verifier_llm, registry) -> str:
-    from arp.extraction.tnfd_pipeline import execute_tnfd_extraction_run
-
-    return await execute_tnfd_extraction_run(run_id, companies, manifest.params["as_of"], llm=llm, verifier_llm=verifier_llm,
-                                             registry=registry, settings=settings, run_store=run_store)
-
-
 async def _resume_identity(run_id, manifest, companies, *, settings, run_store, llm, verifier_llm, registry) -> str:
     from arp.discovery.identity_pipeline import execute_identity_run
 
@@ -351,8 +335,6 @@ async def _resume_xbrl_fetch(run_id, manifest, companies, *, settings, run_store
 _RESUME: dict[str, Callable[..., Awaitable[str]]] = {
     "theme": _resume_theme,
     "extraction": _resume_extraction,
-    "financials": _resume_financials,
-    "tnfd": _resume_tnfd,
     "identity": _resume_identity,
     "discovery": _resume_discovery,
     "xbrl_fetch": _resume_xbrl_fetch,

@@ -152,30 +152,32 @@ def test_retry_refuses_a_running_run_and_a_company_that_did_not_fail(client, flo
 
 
 async def test_resuming_one_company_runs_only_it_through_the_real_batch(tmp_path, pg, monkeypatch):
-    """A real financials resume: run_company_batch must not swap the one company for the run's stored list."""
-    from arp.extraction import financials_pipeline
-    from arp.extraction.financials_pipeline import create_financials_extraction_run
+    """A real extraction resume: run_company_batch must not swap the one company for the run's stored list."""
+    from arp.extraction import pipeline as extraction_pipeline
+    from arp.extraction.pipeline import create_extraction_run
     from arp.ingestion.registry import DocumentSourceRegistry
     from arp.orchestration.jobs import resume_run
+    from arp.schemas.datapoints import DataPointSchema
 
     settings = _settings(tmp_path)
     store = RunStore(pg, settings.runs_dir)
-    run_id = create_financials_extraction_run(COMPANIES[:3], settings, store)
+    schema = DataPointSchema(schema_id="s1", name="S", fields=[])
+    run_id = create_extraction_run(schema, COMPANIES[:3], settings, store, trial=True)
     for c in ("c2", "c3"):  # c1's row was cleared by Retry
         store.append_error(run_id, {"key": c, "error": "boom"})
     JobManager(store).record_progress(run_id, failed_delta=3)
     JobManager(store).finish_run(run_id)
     calls: list[str] = []
 
-    async def prepare(company, **_):
+    async def prepare(company, *_args, **_):
         return company
 
-    async def extract(company, **_):
+    async def extract(company, *_args, **_):
         calls.append(company.company_id)
         raise RuntimeError("still broken")
 
-    monkeypatch.setattr(financials_pipeline, "prepare_company", prepare)
-    monkeypatch.setattr(financials_pipeline, "_extract_company_financials", extract)
+    monkeypatch.setattr(extraction_pipeline, "prepare_company", prepare)
+    monkeypatch.setattr(extraction_pipeline, "_extract_company", extract)
     await resume_run(run_id, settings=settings, run_store=store, registry=DocumentSourceRegistry([]),
                      llm=object(), verifier_llm=object(), company_ids=["c1"])
     assert calls == ["c1"]

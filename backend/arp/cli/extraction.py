@@ -10,11 +10,9 @@ from arp.checks.effectiveness import effectiveness
 from arp.cli._shared import _and_drain, _registry, _run_store, _xbrl_source
 from arp.config import get_settings
 from arp.db.fields import SchemaRegistry
-from arp.extraction.financials_pipeline import run_financials_extraction
 from arp.extraction.pipeline import run_extraction
 from arp.extraction.schema_builder import draft_schema
 from arp.extraction.steps import StepSettings
-from arp.extraction.tnfd_pipeline import run_tnfd_extraction
 from arp.llm.factory import batch_settings, build_llm_client, build_verifier_llm_client
 from arp.orchestration.jobs import NotResumable, RunBusy, resume_run
 from arp.presets.registry import PRESETS, install_preset
@@ -89,67 +87,6 @@ def extract_run(
     ))
     # What the run used, as the API records it: `arp xbrl verify` needs it to tell whether XBRL values were copied.
     (_run_store().run_dir(run_id) / "step_settings.json").write_text(StepSettings.effective(settings).model_dump_json())
-    typer.echo(f"Run complete: {run_id} (see runs/{run_id}/)")
-
-
-
-@extract_app.command("financials-run")
-def extract_financials_run(
-    universe: Path = typer.Option(...),
-    batch: bool = typer.Option(False, "--batch", help="Use the Message Batches API: 50% cheaper, slower."),
-) -> None:
-    """Extracts each company's disclosed business segments (name,
-    description, revenue, income, assets), total CapEx, and total R&D
-    expense -- each with a grounded description/breakdown where disclosed
-    -- in a single combined evidence-gathering + extractor/verifier pass per
-    company (these are almost always wanted together, so this fetches each
-    company's documents once and makes one LLM call pair instead of three),
-    with the same independent-verifier + programmatic-grounding precision
-    controls as `extract run`."""
-    settings = batch_settings(get_settings(), batch)
-    llm = build_llm_client(settings)
-    verifier_llm = build_verifier_llm_client(settings)
-    companies = load_company_universe(universe)
-    typer.echo(f"Extracting segments/CapEx/R&D across {len(companies)} companies...")
-    run_id = asyncio.run(_and_drain(
-        run_financials_extraction(
-            companies,
-            llm=llm,
-            verifier_llm=verifier_llm,
-            registry=_registry(),
-            settings=settings,
-            run_store=_run_store(),
-            xbrl_source=_xbrl_source() if settings.xbrl_facts_enabled else None,
-        )
-    ))
-    typer.echo(f"Run complete: {run_id} (see runs/{run_id}/)")
-
-
-
-@extract_app.command("tnfd-run")
-def extract_tnfd_run(
-    universe: Path = typer.Option(...),
-    as_of: str = typer.Option(..., help="Reporting period this run covers, e.g. 'FY2025' -- applied to every "
-                                         "company in the run. No 'latest' default."),
-    batch: bool = typer.Option(False, "--batch", help="Use the Message Batches API: 50% cheaper, slower."),
-) -> None:
-    """Extracts each company's TNFD (nature-related financial disclosure)
-    reporting -- all 4 pillars/14 recommendations, core global metrics,
-    sector metrics/LEAP considerations where the company's sector is
-    covered, and general requirements -- in a single combined evidence-
-    gathering + extractor/verifier pass per company, with the same
-    independent-verifier + programmatic-grounding precision controls as
-    `extract run`."""
-    settings = batch_settings(get_settings(), batch)
-    llm = build_llm_client(settings)
-    verifier_llm = build_verifier_llm_client(settings)
-    companies = load_company_universe(universe)
-    typer.echo(f"Extracting TNFD disclosures ({as_of}) across {len(companies)} companies...")
-    run_id = asyncio.run(_and_drain(
-        run_tnfd_extraction(
-            companies, as_of, llm=llm, verifier_llm=verifier_llm, registry=_registry(), settings=settings, run_store=_run_store()
-        )
-    ))
     typer.echo(f"Run complete: {run_id} (see runs/{run_id}/)")
 
 

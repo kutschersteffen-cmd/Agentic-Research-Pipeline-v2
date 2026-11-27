@@ -89,22 +89,24 @@ def _flow_with_apple_file(client, tmp_path):
     return fid, key
 
 
-def test_a_profile_run_started_from_argus_warns(client, run_store, tmp_path):
+def test_a_run_using_only_documents_warns(client, run_store, tmp_path):
     from arp.ingestion.registry import ONLY_DOCUMENTS
 
     fid, key = _flow_with_apple_file(client, tmp_path)
-    run_store.save_manifest(RunManifest(run_id="tnfd_r1", run_type="tnfd", created_at="2026-10-02T00:00:00Z", company_count=1))
-    run_store.append_result("tnfd_r1", {"company_id": "aapl", "name": "Apple Inc", "issuer_key": "k", "fields": []})  # no documents
-    (run_store.run_dir("tnfd_r1") / ONLY_DOCUMENTS).write_text(json.dumps({"aapl": [key]}))
-    flow = client.patch(f"/api/argus/flows/{fid}", json={"schema_choice": {"kind": "profile", "profile": "tnfd"}}).json()
-    assert [(r["kind"], r["run_id"]) for r in flow["repeat_rows"]] == [("same", "tnfd_r1")]
+    run_store.save_manifest(RunManifest(run_id="extraction_only1", run_type="extraction", created_at="2026-10-02T00:00:00Z",
+                                        company_count=1, params={"schema_id": "sch_x", "schema_version": V2}))
+    run_store.append_result("extraction_only1", {"company_id": "aapl", "name": "Apple Inc", "issuer_key": "k", "fields": []})  # no documents
+    (run_store.run_dir("extraction_only1") / ONLY_DOCUMENTS).write_text(json.dumps({"aapl": [key]}))
+    flow = client.patch(f"/api/argus/flows/{fid}", json={"schema_choice": {"kind": "schema", "schema_id": "sch_x", "version": 2}}).json()
+    assert [(r["kind"], r["run_id"]) for r in flow["repeat_rows"]] == [("same", "extraction_only1")]
 
 
 def test_a_run_with_no_document_record_is_not_listed(client, run_store, tmp_path):
     fid, _ = _flow_with_apple_file(client, tmp_path)
-    run_store.save_manifest(RunManifest(run_id="tnfd_r2", run_type="tnfd", created_at="2026-10-02T00:00:00Z", company_count=1))
-    run_store.append_result("tnfd_r2", {"company_id": "aapl", "name": "Apple Inc", "issuer_key": "k", "fields": []})
-    flow = client.patch(f"/api/argus/flows/{fid}", json={"schema_choice": {"kind": "profile", "profile": "tnfd"}}).json()
+    run_store.save_manifest(RunManifest(run_id="extraction_nodoc", run_type="extraction", created_at="2026-10-02T00:00:00Z",
+                                        company_count=1, params={"schema_id": "sch_x", "schema_version": V2}))
+    run_store.append_result("extraction_nodoc", {"company_id": "aapl", "name": "Apple Inc", "issuer_key": "k", "fields": []})
+    flow = client.patch(f"/api/argus/flows/{fid}", json={"schema_choice": {"kind": "schema", "schema_id": "sch_x", "version": 2}}).json()
     assert flow["repeat_rows"] == []
 
 

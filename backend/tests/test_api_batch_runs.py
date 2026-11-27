@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 from arp.api import deps, run_scheduling
 from arp.api.auth import Principal, current_user
-from arp.api.routers import extraction, financials, identity, themes, tnfd
+from arp.api.routers import extraction, identity, themes
 from arp.config import Settings
 from arp.db.fields import SchemaRegistry
 from arp.llm.batching_client import BatchingLLMClient
@@ -35,8 +35,6 @@ def _released_taxonomy(tmp_path) -> tuple[TaxonomyStore, str]:
 # router, url, create_*, execute_*, body
 ROUTES = {
     "extraction": (extraction, "/api/extraction/runs", "create_extraction_run", "execute_extraction_run", {"datapoint_schema": SCHEMA}),
-    "financials": (financials, "/api/financials/runs", "create_financials_extraction_run", "execute_financials_extraction_run", {}),
-    "tnfd": (tnfd, "/api/tnfd/runs", "create_tnfd_extraction_run", "execute_tnfd_extraction_run", {"as_of": "FY2025"}),
     "themes": (themes, "/api/themes/runs", "create_theme_run", "execute_theme_run", {}),
     "identity": (identity, "/api/identity/runs", "create_identity_run", "execute_identity_run", {}),
 }
@@ -113,7 +111,6 @@ def test_without_batch_nothing_changes(start, name):
 
 @pytest.mark.parametrize("batch", [True, False])
 def test_extraction_start_dispatcher_passes_batch(start, batch):
-    # /start builds the profile's own RunRequest; here the financials profile
-    params, seen = start("financials", url="/api/extraction/start", profile="financials", batch=batch)
+    params, seen = start("extraction", url="/api/extraction/start", profile="custom", batch=batch)
     assert (params.get("batch") is True) == batch
     assert isinstance(seen["llm"], BatchingLLMClient) == batch

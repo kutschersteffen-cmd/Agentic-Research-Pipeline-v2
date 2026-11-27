@@ -13,7 +13,7 @@ import type { Correction, ExtractedField, RunManifest, Walkthrough, WalkthroughP
 type Obj = Record<string, unknown>;
 type Rec = { company_id: string; name?: string; schema_id?: string; needs_review?: boolean; fields?: ExtractedField[] };
 
-const RUN_TYPES = new Set(["extraction", "financials", "tnfd"]);
+const RUN_TYPES = new Set(["extraction"]);
 const SECTIONS: Record<string, [string, string][]> = {
   financials: [["segments", "Segments"], ["capex", "CapEx"], ["rnd", "R&D"]],
   tnfd: [["disclosures", "Disclosures"], ["core_global_metrics", "Core global metrics"], ["sector_metrics", "Sector metrics"],
@@ -30,9 +30,7 @@ const str = (v: unknown) => (v == null || v === "" ? "—" : typeof v === "objec
 
 async function loadRecords(run: RunManifest): Promise<Rec[]> {
   const page = (o: number) =>
-    (run.run_type === "financials" ? api.getFinancialsResults(run.run_id, o, PAGE)
-      : run.run_type === "tnfd" ? api.getTnfdResults(run.run_id, o, PAGE)
-      : api.getExtractionResults(run.run_id, o, PAGE)) as Promise<{ total: number; results: Rec[] }>;
+    api.getExtractionResults(run.run_id, o, PAGE) as Promise<{ total: number; results: Rec[] }>;
   const out: Rec[] = [];
   for (let o = 0; ; o += PAGE) {
     const r = await page(o);
@@ -42,8 +40,6 @@ async function loadRecords(run: RunManifest): Promise<Rec[]> {
 }
 
 function fieldOptions(run: RunManifest, rec: Rec): { label: string; href: string }[] {
-  const sections = SECTIONS[run.run_type];
-  if (sections) return sections.map(([id, label]) => ({ label, href: walkthroughHref(run.run_id, rec.company_id, id) }));
   return (rec.fields ?? []).map((f) => {
     const basis = planBasis(rec.schema_id, f);
     return {

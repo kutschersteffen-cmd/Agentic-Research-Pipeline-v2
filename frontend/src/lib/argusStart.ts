@@ -26,10 +26,10 @@ export const companiesSummary = (names: string[]) => names.slice(0, 2).join(", "
 /** The line above the Runs table while a Process tile is pressed. */
 export const filterLine = (step: number | null) => (step === null ? null : `Showing step ${step} ${STEPS[step - 1]} only.`);
 
-export const ARGUS_RUN_TYPES = ["extraction", "financials", "tnfd", "transition_plan"];
+export const ARGUS_RUN_TYPES = ["extraction", "transition_plan"];
 export const STEPS = ["Companies", "Documents", "Schema", "Extract", "Results"];
 
-const LABELS: Record<string, string> = { financials: "Financials", tnfd: "TNFD", transition_plan: "Transition Plan" };
+const LABELS: Record<string, string> = { transition_plan: "Transition Plan" };
 
 function label(r: RunManifest): string {
   if (r.run_type !== "extraction") return LABELS[r.run_type];

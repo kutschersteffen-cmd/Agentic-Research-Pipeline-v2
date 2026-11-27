@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { RESUMABLE_RUN_TYPES, ago as agoText, canResumeRun, compareSince, decisionRunType, hasFailureDetails, needsAttentionRuns, resumableFailedRuns, resumeSummary } from "../src/lib/runs.ts";
 import type { RunManifest } from "../src/types.ts";
 
-const RESUMABLE = ["theme", "extraction", "financials", "tnfd", "identity", "discovery", "xbrl_fetch"];
+const RESUMABLE = ["theme", "extraction", "identity", "discovery", "xbrl_fetch"];
 const NOT_RESUMABLE = ["transition_plan", "proxy_voting", "holdings", "emerging_themes", "taxonomy_research", "calibration", "transition_barrier_refresh"];
 const now = new Date("2026-10-18T12:00:00Z");
 const ago = (ms: number) => new Date(now.getTime() - ms).toISOString();
@@ -13,7 +13,7 @@ const run = (runType: string, status: string, updatedAt: string) =>
   ({ run_id: `${runType}-${status}-${updatedAt}`, run_type: runType, status, updated_at: updatedAt }) as unknown as RunManifest;
 const ids = (runs: RunManifest[]) => runs.map((r) => r.run_id);
 
-test("canResumeRun is true for all 7 resumable types x failed, partially_completed, cancelled", () => {
+test("canResumeRun is true for all 5 resumable types x failed, partially_completed, cancelled", () => {
   for (const t of RESUMABLE) for (const s of ["failed", "partially_completed", "cancelled"]) assert.equal(canResumeRun(t, s), true, `${t} ${s}`);
 });
 
@@ -42,7 +42,7 @@ test("needsAttentionRuns keeps exactly 14 days, drops 14 days and 1 second", () 
 });
 
 test("needsAttentionRuns returns failed and partially_completed in input order", () => {
-  const a = run("tnfd", "partially_completed", ago(3 * DAY));
+  const a = run("extraction", "partially_completed", ago(3 * DAY));
   const b = run("theme", "failed", ago(1 * DAY));
   const c = run("xbrl_fetch", "failed", ago(5 * DAY));
   assert.deepEqual(ids(needsAttentionRuns([a, b, c], now)), ids([a, b, c]));

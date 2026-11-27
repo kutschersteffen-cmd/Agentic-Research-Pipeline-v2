@@ -2,7 +2,7 @@ import { Fragment, useEffect, useState } from "react";
 import { FileLink } from "../components/FileLink";
 import { api } from "../api/client";
 import { ConfidenceBadge } from "../components/ConfidenceBadge";
-import { ExtractionResultsTable, FieldDetail, FinancialsResultsTable, SegmentDetail, SpendDetail } from "../components/ExtractionResults";
+import { ExtractionResultsTable, FieldDetail } from "../components/ExtractionResults";
 import { SourcePanel, type ActiveSource } from "../components/SourcePanel";
 import { isTrialRun } from "../lib/runs";
 import type {
@@ -10,7 +10,6 @@ import type {
   CachedDocumentRow,
   CompanyDirectoryEntry,
   CompanyDocumentRow,
-  CompanyFinancialsRecord,
   DocumentPassages,
   ExtractionRecord,
   ReviewDecision,
@@ -21,8 +20,7 @@ import { recordFieldNames } from "../lib/corrections";
 import { activatable } from "../lib/activatable";
 import { useMe } from "../lib/reviewer";
 import { SignedInAs } from "../components/SignedInAs";
-import { WalkthroughLink } from "../components/WalkthroughLink";
-import { recordWalkthroughHref, rowWalkthroughHref } from "../lib/walkthrough";
+import { rowWalkthroughHref } from "../lib/walkthrough";
 import { passageLabel, passageSummary } from "../lib/passages";
 
 const SUB_TABS = [
@@ -37,7 +35,7 @@ export function DataLibrary() {
   return (
     <div className="page">
       <h1>Data Library</h1>
-      <p className="help-text">Browse every stored extraction and financials result, and every cached document text, across all companies and runs.</p>
+      <p className="help-text">Browse every stored extraction result and every cached document text, across all companies and runs.</p>
       <nav className="sub-nav">
         {SUB_TABS.map((t) => (
           <button key={t.id} className={t.id === sub ? "nav-tab active" : "nav-tab"} aria-pressed={t.id === sub} onClick={() => setSub(t.id)}>
@@ -52,13 +50,9 @@ export function DataLibrary() {
   );
 }
 
-// --- Run results: pick any past extraction/financials run and view it,
-// exactly as Extraction.tsx shows a run it just started ---------------------
-
-type RunKind = "extraction" | "financials";
+// --- Run results: pick any past extraction run and view it -----------------
 
 function RunResultsView() {
-  const [kind, setKind] = useState<RunKind>("extraction");
   const [runs, setRuns] = useState<RunManifest[]>([]);
   const [runId, setRunId] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -69,36 +63,27 @@ function RunResultsView() {
   const [extractionResults, setExtractionResults] = useState<ExtractionRecord[]>([]);
   const [extractionReviewDecisions, setExtractionReviewDecisions] = useState<Record<string, ReviewDecision>>({});
   const [extractionStates, setExtractionStates] = useState<ReviewStates>({});
-  const [financialsResults, setFinancialsResults] = useState<CompanyFinancialsRecord[]>([]);
-  const [financialsReviewDecisions, setFinancialsReviewDecisions] = useState<Record<string, ReviewDecision>>({});
 
   useEffect(() => {
     (async () => {
-      const res = (await api.listRuns(kind)) as { runs: RunManifest[] };
+      const res = (await api.listRuns("extraction")) as { runs: RunManifest[] };
       setRuns(res.runs);
       setRunId("");
       setExpanded(null);
       setActiveSource(null);
     })();
-  }, [kind]);
+  }, []);
 
   async function loadResults(id: string = runId) {
     if (!id) return;
     setError(null);
     setExpanded(null);
     try {
-      if (kind === "extraction") {
-        const res = (await api.getExtractionResults(id)) as { results: ExtractionRecord[] };
-        setExtractionResults(res.results);
-        const decisionsRes = (await api.getExtractionReviewDecisions(id)) as { decisions: Record<string, ReviewDecision>; states: ReviewStates };
-        setExtractionReviewDecisions(decisionsRes.decisions);
-        setExtractionStates(decisionsRes.states);
-      } else {
-        const res = (await api.getFinancialsResults(id)) as { results: CompanyFinancialsRecord[] };
-        setFinancialsResults(res.results);
-        const decisionsRes = (await api.getFinancialsReviewDecisions(id)) as { decisions: Record<string, ReviewDecision> };
-        setFinancialsReviewDecisions(decisionsRes.decisions);
-      }
+      const res = (await api.getExtractionResults(id)) as { results: ExtractionRecord[] };
+      setExtractionResults(res.results);
+      const decisionsRes = (await api.getExtractionReviewDecisions(id)) as { decisions: Record<string, ReviewDecision>; states: ReviewStates };
+      setExtractionReviewDecisions(decisionsRes.decisions);
+      setExtractionStates(decisionsRes.states);
     } catch (err) {
       setError((err as Error).message);
     }
@@ -107,13 +92,6 @@ function RunResultsView() {
   return (
     <div>
       <section className="card">
-        <label className="field-label">
-          Run type
-          <select value={kind} onChange={(e) => setKind(e.target.value as RunKind)}>
-            <option value="extraction">Data-point extraction</option>
-            <option value="financials">Company financials</option>
-          </select>
-        </label>
         <label className="field-label">
           Run
           <select
@@ -131,7 +109,7 @@ function RunResultsView() {
             ))}
           </select>
         </label>
-        {runs.length === 0 && <p className="muted">No {kind} runs recorded yet.</p>}
+        {runs.length === 0 && <p className="muted">No extraction runs recorded yet.</p>}
         {runId && (
           <div className="toolbar">
             <button onClick={() => loadResults()}>Refresh</button>
@@ -144,35 +122,21 @@ function RunResultsView() {
         {error && <p className="error-text" role="alert">{error}</p>}
       </section>
 
-      {runId && ((kind === "extraction" && extractionResults.length > 0) || (kind === "financials" && financialsResults.length > 0)) && (
+      {runId && extractionResults.length > 0 && (
         <div className="split-review">
           <div className="split-review-main">
-            {kind === "extraction" && (
-              <ExtractionResultsTable
-                results={extractionResults}
-                runId={runId}
-                expanded={expanded}
-                onToggleExpanded={(companyId) => setExpanded(expanded === companyId ? null : companyId)}
-                reviewDecisions={extractionReviewDecisions}
-                states={extractionStates}
-                reviewer={reviewer}
-                onReviewDone={() => loadResults()}
-                onOpenSource={setActiveSource}
-                trial={isTrialRun(runs.find((r) => r.run_id === runId))}
-              />
-            )}
-            {kind === "financials" && (
-              <FinancialsResultsTable
-                results={financialsResults}
-                runId={runId}
-                expanded={expanded}
-                onToggleExpanded={(companyId) => setExpanded(expanded === companyId ? null : companyId)}
-                reviewDecisions={financialsReviewDecisions}
-                reviewer={reviewer}
-                onReviewDone={() => loadResults()}
-                onOpenSource={setActiveSource}
-              />
-            )}
+            <ExtractionResultsTable
+              results={extractionResults}
+              runId={runId}
+              expanded={expanded}
+              onToggleExpanded={(companyId) => setExpanded(expanded === companyId ? null : companyId)}
+              reviewDecisions={extractionReviewDecisions}
+              states={extractionStates}
+              reviewer={reviewer}
+              onReviewDone={() => loadResults()}
+              onOpenSource={setActiveSource}
+              trial={isTrialRun(runs.find((r) => r.run_id === runId))}
+            />
           </div>
           <SourcePanel source={activeSource} onClose={() => setActiveSource(null)} />
         </div>
@@ -187,38 +151,30 @@ function RunResultsView() {
 // each; a single company's rows here can span several runs at once) ------
 
 function CompanyResultsView() {
-  const [kind, setKind] = useState<RunKind>("extraction");
   const [companies, setCompanies] = useState<CompanyDirectoryEntry[]>([]);
   const [companyId, setCompanyId] = useState("");
   const [extractionRecords, setExtractionRecords] = useState<ExtractionRecord[]>([]);
-  const [financialsRecords, setFinancialsRecords] = useState<CompanyFinancialsRecord[]>([]);
   const [documents, setDocuments] = useState<CompanyDocumentRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [activeSource, setActiveSource] = useState<ActiveSource | null>(null);
 
   useEffect(() => {
     (async () => {
-      const res = (await api.listKnownCompanies(kind)) as { companies: CompanyDirectoryEntry[] };
+      const res = (await api.listKnownCompanies("extraction")) as { companies: CompanyDirectoryEntry[] };
       setCompanies(res.companies);
       setCompanyId("");
       setExtractionRecords([]);
-      setFinancialsRecords([]);
       setDocuments([]);
       setActiveSource(null);
     })();
-  }, [kind]);
+  }, []);
 
   async function load(id: string) {
     if (!id) return;
     setError(null);
     try {
-      if (kind === "extraction") {
-        const res = (await api.getExtractionResultsForCompany(id)) as { results: ExtractionRecord[] };
-        setExtractionRecords(res.results);
-      } else {
-        const res = (await api.getFinancialsResultsForCompany(id)) as { results: CompanyFinancialsRecord[] };
-        setFinancialsRecords(res.results);
-      }
+      const res = (await api.getExtractionResultsForCompany(id)) as { results: ExtractionRecord[] };
+      setExtractionRecords(res.results);
       const docsRes = (await api.listDocuments(id)) as { documents: CompanyDocumentRow[] };
       setDocuments(docsRes.documents);
     } catch (err) {
@@ -229,13 +185,6 @@ function CompanyResultsView() {
   return (
     <div>
       <section className="card">
-        <label className="field-label">
-          Run type
-          <select value={kind} onChange={(e) => setKind(e.target.value as RunKind)}>
-            <option value="extraction">Data-point extraction</option>
-            <option value="financials">Company financials</option>
-          </select>
-        </label>
         <label className="field-label">
           Company
           <select
@@ -253,7 +202,7 @@ function CompanyResultsView() {
             ))}
           </select>
         </label>
-        {companies.length === 0 && <p className="muted">No {kind} results recorded for any company yet.</p>}
+        {companies.length === 0 && <p className="muted">No extraction results recorded for any company yet.</p>}
         {error && <p className="error-text" role="alert">{error}</p>}
       </section>
 
@@ -287,56 +236,29 @@ function CompanyResultsView() {
         </section>
       )}
 
-      {companyId && kind === "extraction" && extractionRecords.length === 0 && (
+      {companyId && extractionRecords.length === 0 && (
         <p className="muted">No extraction results recorded for this company yet.</p>
       )}
-      {companyId && (extractionRecords.length > 0 || financialsRecords.length > 0) && (
+      {companyId && extractionRecords.length > 0 && (
         <div className="split-review">
           <div className="split-review-main">
-            {kind === "extraction" &&
-              extractionRecords.map((r) => {
-                const names = recordFieldNames(r);
-                return (
-                <section className="card" key={r.run_id}>
-                  <h2>Run {r.run_id} — {new Date(r.generated_at).toLocaleString()}</h2>
-                  <p>
-                    <ConfidenceBadge value={r.overall_confidence} /> {r.needs_review && <span className="badge badge-low">needs review</span>}
-                  </p>
-                  {r.fields.map((f) => (
-                    <FieldDetail key={f.field_id} field={f} fieldNames={names} walkthroughHref={rowWalkthroughHref(r.run_id, r, f)} onOpenSource={setActiveSource} />
-                  ))}
-                </section>
-                );
-              })}
-
-            {kind === "financials" &&
-              financialsRecords.map((r) => (
-                <section className="card" key={r.run_id}>
-                  <h2>Run {r.run_id} — {new Date(r.generated_at).toLocaleString()}</h2>
-                  <p>
-                    <ConfidenceBadge value={r.overall_confidence} /> {r.needs_review && <span className="badge badge-low">needs review</span>}
-                  </p>
-                  <h3>Business Segments</h3>
-                  <WalkthroughLink href={recordWalkthroughHref(r.run_id, r.company_id, "segments")} />
-                  {r.segments.length === 0 && <p className="muted">No segment reporting evidence found.</p>}
-                  {r.segments.map((s, si) => (
-                    <SegmentDetail key={si} segment={s} onOpenSource={setActiveSource} />
-                  ))}
-                  <h3>CapEx</h3>
-                  <WalkthroughLink href={recordWalkthroughHref(r.run_id, r.company_id, "capex")} />
-                  <SpendDetail label="CapEx" spend={r.capex} onOpenSource={setActiveSource} />
-                  <h3>R&amp;D</h3>
-                  <WalkthroughLink href={recordWalkthroughHref(r.run_id, r.company_id, "rnd")} />
-                  <SpendDetail label="R&D" spend={r.rnd} onOpenSource={setActiveSource} />
-                </section>
-              ))}
+            {extractionRecords.map((r) => {
+              const names = recordFieldNames(r);
+              return (
+              <section className="card" key={r.run_id}>
+                <h2>Run {r.run_id} — {new Date(r.generated_at).toLocaleString()}</h2>
+                <p>
+                  <ConfidenceBadge value={r.overall_confidence} /> {r.needs_review && <span className="badge badge-low">needs review</span>}
+                </p>
+                {r.fields.map((f) => (
+                  <FieldDetail key={f.field_id} field={f} fieldNames={names} walkthroughHref={rowWalkthroughHref(r.run_id, r, f)} onOpenSource={setActiveSource} />
+                ))}
+              </section>
+              );
+            })}
           </div>
           <SourcePanel source={activeSource} onClose={() => setActiveSource(null)} />
         </div>
-      )}
-
-      {companyId && kind === "financials" && financialsRecords.length === 0 && (
-        <p className="muted">No financials results recorded for this company yet.</p>
       )}
     </div>
   );
