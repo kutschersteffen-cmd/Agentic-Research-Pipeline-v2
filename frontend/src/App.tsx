@@ -1,4 +1,5 @@
 import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 import { HashRouter, useLocation, useNavigate } from "react-router-dom";
 import { canLeave } from "./lib/leaveGuard";
 import { ProcessBar, StartPage, WorkspaceOverview } from "./pages/ProcessHub";
@@ -13,10 +14,11 @@ import { ctrlJTarget, rfpId, type Selection } from "./lib/agent";
 import { useMe } from "./lib/reviewer";
 import { AppTopbar } from "./components/AppTopbar";
 import { WorkspaceRow } from "./components/WorkspaceRow";
-import type { ReviewableRunKind, RunManifest, WaitingCounts } from "./types";
+import type { ReviewableRunKind } from "./types";
 import { REVIEWABLE_RUN_TYPES } from "./lib/runs";
 import { api } from "./api/client";
 import { listAllRuns } from "./lib/poll";
+import { createQueryClient, queryKeys } from "./lib/queryClient";
 import { HUBS, entryTab, redirectHash, safeDecode } from "./lib/nav";
 import { Landing } from "./pages/Landing";
 import { ArgusFlow, ArgusNew, ArgusStart, ArgusWalkthrough, openNewFlow } from "./features/argus";
@@ -127,8 +129,7 @@ function App() {
   const initialPath = initialTarget ? initialTarget.slice(1) : location.pathname;
   const [route, setRoute] = useState(() => parsePath(initialPath));
   const active = route.tab;
-  const [waiting, setWaiting] = useState<WaitingCounts | null>(null);
-  const [recentRuns, setRecentRuns] = useState<RunManifest[]>([]);
+  const queryClient = useQueryClient();
   const [pendingTaxonomyId, setPendingTaxonomyId] = useState<string | null>(null);
 
   const navigate = (tab: TabId, ...params: string[]) => routerNavigate(buildPath(tab, ...params));
@@ -159,22 +160,28 @@ function App() {
     if (el) el.textContent = "";
   }, [active]);
 
-  // A decision anywhere (see lib/announce) refreshes the counts below.
-  const [decidedAt, setDecidedAt] = useState(0);
+  // A decision anywhere (see lib/announce) invalidates the cached counts and run list.
   useEffect(() => {
-    const onDecided = () => setDecidedAt(Date.now());
+    const onDecided = () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.waiting });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.recentRuns });
+    };
     window.addEventListener("arp:decided", onDecided);
     return () => window.removeEventListener("arp:decided", onDecided);
-  }, []);
+  }, [queryClient]);
 
   // Counts on the "Needs you" items, refreshed on every navigation and after
   // every decision. Failure leaves them off rather than showing a zero nobody measured.
-  useEffect(() => {
-    api.getWaiting().then(setWaiting, () => setWaiting(null));
-    listAllRuns()
-      .then((runs) => setRecentRuns([...runs].sort((a, b) => (a.updated_at < b.updated_at ? 1 : -1)).slice(0, 50)))
-      .catch(() => {});
-  }, [route, decidedAt]);
+  const waitingQuery = useQuery({
+    queryKey: [...queryKeys.waiting, route.tab, ...route.params],
+    queryFn: () => api.getWaiting(),
+  });
+  const waiting = waitingQuery.isError ? null : (waitingQuery.data ?? null);
+  const recentRunsQuery = useQuery({
+    queryKey: [...queryKeys.recentRuns, route.tab, ...route.params],
+    queryFn: async () => [...(await listAllRuns())].sort((a, b) => (a.updated_at < b.updated_at ? 1 : -1)).slice(0, 50),
+  });
+  const recentRuns = recentRunsQuery.data ?? [];
 
   const hub = hubOf(active);
   // The tab title names the screen, for browser tabs and screen readers.
@@ -319,10 +326,13 @@ export function AppEntry() {
 }
 
 function Root() {
+  const [queryClient] = useState(createQueryClient);
   return (
-    <HashRouter>
-      <AppEntry />
-    </HashRouter>
+    <QueryClientProvider client={queryClient}>
+      <HashRouter>
+        <AppEntry />
+      </HashRouter>
+    </QueryClientProvider>
   );
 }
 
