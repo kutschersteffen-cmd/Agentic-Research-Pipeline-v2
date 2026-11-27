@@ -59,12 +59,9 @@ class IngestReport:
 
 
 def _blob_store():
-    from arp.storage.document_blob_store import DocumentBlobStore, LocalBlobStore
+    from arp.storage.document_blob_store import LocalBlobStore
 
-    s = get_settings()
-    if s.object_store_endpoint_url:
-        return DocumentBlobStore(s.object_store_endpoint_url, s.object_store_access_key, s.object_store_secret_key, s.object_store_bucket)
-    return LocalBlobStore(s.blob_store_dir)
+    return LocalBlobStore(get_settings().blob_store_dir)
 
 
 def _payload_key(session: Session, load: SourceLoad) -> str:
