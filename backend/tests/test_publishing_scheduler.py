@@ -60,3 +60,22 @@ def test_scheduler_run_records_reground(tmp_path, monkeypatch, pg):
     assert config.last_results["reground"]["status"] == "ok"
     assert config.last_reground_day == "2026-11-02"
     assert config.last_run_at
+
+
+def test_scheduler_reground_reads_published_facts(tmp_path, pg):
+    store, rs = PortfolioStore(tmp_path / "pf"), RunStore(pg, tmp_path / "runs")
+    settings = Settings(postgres_dsn=pg, publish_state_dir=tmp_path / "state", document_store_dir=tmp_path / "docs")
+    sched = PublishingScheduler(settings, store, rs)
+    status, detail = sched._reground(date(2026, 11, 2))
+    assert status == "ok" and "0 sampled" in detail
+
+
+def test_scheduler_run_records_reground_failure(tmp_path, monkeypatch, pg):
+    store, rs = PortfolioStore(tmp_path / "pf"), RunStore(pg, tmp_path / "runs")
+    settings = Settings(postgres_dsn=pg, publish_state_dir=tmp_path / "state")
+    monkeypatch.setattr(S, "_today", lambda: date(2026, 11, 2))
+    sched, config = PublishingScheduler(settings, store, rs), PublishingScheduleConfig(enabled=True)
+    monkeypatch.setattr(sched, "_reground", lambda _t: (_ for _ in ()).throw(RuntimeError("boom")))
+    asyncio.run(sched._run(config))
+    assert config.last_results["reground"] == {"status": "failed", "detail": "boom"}
+    assert config.last_reground_day is None
