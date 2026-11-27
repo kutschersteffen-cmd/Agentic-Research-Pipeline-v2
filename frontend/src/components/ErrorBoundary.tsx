@@ -2,9 +2,14 @@ import { Component, type ErrorInfo, type ReactNode } from "react";
 
 interface State { error: Error | null }
 
+interface Props {
+  children: ReactNode;
+  resetKey?: unknown;
+}
+
 /** Catches a crash in one screen, shows what happened with "Try again", and leaves the rest of the app standing.
  * Not keyed by the route, so a screen that is not in error is never remounted; a change of address clears the error. */
-export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
+export class ErrorBoundary extends Component<Props, State> {
   state: State = { error: null };
 
   static getDerivedStateFromError(error: unknown): State {
@@ -17,6 +22,12 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
 
   componentDidMount() {
     window.addEventListener("hashchange", this.onHash);
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    if (this.state.error && prevProps.resetKey !== this.props.resetKey) {
+      this.setState({ error: null });
+    }
   }
 
   componentWillUnmount() {
