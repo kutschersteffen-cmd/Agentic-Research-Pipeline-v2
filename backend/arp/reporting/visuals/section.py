@@ -1,7 +1,7 @@
 """`section` (mockup 1): full-bleed `ground`; an outlined number, title and summary centred on the left; the agenda
 (the visual's `agenda`, else every section slide of the deck; the current one marked with a square) bottom-right. `box` is the canvas."""
 
-from arp.reporting.render_model import MARGIN, S8, S12, S24, VISUALS, Primitive, Rect, Text, palette
+from arp.reporting.primitives import MARGIN, S8, S12, S24, VISUALS, Primitive, Rect, Text, palette
 from arp.reporting.visuals._common import LEADING, fonts, lines, strip
 
 NUMBER, TITLE, SUMMARY, AGENDA = 200, 72, 32, 22

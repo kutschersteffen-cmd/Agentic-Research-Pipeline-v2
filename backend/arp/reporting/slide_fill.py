@@ -13,7 +13,7 @@ from typing import get_args
 from pydantic import BaseModel, ValidationError
 
 from arp.llm.base import LLMClient, LLMUsage
-from arp.reporting.content_planner import _datasets_context
+from arp.reporting.chart_data import datasets_context as _datasets_context
 from arp.reporting.house_style import SlotSpec, get_variant, load_layouts, load_tokens
 from arp.reporting.image_embed import preview
 from arp.reporting.render_model import VisualDataError, render_slide

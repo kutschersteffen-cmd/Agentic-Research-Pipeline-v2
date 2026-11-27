@@ -44,7 +44,6 @@ class AudienceProfile(BaseModel):
 
 class OutputFormat(StrEnum):
     PPTX = "pptx"
-    DOCX = "docx"
     PDF = "pdf"
     HOUSE_DECK = "house_deck"
 

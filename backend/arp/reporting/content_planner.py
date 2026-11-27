@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from arp.llm.base import LLMClient, LLMUsage
+from arp.reporting.chart_data import datasets_context as _datasets_context
 from arp.schemas.reporting import (
-    QuantitativeDataset,
     ReportPlan,
     ReportRequest,
     TemplateStyleProfile,
@@ -44,12 +44,6 @@ narrative should be a short caption, not a wall of text.
 the agenda slide yourself -- the renderer adds it automatically from your \
 section headings.
 """
-
-
-def _datasets_context(datasets: list[QuantitativeDataset]) -> str:
-    if not datasets:
-        return "(no quantitative datasets supplied)"
-    return "\n\n".join(ds.summary() for ds in datasets)
 
 
 def _template_context(style: TemplateStyleProfile | None) -> str:

@@ -4,7 +4,7 @@ Every position comes from `visual.layout`; actors are box fills, listed in a one
 Spec: docs/superpowers/specs/2026-11-18-house-deck-flowchart-slides.md, "Renderer".
 """
 
-from arp.reporting.render_model import S8, S12, S24, S32, VISUALS, Line, Primitive, Rect, Text, VisualDataError, body_box, palette
+from arp.reporting.primitives import S8, S12, S24, S32, VISUALS, Line, Primitive, Rect, Text, VisualDataError, body_box, palette
 from arp.reporting.visuals._common import LEADING, fonts
 
 # As in flow_layout (which needs Chromium, so it is not imported here): label size by type step, tag and arrow-label size,

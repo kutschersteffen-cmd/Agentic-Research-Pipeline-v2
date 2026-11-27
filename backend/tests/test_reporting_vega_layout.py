@@ -9,7 +9,7 @@ import pytest
 from PIL import Image
 from pptx import Presentation
 
-from arp.reporting.chart_builder import ChartDataError
+from arp.reporting.chart_data import ChartDataError
 from arp.reporting.house_pptx import build_house_pptx
 from arp.reporting.house_style import load_tokens
 from arp.reporting.html_render import render_deck_html
@@ -54,10 +54,9 @@ def test_ac20b_ac20c_ac20d_scatter_waterfall_heatmap():
     assert marks(chart_svg(L("heatmap", **HEAT))) == ["North | 5 | 12", "South | 3 | 8", "West | 9 | 15"]
 
 
-def test_ac22_radar_keeps_matplotlib():
-    html = render_deck_html(L("radar"), [DS], T)
-    slot = html[html.index('data-slot="chart"') :]
-    assert slot[: slot.index("</div>")].count("<svg") == 1
+def test_ac22_radar_raises_without_matplotlib():
+    with pytest.raises(ChartDataError, match="radar"):
+        render_deck_html(L("radar"), [DS], T)
 
 
 @pytest.mark.parametrize("kind,kw", [("waterfall", {}), ("heatmap", HEAT)])

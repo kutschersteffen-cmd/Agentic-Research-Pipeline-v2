@@ -3,7 +3,7 @@
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 
-from arp.reporting.deck_compat import deck_from_plan
+from arp.reporting.chart_data import deck_from_plan
 from arp.reporting.house_pptx import build_house_pptx
 from arp.schemas.reporting import (
     ChartSpec,

@@ -14,14 +14,12 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
 
-from arp.reporting.chart_builder import render_chart_svg
 from arp.reporting.design import DesignTheme
 from arp.reporting.house_style import _STYLE_DIR, Mode, Tokens, footer_fits, get_variant, load_tokens, slot_rect
 from arp.reporting.html_writer import html_slide
 from arp.reporting.render_model import Text, palette, render_slide
 from arp.reporting.template_frame import font_family_of
 from arp.reporting.vega import layout_spec, to_svg
-from arp.schemas.chart_specs import ChartType
 from arp.schemas.reporting import Deck, QuantitativeDataset, SlideContent, TableSpec
 from arp.storage.report_images import LoadedImage
 
@@ -85,8 +83,6 @@ def _slot_view(i: int, slide: SlideContent, spec, tokens: Tokens, datasets: dict
     value = slide.slots.get(spec.name)
     if spec.kind == "list":
         v["items"] = value if isinstance(value, list) else ([value] if value else [])
-    elif spec.kind == "chart" and slide.chart and slide.chart.chart_type in (ChartType.RADAR, ChartType.TABLE):  # still matplotlib
-        v["svg"] = render_chart_svg(slide.chart, list(datasets.values()), width_px=int(r.w), height_px=int(r.h), theme=theme)
     elif spec.kind == "chart" and slide.chart:
         v["svg"] = to_svg(layout_spec(slide.chart, list(datasets.values()), r.w, r.h, theme, tokens, mode), tokens)
     elif spec.kind == "table" and slide.table and slide.table.dataset_id in datasets:

@@ -1,7 +1,7 @@
 import pytest
 from pptx.enum.chart import XL_CHART_TYPE
 
-from arp.reporting import chart_builder
+from arp.reporting import chart_data as chart_builder
 from arp.schemas.reporting import ChartSpec, ChartType, ColumnKind, DatasetColumn, QuantitativeDataset
 
 
@@ -62,56 +62,3 @@ def test_build_native_chart_data_raises_when_value_columns_missing():
     spec = ChartSpec(dataset_id=ds.dataset_id, chart_type=ChartType.BAR, category_column="segment")
     with pytest.raises(chart_builder.ChartDataError):
         chart_builder.build_native_chart_data(spec, [ds])
-
-
-@pytest.mark.parametrize(
-    "chart_type,extra",
-    [
-        (ChartType.BAR, {"category_column": "segment", "value_columns": ["revenue"]}),
-        (ChartType.COLUMN, {"category_column": "segment", "value_columns": ["revenue", "ebitda"]}),
-        (ChartType.STACKED_COLUMN, {"category_column": "segment", "value_columns": ["revenue", "ebitda"]}),
-        (ChartType.LINE, {"category_column": "segment", "value_columns": ["revenue"]}),
-        (ChartType.AREA, {"category_column": "segment", "value_columns": ["revenue"]}),
-        (ChartType.PIE, {"category_column": "segment", "value_columns": ["revenue"]}),
-        (ChartType.DOUGHNUT, {"category_column": "segment", "value_columns": ["revenue"]}),
-        (ChartType.SCATTER, {"x_column": "revenue", "value_columns": ["ebitda"]}),
-    ],
-)
-def test_render_chart_image_writes_a_png_for_every_native_type(tmp_path, chart_type, extra):
-    ds = _dataset()
-    spec = ChartSpec(dataset_id=ds.dataset_id, chart_type=chart_type, title="t", **extra)
-    out = tmp_path / "chart.png"
-
-    result = chart_builder.render_chart_image(spec, [ds], out)
-
-    assert result == out
-    assert out.exists()
-    assert out.stat().st_size > 0
-
-
-def test_render_chart_image_heatmap():
-    ds = QuantitativeDataset(
-        name="heat",
-        columns=[DatasetColumn(name="region"), DatasetColumn(name="product"), DatasetColumn(name="score")],
-        rows=[{"region": "EU", "product": "A", "score": 3}, {"region": "US", "product": "A", "score": 5}],
-    )
-    spec = ChartSpec(dataset_id=ds.dataset_id, chart_type=ChartType.HEATMAP, category_column="product", y_column="region", value_column="score")
-
-    import tempfile
-    from pathlib import Path
-
-    with tempfile.TemporaryDirectory() as tmp:
-        out = chart_builder.render_chart_image(spec, [ds], Path(tmp) / "heat.png")
-        assert out.exists()
-
-
-def test_render_chart_image_waterfall():
-    ds = _dataset()
-    spec = ChartSpec(dataset_id=ds.dataset_id, chart_type=ChartType.WATERFALL, category_column="segment", value_columns=["revenue"])
-
-    import tempfile
-    from pathlib import Path
-
-    with tempfile.TemporaryDirectory() as tmp:
-        out = chart_builder.render_chart_image(spec, [ds], Path(tmp) / "wf.png")
-        assert out.exists()

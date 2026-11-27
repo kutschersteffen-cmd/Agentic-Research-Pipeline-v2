@@ -5,7 +5,7 @@ drawn first, and a `panel` card sits under the answer and figures."""
 
 from dataclasses import replace
 
-from arp.reporting.render_model import MARGIN, S12, S24, S48, VISUALS, Primitive, Rect, Text, palette
+from arp.reporting.primitives import MARGIN, S12, S24, S48, VISUALS, Primitive, Rect, Text, palette
 from arp.reporting.visuals._common import LEADING, fonts, lines, strip
 from arp.reporting.visuals.image import picture
 

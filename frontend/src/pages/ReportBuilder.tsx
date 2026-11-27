@@ -27,7 +27,7 @@ import { draftingLine } from "../lib/progress";
 
 const AUDIENCE_LEVELS: AudienceLevel[] = ["executive", "technical", "general"];
 const TONES: Tone[] = ["formal", "conversational", "persuasive", "neutral_analytical"];
-const OUTPUT_FORMATS: OutputFormat[] = ["pptx", "docx", "pdf", "house_deck"];
+const OUTPUT_FORMATS: OutputFormat[] = ["pptx", "pdf", "house_deck"];
 const FORMAT_LABELS: Partial<Record<OutputFormat, string>> = { house_deck: "House deck (PDF + PPTX)" };
 const LAYOUT_HINTS: SectionLayoutHint[] = ["standard", "chart_focus", "text_only", "section_header"];
 

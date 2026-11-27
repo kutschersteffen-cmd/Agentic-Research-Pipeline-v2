@@ -15,7 +15,7 @@ from pathlib import Path
 
 import vl_convert as vlc
 
-from arp.reporting.chart_builder import ChartDataError, _as_float_or_zero, _column, _dataset_by_id
+from arp.reporting.chart_data import ChartDataError, _as_float_or_zero, _column, _dataset_by_id
 from arp.reporting.design import DesignTheme, categorical_color
 from arp.reporting.house_style import Mode, Tokens
 from arp.reporting.render_model import (

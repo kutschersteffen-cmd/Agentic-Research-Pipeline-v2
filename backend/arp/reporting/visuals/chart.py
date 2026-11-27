@@ -8,7 +8,7 @@ A heatmap's columns are `category_column`, its rows `y_column` (one Series per r
 order; a missing cell is None, a duplicate one an error. It has no highlight and no callout.
 """
 
-from arp.reporting.render_model import (
+from arp.reporting.primitives import (
     CHART_LABEL,
     S12,
     S16,

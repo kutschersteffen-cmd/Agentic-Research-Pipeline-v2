@@ -27,7 +27,6 @@ router = APIRouter(prefix="/api/reports", tags=["reporting"])
 
 _CONTENT_TYPES = {
     "pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "pdf": "application/pdf",
 }
 

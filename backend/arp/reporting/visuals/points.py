@@ -1,6 +1,6 @@
 """`points`: numbered ground rows, like next_steps without owner or time."""
 
-from arp.reporting.render_model import VISUALS
+from arp.reporting.primitives import VISUALS
 from arp.reporting.visuals._common import numbered_rows
 
 

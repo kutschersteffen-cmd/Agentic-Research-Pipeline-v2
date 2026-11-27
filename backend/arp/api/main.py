@@ -20,7 +20,6 @@ from arp.api.deps import (
     get_emerging_themes_scheduler,
     get_portfolio_monitoring_scheduler,
     get_publishing_scheduler,
-    get_report_scheduler,
     get_review_analytics_scheduler,
     get_scheduler,
     get_taxonomy_researcher_scheduler,
@@ -139,7 +138,6 @@ async def lifespan(app: FastAPI):
     calibration_scheduler = get_calibration_scheduler()
     emerging_themes_scheduler = get_emerging_themes_scheduler()
     portfolio_monitoring_scheduler = get_portfolio_monitoring_scheduler()
-    report_scheduler = get_report_scheduler()
     publishing_scheduler = get_publishing_scheduler()
     review_analytics_scheduler = get_review_analytics_scheduler()
     _fill_observations(settings)
@@ -149,7 +147,6 @@ async def lifespan(app: FastAPI):
     calibration_scheduler.start()
     emerging_themes_scheduler.start()
     portfolio_monitoring_scheduler.start()
-    report_scheduler.start()
     publishing_scheduler.start()
     review_analytics_scheduler.start()
     plan_worker = plans.start_plan_worker(settings) if settings.plan_worker_seconds > 0 else None
@@ -163,7 +160,6 @@ async def lifespan(app: FastAPI):
         calibration_scheduler.shutdown()
         emerging_themes_scheduler.shutdown()
         portfolio_monitoring_scheduler.shutdown()
-        report_scheduler.shutdown()
         publishing_scheduler.shutdown()
         review_analytics_scheduler.shutdown()
 
