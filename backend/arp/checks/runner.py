@@ -1,14 +1,10 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
-from dataclasses import field as dc_field
 from datetime import date
-from typing import TYPE_CHECKING
 
 from arp.checks.rules import evaluate_rules
-from arp.schemas.common import CompanyRef, SourceDocument
+from arp.checks.types import Check, CheckContext, ModelCheck, threshold_ref  # noqa: F401
 from arp.schemas.datapoints import (
     CheckOutcome,
     CheckResult,
@@ -23,32 +19,9 @@ from arp.schemas.datapoints import (
 )
 from arp.schemas.review import ReasonCode
 
-if TYPE_CHECKING:
-    from arp.checks.cross_source import Reference
-    from arp.extraction.history import RunHistory
-
 _NUMERIC = {FieldDataType.NUMBER, FieldDataType.CURRENCY_AMOUNT, FieldDataType.PERCENTAGE}
 _BARE_NUMBER = re.compile(r"^[+-]?\d[\d,.' ]*$")
 _CURRENCY = re.compile(r"^\s*[A-Z]{3}\b|[€$£]")  # an ISO code leads the unit ("EUR million"); "% of GHG" is not one
-
-
-@dataclass
-class CheckContext:
-    company: CompanyRef
-    issuer_key: str
-    schema: DataPointSchema
-    documents_by_id: dict[str, SourceDocument]
-    record_fields: list[ExtractedField]
-    history: RunHistory | None = None
-    references: dict[str, list[Reference]] = dc_field(default_factory=dict)  # item key -> other-source values
-
-
-Check = Callable[[FieldDefinition, ExtractedField, CheckContext], list[CheckResult]]
-ModelCheck = Callable[[FieldDefinition, ExtractedField, CheckContext], Awaitable[list[CheckResult]]]
-
-
-def threshold_ref(spec: FieldDefinition, name: str) -> str:
-    return f"{spec.field_id}:v{spec.version}:check_config.{name}"
 
 
 def _format_result(check_id: str, outcome: CheckOutcome, detail: str = "") -> CheckResult:

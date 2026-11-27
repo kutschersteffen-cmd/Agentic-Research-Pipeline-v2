@@ -15,7 +15,7 @@ from arp.ingestion.indexing_config import IndexingConfig
 from arp.schemas.transition_barrier import PrimarySource
 from arp.storage.document_blob_store import blob_store_for, upload_or_fail
 from arp.transition_barrier import clock
-from arp.transition_barrier.dataset import data_dir
+from arp.transition_barrier.data_files import data_dir
 from arp.transition_barrier.engine import Value, _show, fact_confidence
 from arp.transition_barrier.extraction import Answer, check, fingerprint
 from arp.transition_barrier.facts import FactRefused

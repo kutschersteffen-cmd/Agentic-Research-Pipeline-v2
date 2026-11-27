@@ -7,7 +7,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 from arp.checks.plausibility import numeric_of
-from arp.checks.runner import threshold_ref
+from arp.checks.types import threshold_ref
 from arp.schemas.datapoints import CheckOutcome, CheckResult, ExtractedField, FieldDefinition, Severity
 from arp.schemas.review import field_item_key, period_key
 
