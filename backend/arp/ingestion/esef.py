@@ -79,6 +79,15 @@ class EsefFact:
     decimal: str | None = None  # "point" or "comma", from the ixt format
 
 
+def _is_skipped_element(el) -> tuple[bool, etree.QName | None]:
+    if not isinstance(el.tag, str):  # comment or processing instruction
+        return True, None
+    q = etree.QName(el)
+    if q.localname in _SKIP or (q.namespace == _IX and q.localname == "header"):
+        return True, None
+    return False, q
+
+
 def _visible_text(root) -> tuple[str, dict]:
     """The page text (whitespace collapsed, blocks on their own lines, cells joined by " | ")
     and each ix:nonFraction element's (start, end) in it. ix:header -- with ix:hidden
@@ -103,10 +112,8 @@ def _visible_text(root) -> tuple[str, dict]:
             n += 1
 
     def walk(el) -> None:
-        if not isinstance(el.tag, str):  # comment or processing instruction
-            return
-        q = etree.QName(el)
-        if q.localname in _SKIP or (q.namespace == _IX and q.localname == "header"):
+        skipped, q = _is_skipped_element(el)
+        if skipped or q is None:
             return
         if q.localname in _BLOCK:
             brk()
