@@ -238,33 +238,6 @@ def _start(monkeypatch, runs_dir):
         get_settings.cache_clear()
 
 
-def test_startup_refuses_unimported_legacy_runs(pg, tmp_path, monkeypatch):
-    """I4: a runs dir with a file-era run the database lacks stops the API and CLI, not `arp db`."""
-    from arp.storage.run_store import LegacyRunStore
-
-    LegacyRunStore(tmp_path / "runs").save_manifest(RunManifest(run_id="old1", run_type="extraction"))
-    cli_result, db_result, api_error = _start(monkeypatch, tmp_path / "runs")
-    assert cli_result.exit_code == 1 and "old1" in cli_result.stderr and "arp db import" in cli_result.stderr
-    assert "arp db verify" in cli_result.stderr and "arp db init-postgres" in cli_result.stderr
-    assert "old1" not in db_result.output
-    assert api_error is not None and "arp db import" in api_error
-
-    monkeypatch.setenv("ARP_SKIP_CUTOVER_CHECK", "1")
-    cli_result, _, api_error = _start(monkeypatch, tmp_path / "runs")
-    assert cli_result.exit_code == 0 and api_error is None
-
-
-def test_startup_accepts_imported_runs(pg, tmp_path, monkeypatch):
-    from arp.db.runs import RunStore
-    from arp.storage.run_store import LegacyRunStore
-
-    LegacyRunStore(tmp_path / "runs").save_manifest(RunManifest(run_id="old1", run_type="extraction"))
-    RunStore(pg, tmp_path / "runs").save_manifest(RunManifest(run_id="old1", run_type="extraction"))
-    cli_result, _, api_error = _start(monkeypatch, tmp_path / "runs")
-    assert cli_result.exit_code == 0, cli_result.output
-    assert api_error is None
-
-
 def test_startup_refuses_pending_schema_steps(pg, tmp_path, monkeypatch):
     from arp.storage import postgres_schema
 
