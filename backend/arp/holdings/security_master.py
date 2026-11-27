@@ -6,7 +6,6 @@ exact: an identifier the master holds resolves to its issuer, anything else is u
 from __future__ import annotations
 
 import hashlib
-import json
 import shutil
 from datetime import date
 
@@ -16,7 +15,6 @@ from arp.holdings.validate import RowError, isin_is_valid, iso_date
 from arp.portfolio.loads import LoadRecord, record_load
 from arp.schemas.common import CompanyRef, now_iso
 from arp.schemas.issuer import IdentifierMap, lei_is_valid, normalise_lei
-from arp.storage.atomic_io import atomic_write_text
 from arp.storage.identifier_map import IdentifierMapStore, normalise_identifier
 from arp.storage.issuer_sectors import IssuerSectorStore
 from arp.universe import UniverseRejected, check_sector_codes
@@ -149,10 +147,11 @@ def load(store, idmap: IdentifierMapStore, data: bytes, filename: str) -> dict:
         record_load(store, LoadRecord(kind="security_master", source_id="file", month=date.today().isoformat()[:7],
                                       status="failed", content_hash=digest, detail=f"{len(errors)} errors"))
         raise MasterRejected(errors or [RowError(None, None, "the file has no rows")])
-    if idmap.path.exists():
+    if idmap.path is not None and idmap.path.exists():
         shutil.copy2(idmap.path, idmap.path.with_name(f"{idmap.path.stem}.{now_iso().replace(':', '')}.jsonl"))
-    atomic_write_text(idmap.path, "".join(json.dumps(m.model_dump(mode="json")) + "\n" for m in rows))
-    IssuerSectorStore(idmap.path.with_name("issuer_sectors.json")).replace(sectors)
+    idmap.replace(rows)
+    sector_path = idmap.path.with_name("issuer_sectors.json") if idmap.path is not None else None
+    IssuerSectorStore(sector_path, dsn=idmap.dsn).replace(sectors)
     issuers = len({m.issuer_key for m in rows})
     record_load(store, LoadRecord(kind="security_master", source_id="file", month=date.today().isoformat()[:7], status="ok",
                                   content_hash=digest, detail=f"{len(rows)} identifiers, {issuers} issuers"))

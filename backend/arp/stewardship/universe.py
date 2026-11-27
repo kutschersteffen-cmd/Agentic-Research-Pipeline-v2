@@ -228,8 +228,12 @@ def from_portfolio(
 # process. Owner decision 16 Nov 2026: build once, rebuild when a holdings, data or settings input changes.
 
 _VERSION_TABLES = ("holdings", "securities", "legacy_companies", "security_resolutions", "portfolios")
-_VERSION_SQL = "SELECT " + ", ".join(
-    f"(SELECT count(*) FROM {t}), (SELECT coalesce(sum(hashtextextended(r::text, 0)), 0) FROM {t} r)" for t in _VERSION_TABLES
+_VERSION_SQL = (
+    "SELECT "
+    + ", ".join(
+        f"(SELECT count(*) FROM {t}), (SELECT coalesce(sum(hashtextextended(r::text, 0)), 0) FROM {t} r)" for t in _VERSION_TABLES
+    )
+    + ", (SELECT coalesce(sum(hashtextextended(r::text, 0)), 0) FROM app_documents r WHERE namespace = 'issuer_sectors')"
 )
 
 

@@ -200,7 +200,7 @@ async def _record(
             logger.warning("no trace for seeded company %s", company.company_id, exc_info=True)
     h = input_hash(spec, route_documents(spec, [doc]), planned, input_settings(settings))
     fields = [f.model_copy(update={"provenance": provenance, "input_hash": h}) for f in fields]
-    key, scheme = issuer_key(company, IdentifierMapStore(settings.identifier_map_path))
+    key, scheme = issuer_key(company, IdentifierMapStore(settings.identifier_map_path, dsn=settings.postgres_dsn))
     fields = await check_record(schema, fields, CheckContext(
         company=company, issuer_key=key, schema=schema, documents_by_id={doc.doc_id: doc}, record_fields=fields,
     ))

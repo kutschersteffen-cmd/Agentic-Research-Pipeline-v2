@@ -16,6 +16,7 @@ from arp.schemas.issuer import IdentifierMap
 from arp.schemas.taxonomy import DerivationMethod, TaxonomyStatus
 from arp.schemas.thematic import ActivityDefinition, ThemeDefinition
 from arp.stewardship.notes import NoteLog
+from arp.stewardship.programmes import ProgrammeLog, UnknownProgramme
 from arp.stewardship.trigger_store import TriggerStore
 from arp.storage.identifier_map import IdentifierMapStore
 from arp.storage.issuer_sectors import IssuerSectorStore, apply_master
@@ -32,7 +33,7 @@ def _theme(name: str = "Electrification") -> ThemeDefinition:
 
 
 def test_stores_require_path_or_dsn():
-    for cls in (IssuerSectorStore, IdentifierMapStore, TopicStateStore, TaxonomyStore, NoteLog, TriggerStore):
+    for cls in (IssuerSectorStore, IdentifierMapStore, TopicStateStore, TaxonomyStore, NoteLog, TriggerStore, ProgrammeLog):
         with pytest.raises(ValueError, match="dsn"):
             cls()
 
@@ -157,3 +158,45 @@ def test_trigger_store_pg_round_trip(pg):
     updated = store.transition(tid, "acknowledged", decided_by="alice", reason="Reviewing")
     assert updated.status == "acknowledged"
     assert store.companies()[tid] == "Acme"
+
+
+def test_programme_log_pg_round_trip(pg):
+    log = ProgrammeLog(dsn=pg)
+    assert [p["programme_id"] for p in log.programmes()[:4]] == ["climate", "nature", "ai", "governance"]
+
+    created = log.create("Water Stewardship", by="alice")
+    assert created["programme_id"] == "water_stewardship"
+    assert created["built_in"] is False
+
+    with pytest.raises(ValueError, match="exists"):
+        log.create("Water Stewardship", by="alice")
+    with pytest.raises(UnknownProgramme):
+        log.programme("missing")
+
+    names = {"c1": "Acme Corp", "c2": "Beta Ltd"}
+    log.change("water_stewardship", names, add=["c1", "c2"], remove=[], end=[], reason=None, by="alice")
+    assert log.programme("water_stewardship")["proposed"] == 2
+    assert log.memberships()["c1"][0]["status"] == "proposed"
+
+    log.change("water_stewardship", names, add=[], remove=["c2"], end=[], reason=None, by="alice")
+    assert log.confirm("water_stewardship", by="bob") == 1
+    assert log.programme("water_stewardship")["confirmed"] == 1
+
+    log.change("water_stewardship", names, add=[], remove=[], end=["c1"], reason="Target met", by="bob")
+    assert log.programme("water_stewardship")["confirmed"] == 0
+    assert "c1" not in log.memberships()
+
+
+def test_security_master_load_writes_pg_idmap_and_sectors(pg, tmp_path):
+    from arp.config import Settings
+    from arp.holdings import security_master
+    from arp.storage.portfolio_store_factory import build_portfolio_store
+
+    settings = Settings(postgres_dsn=pg, portfolios_dir=tmp_path / "portfolios", identifier_map_path=tmp_path / "idmap.jsonl")
+    store = build_portfolio_store(settings)
+    idmap = IdentifierMapStore(settings.identifier_map_path, dsn=pg)
+    csv_bytes = b"issuer_key,scheme,value,nace_code\nacme,ISIN,US0378331005,35.11\n"
+    res = security_master.load(store, idmap, csv_bytes, "master.csv")
+    assert res["identifiers"] == 1
+    assert IdentifierMapStore(dsn=pg).resolve("ISIN", "US0378331005") == ["acme"]
+    assert IssuerSectorStore(dsn=pg).get("acme")["nace_code"] == "35.11"

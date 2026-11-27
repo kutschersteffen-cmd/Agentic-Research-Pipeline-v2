@@ -251,7 +251,7 @@ LEI_Y = "529900T8BM49AURSDO55"
 
 async def _run(tmp_path, fake_llm, company, *, edgar=None, search=None, previous=None, rows=()):
     settings = _settings(tmp_path)
-    store = IdentifierMapStore(settings.identifier_map_path)
+    store = IdentifierMapStore(settings.identifier_map_path, dsn=settings.postgres_dsn)
     for r in rows:
         store.add(r)
     run_store = RunStore(pg_dsn(), settings.runs_dir)
@@ -309,7 +309,8 @@ async def test_changed_identifier_triggers_recheck(tmp_path, fake_llm):
     company = CompanyRef(company_id="a", name="A", cik="320193")
     rows = [IdentifierMap(issuer_key=LEI_X, scheme="CIK", value="320193")]
     run_store, run_id, result, _ = await _run(tmp_path, fake_llm, company, rows=rows)
-    idmap = IdentifierMapStore(_settings(tmp_path).identifier_map_path)
+    s = _settings(tmp_path)
+    idmap = IdentifierMapStore(s.identifier_map_path, dsn=s.postgres_dsn)
 
     assert needs_recheck(result, company, idmap) is False
     assert needs_recheck(result, company.model_copy(update={"cik": "999"}), idmap) is True

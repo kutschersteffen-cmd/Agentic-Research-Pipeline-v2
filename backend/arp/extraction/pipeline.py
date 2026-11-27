@@ -654,7 +654,7 @@ async def execute_extraction_run(
     history = RunHistory.load(run_store, exclude_run_id=run_id)
     registry_store = SchemaRegistry(settings.postgres_dsn)
     qualities = {(f.field_id, f.version): registry_store.quality(f.field_id, f.version) for f in schema.fields}
-    identifier_map = IdentifierMapStore(settings.identifier_map_path)
+    identifier_map = IdentifierMapStore(settings.identifier_map_path, dsn=settings.postgres_dsn)
     manifest = run_store.load_manifest(run_id)
     trial = bool(manifest and manifest.params.get("trial"))
     field_limit = asyncio.Semaphore(settings.max_concurrent_llm_calls)

@@ -10,13 +10,18 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import TypeVar
 
+from arp.db.json_document_repo import JsonDocumentRepo
 from arp.schemas.engagement import EngagementRecord
 from arp.stewardship.monitoring import OPEN
 from arp.storage.jsonl_io import complete_rows
 from arp.storage.locks import KeyedLock
+
+_T = TypeVar("_T")
 
 BUILT_IN = {
     "climate": "Climate engagement programme",
@@ -47,47 +52,98 @@ def programme_id(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
 
 
+def _stamp_events(events: list[dict], by: str) -> list[dict]:
+    if not by.strip():
+        raise ValueError("A programme change needs the signed-in user")
+    if not events:
+        return []
+    at = datetime.now(UTC).isoformat()
+    return [{**e, "by": by, "at": at} for e in events]
+
+
+def _is_valid_row(e: object) -> bool:
+    return isinstance(e, dict) and all(isinstance(e.get(k), str) and e[k] for k in _needs(e))
+
+
+def _fold_rows(rows: list[dict]) -> tuple[dict[str, dict], dict[str, dict[str, dict]]]:
+    """(programme id -> programme, programme id -> issuer id -> member), built-ins first."""
+    progs = {
+        pid: {"programme_id": pid, "name": name, "built_in": True, "created_by": None, "created_at": None}
+        for pid, name in BUILT_IN.items()
+    }
+    members: dict[str, dict[str, dict]] = {pid: {} for pid in progs}
+    for e in rows:
+        if not _is_valid_row(e):
+            continue
+        pid, kind = e["programme_id"], e["event"]
+        if kind == "created":
+            if pid not in progs:
+                progs[pid] = {
+                    "programme_id": pid,
+                    "name": e["name"],
+                    "built_in": False,
+                    "created_by": e["by"],
+                    "created_at": e["at"],
+                }
+                members[pid] = {}
+            continue
+        if pid not in members:
+            continue
+        iid, m = e["issuer_id"], members[pid].get(e["issuer_id"])
+        status = m["status"] if m else None
+        if kind == "proposed" and status in (None, "ended"):
+            members[pid][iid] = {
+                "issuer_id": iid, "company": e.get("company", iid), "status": "proposed",
+                "proposed_by": e["by"], "proposed_at": e["at"], "confirmed_by": None, "confirmed_at": None,
+                "ended_by": None, "ended_at": None, "end_reason": None,
+            }  # fmt: skip
+        elif kind == "removed" and status == "proposed":
+            del members[pid][iid]
+        elif kind == "confirmed" and status == "proposed":
+            m.update(status="confirmed", confirmed_by=e["by"], confirmed_at=e["at"])
+        elif kind == "ended" and status == "confirmed":
+            m.update(status="ended", ended_by=e["by"], ended_at=e["at"], end_reason=e.get("reason"))
+    return progs, members
+
+
 class ProgrammeLog:
-    def __init__(self, root: Path) -> None:
-        self.path = root / "programmes" / "events.jsonl"
+    def __init__(self, root: Path | None = None, *, dsn: str | None = None) -> None:
+        if root is None and not dsn:
+            raise ValueError("ProgrammeLog requires either root or dsn")
+        self.path = root / "programmes" / "events.jsonl" if root is not None else None
+        self._repo = JsonDocumentRepo(dsn, "stewardship_programmes") if dsn else None
 
     def _fold(self) -> tuple[dict[str, dict], dict[str, dict[str, dict]]]:
-        """(programme id -> programme, programme id -> issuer id -> member), built-ins first."""
-        progs = {
-            pid: {"programme_id": pid, "name": name, "built_in": True, "created_by": None, "created_at": None}
-            for pid, name in BUILT_IN.items()
-        }
-        members: dict[str, dict[str, dict]] = {pid: {} for pid in progs}
-        for e in complete_rows(self.path, _needs):
-            pid, kind = e["programme_id"], e["event"]
-            if kind == "created":
-                if pid not in progs:
-                    progs[pid] = {
-                        "programme_id": pid,
-                        "name": e["name"],
-                        "built_in": False,
-                        "created_by": e["by"],
-                        "created_at": e["at"],
-                    }
-                    members[pid] = {}
-                continue
-            if pid not in members:
-                continue
-            iid, m = e["issuer_id"], members[pid].get(e["issuer_id"])
-            status = m["status"] if m else None
-            if kind == "proposed" and status in (None, "ended"):
-                members[pid][iid] = {
-                    "issuer_id": iid, "company": e.get("company", iid), "status": "proposed",
-                    "proposed_by": e["by"], "proposed_at": e["at"], "confirmed_by": None, "confirmed_at": None,
-                    "ended_by": None, "ended_at": None, "end_reason": None,
-                }  # fmt: skip
-            elif kind == "removed" and status == "proposed":
-                del members[pid][iid]
-            elif kind == "confirmed" and status == "proposed":
-                m.update(status="confirmed", confirmed_by=e["by"], confirmed_at=e["at"])
-            elif kind == "ended" and status == "confirmed":
-                m.update(status="ended", ended_by=e["by"], ended_at=e["at"], end_reason=e.get("reason"))
-        return progs, members
+        if self._repo is not None:
+            rows = list((self._repo.get("events") or {}).get("events", []))
+            return _fold_rows(rows)
+        assert self.path is not None
+        return _fold_rows(list(complete_rows(self.path, _needs)))
+
+    def _mutate(
+        self,
+        compute: Callable[[dict[str, dict], dict[str, dict[str, dict]]], tuple[list[dict], _T]],
+        by: str,
+    ) -> _T:
+        if self._repo is not None:
+            result_box: list[_T] = []
+
+            def updater(cur: dict | None) -> dict:
+                existing = list((cur or {}).get("events", []))
+                progs, members = _fold_rows(existing)
+                events, result = compute(progs, members)
+                stamped = _stamp_events(events, by)
+                result_box.append(result)
+                return {"events": existing + stamped}
+
+            self._repo.update("events", updater)
+            return result_box[0]
+        assert self.path is not None
+        with _LOCKS.acquire(str(self.path)):
+            progs, members = self._fold()
+            events, result = compute(progs, members)
+            self._write(events, by)
+        return result
 
     @staticmethod
     def _summary(prog: dict, members: dict[str, dict]) -> dict:
@@ -121,13 +177,15 @@ class ProgrammeLog:
         pid = programme_id(name)
         if not pid:
             raise ValueError("A programme name needs a letter or a digit")
-        with _LOCKS.acquire(str(self.path)):
-            progs, _ = self._fold()
+
+        def compute(progs: dict[str, dict], _members: dict[str, dict[str, dict]]) -> tuple[list[dict], None]:
             if any(p["name"].lower() == name.lower() for p in progs.values()):
                 raise ValueError(f"A programme named {name} exists")
             if pid in progs:
                 raise ValueError(f"A programme with id {pid} exists")
-            self._write([{"event": "created", "programme_id": pid, "name": name}], by)
+            return [{"event": "created", "programme_id": pid, "name": name}], None
+
+        self._mutate(compute, by)
         return self.programme(pid)
 
     def change(
@@ -136,8 +194,8 @@ class ProgrammeLog:
         """Proposes `add` (house-universe companies), drops proposed `remove`, ends confirmed `end` with a reason.
         Every check runs before anything is written, in this order, and the first that fails answers; adding a
         proposed or confirmed member writes nothing."""
-        with _LOCKS.acquire(str(self.path)):
-            progs, members = self._fold()
+
+        def compute(progs: dict[str, dict], members: dict[str, dict[str, dict]]) -> tuple[list[dict], None]:
             if pid not in progs:
                 raise UnknownProgramme(pid)
             if unknown := [i for i in dict.fromkeys(add) if i not in names]:
@@ -161,16 +219,18 @@ class ProgrammeLog:
             ]
             events += [{"event": "removed", "issuer_id": i} for i in dict.fromkeys(remove)]
             events += [{"event": "ended", "issuer_id": i, "reason": reason.strip()} for i in dict.fromkeys(end)]
-            self._write([{**e, "programme_id": pid} for e in events], by)
+            return [{**e, "programme_id": pid} for e in events], None
+
+        self._mutate(compute, by)
 
     def confirm(self, pid: str, by: str) -> int:
-        with _LOCKS.acquire(str(self.path)):
-            progs, members = self._fold()
+        def compute(progs: dict[str, dict], members: dict[str, dict[str, dict]]) -> tuple[list[dict], int]:
             if pid not in progs:
                 raise UnknownProgramme(pid)
             proposed = [i for i, m in members[pid].items() if m["status"] == "proposed"]
-            self._write([{"event": "confirmed", "programme_id": pid, "issuer_id": i} for i in proposed], by)
-        return len(proposed)
+            return [{"event": "confirmed", "programme_id": pid, "issuer_id": i} for i in proposed], len(proposed)
+
+        return self._mutate(compute, by)
 
     def suggestions(self, pid: str, names: dict[str, str], records: list[EngagementRecord]) -> list[dict]:
         """House-universe companies with an open or stalled issue whose theme maps to the programme, leaving out
@@ -193,11 +253,10 @@ class ProgrammeLog:
         return out
 
     def _write(self, events: list[dict], by: str) -> None:
-        if not by.strip():
-            raise ValueError("A programme change needs the signed-in user")
-        if not events:
+        stamped = _stamp_events(events, by)
+        if not stamped:
             return
-        at = datetime.now(UTC).isoformat()
+        assert self.path is not None
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.path.open("a", encoding="utf-8") as f:  # one write, so a change lands whole or not at all
-            f.write("".join(json.dumps({**e, "by": by, "at": at}, ensure_ascii=False) + "\n" for e in events))
+            f.write("".join(json.dumps(e, ensure_ascii=False) + "\n" for e in stamped))

@@ -84,7 +84,7 @@ def run_month(
             issuer["fields"].update(fields.get(issuer["issuer_id"], {}))
     records = build_engagement_store(settings).list_all()
     triggers = monitoring.evaluate(PolicyStore(settings.stewardship_streams_dir).active("monitoring_rules"), sample, records)
-    trigger_store = TriggerStore(settings.stewardship_streams_dir)
+    trigger_store = TriggerStore(settings.stewardship_streams_dir, dsn=settings.postgres_dsn)
     stored = trigger_store.record_run(month, triggers)
     # what the Home hub's "Monitoring & Alerts" step reads; a blocked run records nothing
     store.append_governance_event("monthly_run_recorded", {"month": month, "alerts": len(raised), "triggers": len(stored)})

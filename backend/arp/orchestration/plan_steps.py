@@ -78,7 +78,9 @@ def _load_universe(settings: Settings, taxonomy_id: str, source: str):
 
     # shortcut: `source` is a saved universe's file name or a path inside the universes folder; portfolio ids
     # come with the Plans page (plan task 9).
-    taxonomy, schema = released_run_schema(TaxonomyStore(settings.taxonomies_dir), SchemaRegistry(settings.postgres_dsn),
+    taxonomy, schema = released_run_schema(
+        TaxonomyStore(settings.taxonomies_dir, dsn=settings.postgres_dsn),
+        SchemaRegistry(settings.postgres_dsn),
                                            taxonomy_id, None)
     path = universe_source_path(settings.runs_dir, source)
     if path is None:  # never read a file outside the universes folder

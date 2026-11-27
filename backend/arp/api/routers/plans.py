@@ -68,8 +68,11 @@ def _context() -> str:
     from arp.storage.taxonomy_store import TaxonomyStore
     from arp.universe import saved_universes
 
-    return planner_context(TaxonomyStore(get_settings().taxonomies_dir).list_all(),
-                           saved_universes(get_settings().runs_dir))
+    settings = get_settings()
+    return planner_context(
+        TaxonomyStore(settings.taxonomies_dir, dsn=settings.postgres_dsn).list_all(),
+        saved_universes(settings.runs_dir),
+    )
 
 
 def _check_sources(steps: list[dict]) -> list[str]:

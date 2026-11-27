@@ -342,14 +342,14 @@ def test_ac30_taxonomy_is_a_stock_inference_draft(picked):
     assert '"derivation_method": "stock_inference"' in res.stdout and '"status": "draft"' in res.stdout
 
 
-def test_ac28_pick_at_drafted_is_refused(picked, tmp_path):  # and Review Focus 1
+def test_ac28_pick_at_drafted_is_refused(picked, tmp_path, pg):  # and Review Focus 1
     from arp.storage.taxonomy_store import TaxonomyStore
 
     assert _invoke("pick", picked, "--theme", "1").exit_code == 0
     res = _invoke("pick", picked, "--theme", "1")
     assert res.exit_code == 1
     assert res.stderr.strip() == f"Run {picked} is at stage 'drafted'; 'pick' needs 'themes_ready'."
-    assert len(TaxonomyStore(tmp_path / "tax").list_all()) == 1
+    assert len(TaxonomyStore(tmp_path / "tax", dsn=pg).list_all()) == 1
 
 
 def test_ac28a_unknown_theme(picked):

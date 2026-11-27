@@ -87,7 +87,7 @@ def get_worklist(
     resolved = _scope(scope, sample, store)
     return worklist.build(
         streams.root, sample, engagements.list_all(), scope=resolved, funds=_funds(sample, store),
-        labels=worklist.scope_labels(store), **inputs,
+        labels=worklist.scope_labels(store), dsn=settings.postgres_dsn, **inputs,
     )  # fmt: skip
 
 
@@ -111,7 +111,9 @@ def post_priority_preview(
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
     (sample, _, inputs), records = _load(settings), engagements.list_all()
-    rows = worklist.house_rows(streams.root, sample, records, today=datetime.now(UTC).date(), **inputs)
+    rows = worklist.house_rows(
+        streams.root, sample, records, today=datetime.now(UTC).date(), dsn=settings.postgres_dsn, **inputs
+    )
     return worklist.preview(body.content, PolicyStore(streams.root).active(worklist.POLICY), rows)
 
 
@@ -196,55 +198,72 @@ def _programme_call(fn, *args):
 
 
 @router.get("/programmes", response_model=ProgrammeList)
-def get_programmes(streams: StreamStore = Depends(get_stream_store)) -> dict:
+def get_programmes(
+    settings: Settings = Depends(settings_dep),
+    streams: StreamStore = Depends(get_stream_store),
+) -> dict:
     """Every engagement programme with its member counts, the four built-in ones first."""
-    return {"programmes": ProgrammeLog(streams.root).programmes()}
+    return {"programmes": ProgrammeLog(streams.root, dsn=settings.postgres_dsn).programmes()}
 
 
 @router.post("/programmes", response_model=Programme)
 def post_programme(
-    body: ProgrammeCreate, streams: StreamStore = Depends(get_stream_store), principal: Principal = Depends(current_user)
+    body: ProgrammeCreate,
+    settings: Settings = Depends(settings_dep),
+    streams: StreamStore = Depends(get_stream_store),
+    principal: Principal = Depends(current_user),
 ) -> dict:
     """A new programme by name; its id is the name lower-cased with runs of other characters as `_`."""
-    return _programme_call(ProgrammeLog(streams.root).create, body.name, principal.name)
+    return _programme_call(ProgrammeLog(streams.root, dsn=settings.postgres_dsn).create, body.name, principal.name)
 
 
 @router.get("/programmes/{programme_id}", response_model=ProgrammeDetail)
-def get_programme(programme_id: str, streams: StreamStore = Depends(get_stream_store)) -> dict:
+def get_programme(
+    programme_id: str,
+    settings: Settings = Depends(settings_dep),
+    streams: StreamStore = Depends(get_stream_store),
+) -> dict:
     """The programme and every member it had, ended ones included."""
-    return _programme_call(ProgrammeLog(streams.root).programme, programme_id)
+    return _programme_call(ProgrammeLog(streams.root, dsn=settings.postgres_dsn).programme, programme_id)
 
 
 @router.post("/programmes/{programme_id}/members", response_model=ProgrammeDetail)
 def post_programme_members(
     programme_id: str,
     body: ProgrammeMembersChange,
+    settings: Settings = Depends(settings_dep),
     streams: StreamStore = Depends(get_stream_store),
     principal: Principal = Depends(current_user),
 ) -> dict:
     """Proposes companies, drops proposed ones and ends confirmed ones (with a reason)."""
-    log = ProgrammeLog(streams.root)
+    log = ProgrammeLog(streams.root, dsn=settings.postgres_dsn)
     _programme_call(log.change, programme_id, _names(), body.add, body.remove, body.end, body.reason, principal.name)
     return log.programme(programme_id)
 
 
 @router.post("/programmes/{programme_id}/confirm", response_model=Confirmed)
 def post_programme_confirm(
-    programme_id: str, streams: StreamStore = Depends(get_stream_store), principal: Principal = Depends(current_user)
+    programme_id: str,
+    settings: Settings = Depends(settings_dep),
+    streams: StreamStore = Depends(get_stream_store),
+    principal: Principal = Depends(current_user),
 ) -> dict:
     """Every proposed member becomes confirmed, recorded as the signed-in user."""
-    return {"confirmed": _programme_call(ProgrammeLog(streams.root).confirm, programme_id, principal.name)}
+    return {"confirmed": _programme_call(ProgrammeLog(streams.root, dsn=settings.postgres_dsn).confirm, programme_id, principal.name)}
 
 
 @router.get("/programmes/{programme_id}/suggestions", response_model=ProgrammeSuggestions)
 def get_programme_suggestions(
     programme_id: str,
+    settings: Settings = Depends(settings_dep),
     streams: StreamStore = Depends(get_stream_store),
     engagements: EngagementStore = Depends(get_engagement_store),
 ) -> dict:
     """Companies with an open or stalled issue on the programme's theme that are not members yet. Writes nothing."""
     return {
-        "suggestions": _programme_call(ProgrammeLog(streams.root).suggestions, programme_id, _names(), engagements.list_all())
+        "suggestions": _programme_call(
+            ProgrammeLog(streams.root, dsn=settings.postgres_dsn).suggestions, programme_id, _names(), engagements.list_all()
+        )
     }
 
 
@@ -261,15 +280,19 @@ def post_note(
     if body.company_id not in {i["issuer_id"] for i in sample["issuers"]}:
         raise HTTPException(422, "unknown company")
     try:
-        return NoteLog(streams.root).add(body.company_id, body.text, principal.name, body.scope)
+        return NoteLog(streams.root, dsn=settings.postgres_dsn).add(body.company_id, body.text, principal.name, body.scope)
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
 
 
 @router.get("/notes", response_model=NoteList)
-def get_notes(company_id: str, streams: StreamStore = Depends(get_stream_store)) -> dict:
+def get_notes(
+    company_id: str,
+    settings: Settings = Depends(settings_dep),
+    streams: StreamStore = Depends(get_stream_store),
+) -> dict:
     """The company's notes, newest first. No route edits or deletes a note."""
-    return {"notes": NoteLog(streams.root).notes(company_id)}
+    return {"notes": NoteLog(streams.root, dsn=settings.postgres_dsn).notes(company_id)}
 
 
 @router.get("/votes", response_model=VoteList)

@@ -18,7 +18,7 @@ holdings_app = typer.Typer(help="Holdings intake: file import and templates (E77
 
 
 def _stores(settings: Settings):
-    return build_portfolio_store(settings), IdentifierMapStore(settings.identifier_map_path)
+    return build_portfolio_store(settings), IdentifierMapStore(settings.identifier_map_path, dsn=settings.postgres_dsn)
 
 
 def _fail(message: str) -> None:

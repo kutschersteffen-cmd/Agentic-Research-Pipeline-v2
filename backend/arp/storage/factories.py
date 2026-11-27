@@ -24,7 +24,8 @@ def get_run_store() -> RunStore:
 
 @lru_cache
 def get_taxonomy_store() -> TaxonomyStore:
-    return TaxonomyStore(get_settings().taxonomies_dir)
+    settings = get_settings()
+    return TaxonomyStore(settings.taxonomies_dir, dsn=settings.postgres_dsn)
 
 
 @lru_cache

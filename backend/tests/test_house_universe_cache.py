@@ -404,8 +404,10 @@ def test_new_folders_rebuild(store_s, logs, monkeypatch, tmp_path):
     house.house_universe()
     new = tmp_path / "moved"
     shutil.copytree(settings.portfolios_dir / "datapoints", new / "portfolios" / "datapoints")
+    from arp.storage.issuer_sectors import IssuerSectorStore
+
     (new / "map").mkdir()
-    (new / "map" / "issuer_sectors.json").write_text(json.dumps({"C1": {"sector": "S2 Sector"}}))
+    IssuerSectorStore(new / "map" / "issuer_sectors.json", dsn=settings.postgres_dsn).replace({"C1": {"sector": "S2 Sector"}})
     monkeypatch.setenv("ARP_PORTFOLIOS_DIR", str(new / "portfolios"))
     monkeypatch.setenv("ARP_STEWARDSHIP_STREAMS_DIR", str(new / "streams"))
     monkeypatch.setenv("ARP_IDENTIFIER_MAP_PATH", str(new / "map" / "identifier_map.jsonl"))

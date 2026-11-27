@@ -28,7 +28,7 @@ def env(tmp_path):
         identifier_map_path=tmp_path / "idmap.jsonl",
     )
     (settings.runs_dir / "_universes").mkdir(parents=True)
-    IdentifierMapStore(settings.identifier_map_path).add(
+    IdentifierMapStore(settings.identifier_map_path, dsn=settings.postgres_dsn).add(
         IdentifierMap(issuer_key="INTERNAL:1", scheme="CIK", value="0000320193")
     )
     app = FastAPI()

@@ -124,7 +124,9 @@ def test_a_stored_trigger_no_longer_raised_can_still_open_an_engagement(tmp_path
     stored = {"issuer_id": "GONE", "company": "Gone Co", "sector": "Utilities", "type": "score_change",
               "theme": "climate_transition", "severity": "medium", "rule": "clti_laggard", "reason": "CLTI 20",
               "engagement_id": None}
-    TriggerStore(streams.root).record_run("2026-09", [stored])
+    from arp.config import get_settings
+
+    TriggerStore(streams.root, dsn=get_settings().postgres_dsn).record_run("2026-09", [stored])
     body = OpenFromTriggerRequest(issuer_id="GONE", rule="clti_laggard")
     opened = open_engagement_from_trigger(body, streams, engagements, PRINCIPAL)
     [issue] = engagements.get("GONE").issues

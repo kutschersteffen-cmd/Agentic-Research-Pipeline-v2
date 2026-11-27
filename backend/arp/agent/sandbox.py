@@ -109,7 +109,7 @@ async def call_capability(capability_id: str, args: BaseModel, principal: Princi
         settings = get_settings()
         lists = await run_in_threadpool(
             smart_search.datahub_lists, settings, factories.get_portfolio_store(),
-            IdentifierMapStore(settings.identifier_map_path),
+            IdentifierMapStore(settings.identifier_map_path, dsn=settings.postgres_dsn),
             factories.get_run_store(), factories.get_taxonomy_store(), factories.get_reporting_store(),
             date.today())
         found, _usage = await smart_search.smart_search(args.question, build_llm_client(settings), **lists)

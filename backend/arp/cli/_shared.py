@@ -99,7 +99,8 @@ def _run_store() -> RunStore:
 
 
 def _taxonomy_store() -> TaxonomyStore:
-    return TaxonomyStore(get_settings().taxonomies_dir)
+    settings = get_settings()
+    return TaxonomyStore(settings.taxonomies_dir, dsn=settings.postgres_dsn)
 
 
 def _parse_taxonomy_ref(ref: str) -> TaxonomyRef:

@@ -120,7 +120,9 @@ def test_icio_results_say_icio(built, code, core, country):  # AC-23 (values pin
 def test_theme_run_sees_the_master_sectors(built, tmp_path, pg):  # Scope 5: theme runs get the merged company
     built()
     settings = _settings(tmp_path).model_copy(update={"identifier_map_path": tmp_path / "idmap" / "identifier_map.jsonl"})
-    IssuerSectorStore(settings.identifier_map_path.with_name("issuer_sectors.json")).replace({"nw": {"nace_code": "07.29"}})
+    IssuerSectorStore(settings.identifier_map_path.with_name("issuer_sectors.json"), dsn=settings.postgres_dsn).replace(
+        {"nw": {"nace_code": "07.29"}}
+    )
     activity = ActivityDefinition(name="Copper mining", in_scope_description="x", out_of_scope_description="y",
                                   seed_keywords=["copper"], core_isic_codes=["B07"])
     store = RunStore(pg, settings.runs_dir)

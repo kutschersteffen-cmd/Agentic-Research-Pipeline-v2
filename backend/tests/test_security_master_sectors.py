@@ -101,7 +101,7 @@ def test_issuer_without_company_creates_none(client, env):
 def test_empty_nace_rev_next_to_a_code_is_rev_2_and_explicit_rev_is_kept(client, env):
     store, idmap = env
     upload(client, master(row("a", ISIN, nace="07.29"), row("b", ISIN2, nace="07.29", rev="2.1")))
-    s = IssuerSectorStore(idmap.path.with_name("issuer_sectors.json"))
+    s = IssuerSectorStore(idmap.path.with_name("issuer_sectors.json"), dsn=idmap.dsn)
     assert s.get("a")["nace_rev"] == "2" and s.get("b")["nace_rev"] == "2.1"
     assert upload(client, master(row("a", ISIN, rev="3"))).status_code == 422
 
@@ -110,7 +110,7 @@ def test_nace_rev_without_a_code_overrides_the_company_revision(client, env):
     store, idmap = env
     store.save_company(CompanyRef(company_id="nw", name="NW", nace_code="35.11", nace_rev="2"))
     assert upload(client, master(row("nw", ISIN, rev="2.1"))).status_code == 200
-    assert IssuerSectorStore(idmap.path.with_name("issuer_sectors.json")).get("nw") == {"nace_rev": "2.1"}
+    assert IssuerSectorStore(idmap.path.with_name("issuer_sectors.json"), dsn=idmap.dsn).get("nw") == {"nace_rev": "2.1"}
     assert (store.get_company("nw").nace_code, store.get_company("nw").nace_rev) == ("35.11", "2.1")
 
 
@@ -124,7 +124,9 @@ def test_postgres_store_applies_the_master(pg, tmp_path):
     s = _pg_settings(pg, tmp_path)
     store = build_portfolio_store(s)
     store.save_company(CompanyRef(company_id="nw", name="NW", nace_code="35.11"))
-    IssuerSectorStore(s.identifier_map_path.with_name("issuer_sectors.json")).replace({"nw": {"nace_code": "07.29", "nace_rev": "2"}})
+    IssuerSectorStore(s.identifier_map_path.with_name("issuer_sectors.json"), dsn=s.postgres_dsn).replace(
+        {"nw": {"nace_code": "07.29", "nace_rev": "2"}}
+    )
     assert store.get_company("nw").nace_code == "07.29"
     assert [c.nace_code for c in store.list_companies()] == ["07.29"]
     assert build_portfolio_store(s, merge_master=False).get_company("nw").nace_code == "35.11"

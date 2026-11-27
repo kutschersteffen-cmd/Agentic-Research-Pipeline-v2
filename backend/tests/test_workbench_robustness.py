@@ -217,9 +217,18 @@ def test_selection_keeps_a_confirmed_row_and_skips_damaged_lines(client, root):
 
 def test_programme_log_skips_damaged_lines(client, root):
     # AC-21
+    from arp.db.json_document_repo import JsonDocumentRepo
+
     assert _change(client, add=["SYN03"]).status_code == 200
-    with (root / "programmes" / "events.jsonl").open("a") as f:
-        f.write("".join(json.dumps(line) + "\n" for line in ({"event": "proposed", "programme_id": "climate"}, {"programme_id": "climate"}, ["x"])))
+    damaged = [{"event": "proposed", "programme_id": "climate"}, {"programme_id": "climate"}, ["x"]]
+    dsn = get_settings().postgres_dsn
+    if dsn:
+        JsonDocumentRepo(dsn, "stewardship_programmes").update(
+            "events", lambda cur: {"events": [*(cur or {}).get("events", []), *damaged]}
+        )
+    else:
+        with (root / "programmes" / "events.jsonl").open("a") as f:
+            f.write("".join(json.dumps(line) + "\n" for line in damaged))
     assert client.get("/api/stewardship/programmes").status_code == 200
     assert _members(client) == [("SYN03", "proposed")]
     assert client.get("/api/stewardship/worklist").status_code == 200

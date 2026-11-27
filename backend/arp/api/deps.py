@@ -75,7 +75,7 @@ def get_flow_store(settings: Settings = Depends(settings_dep)) -> FlowStore:
 
 
 def get_identifier_map(settings: Settings = Depends(settings_dep)) -> IdentifierMapStore:
-    return IdentifierMapStore(settings.identifier_map_path)
+    return IdentifierMapStore(settings.identifier_map_path, dsn=settings.postgres_dsn)
 
 
 @lru_cache
@@ -132,7 +132,8 @@ def get_scheduler() -> DiscoveryScheduler:
 
 @lru_cache
 def get_topic_store() -> TopicStateStore:
-    return TopicStateStore(get_settings().emerging_themes_state_dir / "topics")
+    settings = get_settings()
+    return TopicStateStore(settings.emerging_themes_state_dir / "topics", dsn=settings.postgres_dsn)
 
 
 @lru_cache

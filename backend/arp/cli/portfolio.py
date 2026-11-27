@@ -269,7 +269,12 @@ def portfolio_news_pull(since: str = typer.Option(None, help="YYYY-MM-DD; defaul
     """Pulls new Refinitiv News stories, tied to issuers by the security master's PermIDs only. Run it from a scheduler."""
     settings = get_settings()
     try:
-        result = pull_news(_portfolio_store(), settings, IdentifierMapStore(settings.identifier_map_path), since=since)
+        result = pull_news(
+            _portfolio_store(),
+            settings,
+            IdentifierMapStore(settings.identifier_map_path, dsn=settings.postgres_dsn),
+            since=since,
+        )
     except Exception as exc:  # unconfigured, fetch failure or an unexpected response: all exit 1
         typer.echo(f"News pull failed: {type(exc).__name__}: {exc}", err=True)
         raise typer.Exit(1) from exc
