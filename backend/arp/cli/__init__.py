@@ -40,7 +40,6 @@ from arp.cli.transition_plan import transition_plan_app
 from arp.cli.universe import universe_app
 from arp.cli.voting import voting_app
 from arp.cli.xbrl import xbrl_app
-from arp.pageindex.cli import pageindex_app
 
 app = typer.Typer(help="Agentic Research Pipeline CLI -- the headless path for 1000s-of-companies batch runs.")
 
@@ -57,7 +56,7 @@ def _require_postgres(ctx: typer.Context) -> None:
     from arp.config import get_settings
     from arp.db.session import require_cutover, require_postgres
 
-    if "--help" in sys.argv[1:] or ctx.invoked_subcommand in ("io", "pageindex"):  # pageindex: PDF files only
+    if "--help" in sys.argv[1:] or ctx.invoked_subcommand == "io":
         return
     if sys.argv[1:3] == ["showcase", "simulate"]:  # holdings files in, a CSV out
         return
@@ -99,7 +98,6 @@ app.add_typer(authority_library_app, name="authority-library")
 app.add_typer(taxonomy_app, name="taxonomy")
 app.add_typer(extract_app, name="extract")
 app.add_typer(transition_plan_app, name="transition-plan")
-app.add_typer(pageindex_app, name="pageindex")
 app.add_typer(transition_barrier_app, name="transition-barrier")
 app.add_typer(transition_alignment_app, name="transition-alignment")
 app.add_typer(discover_app, name="discover")

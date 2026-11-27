@@ -541,32 +541,9 @@ class Settings(BaseSettings):
         "thread pool). pool_size + max_overflow per process must fit the server's max_connections.",
     )
 
-    # Optional S3-compatible object store (arp/storage/object_store_client.py,
-    # requires the `object_storage` extra: pip install -e ".[object_storage]").
-    # Additive: holds an immutable copy of each source document's original
-    # bytes (MinIO locally, any S3-compatible endpoint in production),
-    # keyed by the same content hash DocumentContentStore already computes.
-    # Never a replacement for the parsed-text cache or for any queryable/
-    # searchable store -- it exists purely so an original source file is
-    # always retrievable even if the local working copy is gone.
-    object_store_endpoint_url: str | None = Field(
-        default=None,
-        description="S3-compatible endpoint, e.g. http://localhost:9000 (MinIO). None (default) disables object "
-        "storage entirely -- documents stay only in the local documents_dir, exactly as today.",
-    )
-    object_store_access_key: str | None = Field(default=None, description="Access key for object_store_endpoint_url.")
-    object_store_secret_key: str | None = Field(default=None, description="Secret key for object_store_endpoint_url.")
-    object_store_bucket: str = Field(default="arp-documents", description="Bucket for immutable source-document copies.")
-    object_store_live_upload_enabled: bool = Field(
-        default=False,
-        description="When true (and object_store_endpoint_url is set), the object store is used instead of the "
-        "local blob store (blob_store_dir) for each document's raw original bytes. A failed or unverified "
-        "upload now fails the document -- it is not collected. Run 'arp db reindex object-store' to backfill.",
-    )
     blob_store_dir: Path = Field(
         default=REPO_ROOT / "data" / "blobs",
-        description="Local store for each captured document's original bytes (<dir>/<key[:2]>/<key>). Used "
-        "unless the object store is enabled.",
+        description="Local store for each captured document's original bytes (<dir>/<key[:2]>/<key>).",
     )
     retention_runs_days: int = Field(
         default=3650, ge=365, description="Run files are deleted only once the newest of them is this old."

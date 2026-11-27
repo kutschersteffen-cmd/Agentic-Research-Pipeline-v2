@@ -20,30 +20,14 @@ def _settings(tmp_path, **overrides) -> Settings:
 def test_from_settings_maps_every_field(tmp_path):
     settings = _settings(
         tmp_path,
-        object_store_endpoint_url="http://localhost:9000",
-        object_store_access_key="arp",
-        object_store_secret_key="arp12345",
-        object_store_bucket="arp-documents",
-        object_store_live_upload_enabled=True,
+        blob_store_dir=tmp_path / "blobs",
     )
 
     config = IndexingConfig.from_settings(settings)
 
-    assert config.object_store_endpoint_url == "http://localhost:9000"
-    assert config.object_store_access_key == "arp"
-    assert config.object_store_secret_key == "arp12345"
-    assert config.object_store_bucket == "arp-documents"
-    assert config.object_store_live_upload_enabled is True
-
-
-def test_object_store_enabled_requires_both_url_and_flag(tmp_path):
-    assert not IndexingConfig(object_store_endpoint_url=None, object_store_live_upload_enabled=True).object_store_enabled
-    assert not IndexingConfig(object_store_endpoint_url="http://localhost:9000", object_store_live_upload_enabled=False).object_store_enabled
-    assert IndexingConfig(
-        object_store_endpoint_url="http://localhost:9000", object_store_live_upload_enabled=True
-    ).object_store_enabled
+    assert config.blob_store_dir == tmp_path / "blobs"
 
 
 def test_defaults_are_entirely_disabled():
     config = IndexingConfig()
-    assert not config.object_store_enabled
+    assert config.blob_store_dir is None
