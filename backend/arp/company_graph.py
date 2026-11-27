@@ -17,7 +17,6 @@ from neo4j.exceptions import DriverError, Neo4jError
 
 from arp.config import Settings
 from arp.errors import NotConfigured
-from arp.research.exposure_layers import Edge
 
 NOT_CONFIGURED = "company graph not configured: set ARP_NEO4J_URI"
 COLUMNS = (
@@ -29,6 +28,15 @@ _DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 class CompanyGraphError(NotConfigured):
     """The graph is not configured or cannot be reached."""
+
+
+@dataclass(frozen=True)
+class Edge:
+    """The version of one supplier -> customer edge in force at `as_of`."""
+
+    supplier_key: str
+    customer_key: str
+    revenue_share: float
 
 
 @dataclass(frozen=True)

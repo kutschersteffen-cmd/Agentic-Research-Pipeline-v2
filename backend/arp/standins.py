@@ -15,7 +15,7 @@ from typing import Any, TypeVar
 from pydantic import BaseModel, ValidationError
 
 from arp.config import get_settings
-from arp.discovery.site_finder import SearchResult, WebSearchClient
+from arp.discovery.web_search import SearchResult, WebSearchClient
 from arp.llm.base import LLMUsage
 
 T = TypeVar("T", bound=BaseModel)

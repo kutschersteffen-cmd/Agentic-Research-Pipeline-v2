@@ -18,14 +18,28 @@ from arp.grounding import ground_claim
 from arp.ingestion.parsing import chunk_document
 from arp.llm.base import LLMClient
 from arp.retrieval.select_evidence import select_relevant_chunks
-from arp.rfp.text import has_figures, numbers
+from arp.rfp.text import (
+    APPROVED as APPROVED,
+)
+from arp.rfp.text import (
+    CHECK_FIGURE,
+    DRAFTED,
+    NO_SOURCE,
+    STALE_SOURCE,
+    has_figures,
+    numbers,
+)
+from arp.rfp.text import (
+    EDITED as EDITED,
+)
+from arp.rfp.text import (
+    LEFT_BLANK as LEFT_BLANK,
+)
 from arp.schemas.common import Citation, DocType, DocumentChunk, SourceDocument
 
 if TYPE_CHECKING:
     from arp.rfp.documents import RefDoc
 
-NO_SOURCE, DRAFTED, EDITED, APPROVED, LEFT_BLANK = "no source", "drafted", "edited", "approved", "left blank"
-CHECK_FIGURE, STALE_SOURCE = "check figure", "stale source"
 TOP_ENTRIES = 8
 # passage text cannot close or open its own delimiter: the `<` of each tag is escaped, never deleted, so no tag re-forms
 _TAG = re.compile(r"<(?=/?passage>)", re.IGNORECASE)

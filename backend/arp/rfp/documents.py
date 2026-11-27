@@ -13,7 +13,7 @@ from sqlalchemy import select
 from arp.db import models as m
 from arp.errors import ClientInputError
 from arp.ingestion import local_files
-from arp.rfp.draft import DRAFTED, EDITED, STALE_SOURCE
+from arp.rfp.text import DRAFTED, EDITED, STALE_SOURCE
 from arp.schemas.common import DocType, SourceDocument
 from arp.schemas.rfp import RfpDocumentOut
 

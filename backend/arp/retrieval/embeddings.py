@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import numpy as np
 
+import arp.models.local as local
 from arp import models
-from arp.models import local
+from arp.models.registry import DEFAULT_EMBED_DIM, DEFAULT_EMBED_MODEL_NAME
 
 # 384-dim, ONNX, ~220MB -- multilingual (not the earlier bge-small-en-v1.5,
 # English-only) so DE-language disclosures rank meaningfully once hybrid
@@ -14,8 +15,8 @@ from arp.models import local
 # would be smaller still but isn't in this fastembed version's supported
 # model list; multilingual-e5-large (1024-dim, ~2.2GB) is available but
 # too heavy for the "free, offline, always-on" design goal here.
-EMBED_MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-EMBED_DIM = 384
+EMBED_MODEL_NAME = DEFAULT_EMBED_MODEL_NAME
+EMBED_DIM = DEFAULT_EMBED_DIM
 # Settings.embed_model -> registry key. Only "embed" (this module's model) also runs locally.
 EMBED_KEYS = {"minilm": "embed", "e5-large": "embed_e5_large", "bge-m3": "embed_bge_m3"}
 # (query, passage) prefixes a model expects, from its model card; added only to the text sent to it

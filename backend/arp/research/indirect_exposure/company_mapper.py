@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from arp.llm.base import LLMClient, LLMUsage
 from arp.research.indirect_exposure.leontief import LeontiefModel
+from arp.research.indirect_exposure.nace import isic_to_nace2
 
 if TYPE_CHECKING:
     from arp.research.indirect_exposure.factory import CodeList
@@ -22,6 +23,16 @@ business, return null rather than forcing the closest-sounding option."""
 class _CompanyIndustryClassification(BaseModel):
     isic_code: str | None
     rationale: str
+
+
+def company_nace(company: CompanyRef) -> tuple[str, str, str] | None:
+    """(scheme, code, rev) the `nace` source links by: the NACE code, else a 4-digit ISIC Rev. 4 class the UN table maps."""
+    if company.nace_code:
+        return ("nace21" if company.nace_rev == "2.1" else "nace2"), company.nace_code, company.nace_rev
+    isic = company.isic_code or ""
+    if len(isic) == 4 and isic.isdigit() and isic_to_nace2(isic):
+        return "isic4", isic, "2"
+    return None
 
 
 def lookup_isic(isic_code: str | None, model: LeontiefModel | CodeList) -> str | None:
@@ -54,8 +65,6 @@ async def resolve_company_isic(
     as an exact string, in exactly one industry's isic_divisions or
     nace_classes resolves to that industry, also without an LLM call.
     """
-    from arp.research.value_chain.links import company_nace  # links imports this module
-
     code = lookup_isic(company.isic_code, model)
     if code is not None or company_nace(company) is not None:  # the NACE route needs no LLM
         return code, LLMUsage()

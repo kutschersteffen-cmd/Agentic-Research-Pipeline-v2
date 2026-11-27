@@ -264,9 +264,9 @@ def rerank_scores(query: str, texts: list[str], model_header: str = CLOUD_RERANK
 def embed(texts: list[str], model_header: str | None = None, dim: int | None = None) -> np.ndarray | None:
     """Vectors of `dim` numbers from arp-models (EMBED_MODEL_NAME's by default), or None to embed every text
     another way (never a mix)."""
-    from arp.retrieval.embeddings import EMBED_DIM, EMBED_MODEL_NAME
+    from arp.models.registry import DEFAULT_EMBED_DIM, DEFAULT_EMBED_MODEL_NAME
 
-    model, width = model_header or EMBED_MODEL_NAME, dim or EMBED_DIM
+    model, width = model_header or DEFAULT_EMBED_MODEL_NAME, dim or DEFAULT_EMBED_DIM
     parts: list[np.ndarray] = []
     for start in range(0, len(texts), EMBED_BATCH):
         batch = texts[start : start + EMBED_BATCH]

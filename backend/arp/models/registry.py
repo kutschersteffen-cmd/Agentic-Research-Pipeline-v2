@@ -8,6 +8,8 @@ from pydantic import BaseModel
 
 REGISTRY_PATH = Path(__file__).with_name("registry.json")
 ALLOWED_PATH = Path(__file__).with_name("allowed.txt")
+DEFAULT_EMBED_MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+DEFAULT_EMBED_DIM = 384
 
 
 class RegistryEntry(BaseModel):
