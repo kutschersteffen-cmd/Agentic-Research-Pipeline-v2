@@ -93,12 +93,12 @@ def test_ac7_a_symlink_leaving_the_universes_folder_is_refused(env):
 
 def test_ac12_a_saved_universe_still_starts_each_run(env):
     client, u, _outside, recorded = env
-    for route, body in ROUTES[:10]:
+    for route, body in ROUTES[:-1]:
         r = client.post(route, json={**body, "universe_path": str(u)})
         assert r.status_code < 500, (route, r.status_code, r.text)
         assert r.json() != SAVED_ONLY, route
-    # route 1 stops at the unknown taxonomy after the universe step; the other nine reach the recorder
-    assert len(recorded) == 9
+    # route 1 stops at the unknown taxonomy after the universe step; the rest reach the recorder
+    assert len(recorded) == len(ROUTES) - 2
 
 
 def _put(router, scheduler_dep, scheduler, settings, path):
