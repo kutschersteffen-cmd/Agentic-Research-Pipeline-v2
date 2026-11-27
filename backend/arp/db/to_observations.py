@@ -10,7 +10,7 @@ from datetime import date
 from uuid import UUID
 
 from arp.db.models import CitationRole, Route, SourceKind, ValueState
-from arp.db.observations import RULE_NOT_APPLICABLE, CitationIn, ObservationIn
+from arp.db.observation_types import RULE_NOT_APPLICABLE, CitationIn, ObservationIn
 from arp.schemas.common import Citation
 from arp.schemas.datapoints import ExtractionRecord
 from arp.schemas.review import field_item_key, period_key

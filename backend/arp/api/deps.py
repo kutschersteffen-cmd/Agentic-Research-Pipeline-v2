@@ -15,29 +15,20 @@ from arp.discovery.scheduler import DiscoveryScheduler
 from arp.discovery.site_finder import WebSearchClient, build_web_search_client
 from arp.emerging_themes.scheduler import EmergingThemesScheduler
 from arp.ingestion.edgar import EdgarDocumentSource
-from arp.ingestion.esef import EsefDocumentSource
 from arp.ingestion.indexing_config import IndexingConfig
-from arp.ingestion.local_files import LocalFileDocumentSource
-from arp.ingestion.registry import DocumentSourceRegistry
 from arp.ingestion.xbrl import XbrlFactSource
 from arp.llm.base import LLMClient
 from arp.llm.factory import batch_settings, build_llm_client, build_verifier_llm_client
 from arp.portfolio.monitoring.scheduler import PortfolioMonitoringScheduler
 from arp.publish.facts import PublishStore
 from arp.publish.scheduler import PublishingScheduler
-from arp.retrieval.content_store_factory import content_store_for
 from arp.review.analytics import ReviewAnalyticsScheduler
 from arp.stewardship.process import StreamStore
 from arp.storage.document_blob_store import blob_store_for
-from arp.storage.document_store import DocumentContentStore
 from arp.storage.engagement_store import EngagementStore
 from arp.storage.engagement_store_factory import build_engagement_store
 from arp.storage.identifier_map import IdentifierMapStore
-from arp.storage.portfolio_store_factory import build_portfolio_store
 from arp.storage.postgres_engagement_store import PostgresEngagementStore
-from arp.storage.reporting_store import ReportingStore
-from arp.storage.run_store import RunStore
-from arp.storage.taxonomy_store import TaxonomyStore
 from arp.storage.topic_store import TopicStateStore
 
 if TYPE_CHECKING:
@@ -65,64 +56,26 @@ def blob_store_dep(settings: Settings = Depends(settings_dep)):
     return blob_store_for(IndexingConfig.from_settings(settings))
 
 
-@lru_cache
-def get_run_store() -> RunStore:
-    settings = get_settings()
-    return RunStore(require_dsn(settings), settings.runs_dir)
+from arp.argus.flows import FlowStore  # noqa: E402
+from arp.retrieval.registry_factory import (  # noqa: E402, F401
+    build_registry,
+    get_document_content_store,
+    get_registry,
+)
+from arp.storage.factories import (  # noqa: E402, F401
+    get_portfolio_store,
+    get_reporting_store,
+    get_run_store,
+    get_taxonomy_store,
+)
+
+
+def get_flow_store(settings: Settings = Depends(settings_dep)) -> FlowStore:
+    return FlowStore(settings.runs_dir / "_flows")
 
 
 def get_identifier_map(settings: Settings = Depends(settings_dep)) -> IdentifierMapStore:
     return IdentifierMapStore(settings.identifier_map_path)
-
-
-@lru_cache
-def get_taxonomy_store() -> TaxonomyStore:
-    return TaxonomyStore(get_settings().taxonomies_dir)
-
-
-
-
-@lru_cache
-def get_portfolio_store():
-    return build_portfolio_store(get_settings())
-
-
-@lru_cache
-def get_document_content_store() -> DocumentContentStore:
-    settings = get_settings()
-    return content_store_for(settings)
-
-
-@lru_cache
-def get_registry() -> DocumentSourceRegistry:
-    settings = get_settings()
-    return build_registry(settings, get_document_content_store())
-
-
-def build_registry(settings: Settings, content_store: DocumentContentStore) -> DocumentSourceRegistry:
-    """get_registry's sources, for a run that needs its own content store
-    (a restart from Find evidence re-parses rather than reading the cache)."""
-    indexing_config = IndexingConfig.from_settings(settings)
-    return DocumentSourceRegistry(
-        [
-            LocalFileDocumentSource(
-                settings.documents_dir,
-                content_store=content_store,
-                max_concurrent_parses=settings.max_concurrent_parses,
-                indexing_config=indexing_config,
-            ),
-            EdgarDocumentSource(
-                settings.edgar_user_agent,
-                settings.cache_dir,
-                content_store=content_store,
-                submissions_ttl_hours=settings.edgar_submissions_ttl_hours,
-                indexing_config=indexing_config,
-            ),
-            *([EsefDocumentSource(settings.esef_index_url, settings.cache_dir, content_store=content_store,
-                                  indexing_config=indexing_config)] if settings.esef_enabled else []),
-        ],
-        settings=settings,
-    )
 
 
 @lru_cache
@@ -224,12 +177,6 @@ def get_engagement_store() -> EngagementStore | PostgresEngagementStore:
 @lru_cache
 def get_stream_store() -> StreamStore:
     return StreamStore(get_settings().stewardship_streams_dir)
-
-
-@lru_cache
-def get_reporting_store() -> ReportingStore:
-    settings = get_settings()
-    return ReportingStore(settings.reports_dir, settings.report_templates_dir, settings.report_images_dir)
 
 
 def resolve(request: Request, dep: Callable):

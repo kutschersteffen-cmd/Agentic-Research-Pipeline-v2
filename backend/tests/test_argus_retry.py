@@ -12,7 +12,7 @@ from arp.api.main import app
 from arp.api.routers import argus as argus_router
 from arp.argus.flows import FlowStore
 from arp.config import Settings
-from arp.orchestration import jobs
+from arp.orchestration import resume
 from arp.orchestration.job_manager import JobManager
 from arp.schemas.common import CompanyRef, JobStatus, RunManifest
 from arp.storage.run_store import RunStore
@@ -35,7 +35,7 @@ async def test_resume_one_company_keeps_the_other_failures(tmp_path, pg, monkeyp
         seen["manifest"] = store.load_manifest(run_id)
         return run_id
 
-    monkeypatch.setitem(jobs._RESUME, "theme", fake_resume)
+    monkeypatch.setitem(resume._RESUME, "theme", fake_resume)
     await _resume(run_id, settings, store, company_ids=["c1"])
     assert seen["companies"] == ["c1"]  # c2 is not retried
     m = seen["manifest"]
@@ -156,7 +156,7 @@ async def test_resuming_one_company_runs_only_it_through_the_real_batch(tmp_path
     from arp.extraction import pipeline as extraction_pipeline
     from arp.extraction.pipeline import create_extraction_run
     from arp.ingestion.registry import DocumentSourceRegistry
-    from arp.orchestration.jobs import resume_run
+    from arp.orchestration.resume import resume_run
     from arp.schemas.datapoints import DataPointSchema
 
     settings = _settings(tmp_path)

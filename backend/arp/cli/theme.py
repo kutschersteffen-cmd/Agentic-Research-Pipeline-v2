@@ -20,7 +20,7 @@ from arp.ingestion.base import DocumentSource
 from arp.ingestion.local_files import parse_file_to_text_with_pages
 from arp.ingestion.registry import DocumentSourceRegistry
 from arp.llm.factory import batch_settings, build_llm_client, build_verifier_llm_client
-from arp.orchestration.jobs import resume_run
+from arp.orchestration.resume import resume_run
 from arp.research.activity_generator import build_theme
 from arp.research.exposure_layers import load_run_layers, parse_as_of
 from arp.research.funnel import funnel_query, score_pair

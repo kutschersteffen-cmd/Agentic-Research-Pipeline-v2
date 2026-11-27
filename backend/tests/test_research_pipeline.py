@@ -7,7 +7,7 @@ from arp.extraction.verifier_agent import VerifierOutput
 from arp.ingestion.base import DocumentSource
 from arp.ingestion.registry import DocumentSourceRegistry
 from arp.orchestration.job_manager import JobManager
-from arp.orchestration.jobs import resume_run
+from arp.orchestration.resume import resume_run
 from arp.research.indirect_exposure.factory import resolve_indirect_exposure_model
 from arp.research.matcher_agents import AdjudicatorOutput
 from arp.research.pipeline import _match_company, create_theme_run

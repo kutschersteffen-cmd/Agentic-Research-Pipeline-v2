@@ -14,7 +14,8 @@ from arp.extraction.pipeline import run_extraction
 from arp.extraction.schema_builder import draft_schema
 from arp.extraction.steps import StepSettings
 from arp.llm.factory import batch_settings, build_llm_client, build_verifier_llm_client
-from arp.orchestration.jobs import NotResumable, RunBusy, resume_run
+from arp.orchestration.jobs import RunBusy
+from arp.orchestration.resume import NotResumable, resume_run
 from arp.presets.registry import PRESETS, install_preset
 from arp.review.analytics import MONTH_PATTERN, monthly_totals
 from arp.schemas.datapoints import DataPointSchema

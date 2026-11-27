@@ -131,3 +131,25 @@ def universe_source_errors(runs_dir: str | Path, steps: list[dict]) -> list[str]
         if str(source) not in names and file_inside(str(source), folder) is None:
             errors.append(not_saved_message(str(source), names))
     return errors
+
+
+NOT_SAVED_UNIVERSE = "Universe file must be a saved universe."
+UNREADABLE_UNIVERSE = "Could not read the universe file."
+
+
+def saved_universe_file(universe_path: str, runs_dir: str | Path) -> Path | None:
+    """Resolve `universe_path` if and only if it lies inside `<runs_dir>/_universes`."""
+    return file_inside(universe_path, Path(runs_dir) / "_universes")
+
+
+def load_saved_universe_file(universe_path: str, runs_dir: str | Path) -> list[CompanyRef]:
+    """Load a saved universe file, raising ClientInputError if outside `_universes` or unreadable."""
+    path = saved_universe_file(universe_path, runs_dir)
+    if path is None:
+        raise ClientInputError(NOT_SAVED_UNIVERSE)
+    try:
+        return load_company_universe(path)
+    except UniverseRejected:
+        raise
+    except Exception as exc:  # noqa: BLE001 - any unreadable file is a caller input error
+        raise ClientInputError(UNREADABLE_UNIVERSE) from exc

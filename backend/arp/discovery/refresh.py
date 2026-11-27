@@ -39,10 +39,11 @@ def _universe(settings: Settings) -> dict[str, CompanyRef]:
 def _job(run_id: str, schema: DataPointSchema, companies: list[CompanyRef], settings: Settings,
          run_store: RunStore, registry: DocumentSourceRegistry):
     async def job() -> None:
-        from arp.extraction.pipeline import execute_extraction_run
         from arp.llm.factory import build_llm_client, build_verifier_llm_client
+        from arp.orchestration.hooks import get_extraction_runner
         from arp.orchestration.jobs import _xbrl_source
 
+        _, execute_extraction_run = get_extraction_runner()
         await execute_extraction_run(
             run_id, schema, companies, llm=build_llm_client(settings), verifier_llm=build_verifier_llm_client(settings),
             registry=registry, settings=settings, run_store=run_store, xbrl_source=_xbrl_source(settings),
@@ -71,9 +72,10 @@ async def refresh_on_events(
     if not events:
         return []
     from arp.db.fields import SchemaRegistry, UnreleasedFieldError
-    from arp.extraction.pipeline import create_extraction_run
+    from arp.orchestration.hooks import get_extraction_runner
     from arp.orchestration.jobs import get_job_launcher
 
+    create_extraction_run, _ = get_extraction_runner()
     schemas = []
     for schema_id in settings.event_refresh_schema_ids:
         try:
@@ -129,8 +131,8 @@ def refresh_hook(settings: Settings, run_store: RunStore | None = None, *, paren
         return None
 
     async def on_events(events: list[DocumentEvent], company: CompanyRef | None = None) -> None:
-        from arp.api.deps import build_registry
         from arp.retrieval.content_store_factory import content_store_for
+        from arp.retrieval.registry_factory import build_registry
         from arp.storage.run_store import RunStore
 
         registry = build_registry(settings, content_store_for(settings))

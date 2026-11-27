@@ -27,7 +27,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from arp.storage.postgres import PostgresExtraNotInstalled, get_engine
+from arp.db.engine import PostgresExtraNotInstalled, get_engine
 
 if TYPE_CHECKING:
     from sqlalchemy import Connection

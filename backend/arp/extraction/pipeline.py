@@ -708,3 +708,18 @@ async def run_extraction(
         run_id, schema, companies, llm=llm, verifier_llm=verifier_llm, registry=registry, settings=settings, run_store=run_store,
         xbrl_source=xbrl_source,
     )
+
+
+def _register_refresh_hooks() -> None:
+    from arp.orchestration.hooks import register_extraction_runner
+
+    def _create(*args, **kwargs):
+        return create_extraction_run(*args, **kwargs)
+
+    async def _execute(*args, **kwargs):
+        return await execute_extraction_run(*args, **kwargs)
+
+    register_extraction_runner(_create, _execute)
+
+
+_register_refresh_hooks()

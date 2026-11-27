@@ -93,3 +93,15 @@ async def smart_search(question: str, llm: LLMClient, *, issues: list[dict], out
     rows = apply(f, issues=issues, outputs=outputs, feeds=feeds)
     text = f"{len(rows)} {f.target if len(rows) != 1 else f.target.rstrip('s')} ({describe(f)})."
     return SearchAnswer(question=question, resolvable=True, filter=f, rows=rows, answer_text=text), usage
+
+
+def datahub_lists(settings, store, idmap, run_store, taxonomy, reports, today) -> dict[str, list[dict]]:
+    """The three lists Smart Search filters: open issues, the output catalog and the feeds (also used by Ask ARP)."""
+    from arp import catalog
+    from arp.holdings import feeds, issues
+
+    return {
+        "issues": issues.open_issues(store, idmap, run_store, today),
+        "outputs": catalog.catalog(runs_dir=settings.runs_dir, run_store=run_store, taxonomy=taxonomy, reports=reports),
+        "feeds": feeds.overview(store, idmap, today),
+    }

@@ -22,11 +22,14 @@ from arp.ingestion import esef
 from arp.ingestion.esef import EsefDocumentSource
 from arp.ingestion.registry import DocumentSourceRegistry
 from arp.orchestration import jobs
+from arp.runtime.container import wire as wire_runtime
 from arp.schemas.common import CompanyRef, DocType
 from arp.schemas.datapoints import DataPointSchema, FieldDataType, FieldDefinition, FieldStatus
 from arp.schemas.discovery import DiscoveredDocument, DocumentEvent, DocumentEventType
 from arp.storage.run_store import RunStore
 from tests.postgres_helpers import pg_dsn
+
+wire_runtime()
 
 pytestmark = pytest.mark.usefixtures("pg")
 

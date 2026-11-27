@@ -48,11 +48,11 @@ def test_all_ten_kinds_present(run_store):
 def test_report_gate_until_storyline_approved(run_store, monkeypatch):
     from types import SimpleNamespace as NS
 
-    import arp.api.deps as deps
+    import arp.storage.factories as factories
     from arp.schemas.reporting import ReportStatus
 
     status = {"s": ReportStatus.STORYLINE_READY}
-    monkeypatch.setattr(deps, "get_reporting_store", lambda: NS(load_manifest=lambda _id: NS(status=status["s"])))
+    monkeypatch.setattr(factories, "get_reporting_store", lambda: NS(load_manifest=lambda _id: NS(status=status["s"])))
     reviewed = build_reviewed(run_store)
     assert reviewed({"result_ref": "report:rep_1"}) is False
     status["s"] = ReportStatus.COMPLETED
@@ -62,8 +62,8 @@ def test_report_gate_until_storyline_approved(run_store, monkeypatch):
 def test_report_step_starts_and_finishes(monkeypatch):
     from types import SimpleNamespace as NS
 
-    import arp.api.deps as deps
     import arp.reporting.service as reporting_service
+    import arp.storage.factories as factories
     from arp.schemas.reporting import ReportStatus
 
     rendered = []
@@ -81,7 +81,7 @@ def test_report_step_starts_and_finishes(monkeypatch):
             return NS(report_id=report_id, status=ReportStatus.COMPLETED)
 
     monkeypatch.setattr(reporting_service, "ReportingService", FakeService)
-    monkeypatch.setattr(deps, "get_reporting_store", lambda: NS(load_manifest=lambda rid: NS(report_id=rid, status=ReportStatus.PLAN_READY)))
+    monkeypatch.setattr(factories, "get_reporting_store", lambda: NS(load_manifest=lambda rid: NS(report_id=rid, status=ReportStatus.PLAN_READY)))
     step = build_steps(get_settings(), None)["report_render"]  # type: ignore[arg-type]
     rid = step.start(None, source_ids=["r1"])
     assert rid == "rep_42"
@@ -118,7 +118,7 @@ def test_background_adapters_pass_filtered_companies(run_store, universe_run, mo
     rec = _Recorder(run_store, kind)
     monkeypatch.setattr(mod, create, rec.create)
     monkeypatch.setattr(mod, execute, rec.execute)
-    monkeypatch.setattr("arp.api.deps.get_registry", lambda: None)
+    monkeypatch.setattr("arp.retrieval.registry_factory.get_registry", lambda: None)
     out = build_steps(get_settings(), run_store)[kind](universe_run_id=universe_run, companies=["beta"], **params)
     assert rec.companies == ["beta"]
     assert out["run_id"] and out["gate"] is False
@@ -132,7 +132,7 @@ def test_extraction_adapter_loads_schema(run_store, universe_run, monkeypatch):
     monkeypatch.setattr(fields.SchemaRegistry, "get", lambda self, sid: f"schema:{sid}")
     monkeypatch.setattr(pipeline, "create_extraction_run", lambda schema, refs, *a, **k: rec.create(refs))
     monkeypatch.setattr(pipeline, "execute_extraction_run", rec.execute)
-    monkeypatch.setattr("arp.api.deps.get_registry", lambda: None)
+    monkeypatch.setattr("arp.retrieval.registry_factory.get_registry", lambda: None)
     out = build_steps(get_settings(), run_store)["extraction"](universe_run_id=universe_run, schema_id="s")
     assert rec.companies == ["acme", "beta"] and out["run_id"]
 
@@ -160,7 +160,7 @@ def test_universe_adapter_takes_best_exposure(run_store, monkeypatch, tmp_path):
     monkeypatch.setattr(research, "load_theme_run_matches", lambda rs, rid: [
         match("acme", "minor", "exclude"), match("acme", "significant", "include")])
     monkeypatch.setattr("arp.research.indirect_exposure.factory.resolve_indirect_exposure_model", lambda *a, **k: None)
-    monkeypatch.setattr("arp.api.deps.get_registry", lambda: None)
+    monkeypatch.setattr("arp.retrieval.registry_factory.get_registry", lambda: None)
     (tmp_path / "runs" / "_universes").mkdir(parents=True)  # a plan's source must be a saved universe
     (tmp_path / "runs" / "_universes" / "u.csv").write_text("company_id,name\n")
     monkeypatch.setenv("ARP_RUNS_DIR", str(tmp_path / "runs"))

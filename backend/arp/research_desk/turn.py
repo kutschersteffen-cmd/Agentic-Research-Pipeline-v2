@@ -11,7 +11,6 @@ from pathlib import Path
 
 from sqlalchemy import func, select, update
 
-from arp.api.saved_universe import load_saved_universe
 from arp.config import get_settings
 from arp.db import models as m
 from arp.db.documents import derive_doc_id
@@ -26,6 +25,7 @@ from arp.retrieval.select_evidence import select_relevant_chunks
 from arp.schemas.common import DocType, SourceDocument
 from arp.storage.run_store import RunStore
 from arp.storage.safe_path import UnsafeIdentifierError, safe_id
+from arp.universe import load_saved_universe_file
 
 log = logging.getLogger(__name__)
 
@@ -76,7 +76,7 @@ def scope_companies(kind: str, ref: str) -> list[str]:
         return [ref]
     if kind == "universe":
         # relative to runs_dir ("_universes/x.csv") or the absolute path the universe upload answers
-        return [c.company_id for c in load_saved_universe(str(settings.runs_dir / ref), settings)]
+        return [c.company_id for c in load_saved_universe_file(str(settings.runs_dir / ref), settings.runs_dir)]
     run_store = RunStore(require_dsn(settings), settings.runs_dir)
     return [c.company_id for c in run_store.load_companies(ref) or []]
 
