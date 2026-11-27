@@ -10,6 +10,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 
+from arp.company_graph import Edge
 from arp.config import Settings
 from arp.errors import ClientInputError
 from arp.schemas.common import CompanyRef
@@ -28,15 +29,6 @@ class LayerParams:
     decay: float
     max_hops: int
     pure_play_threshold: float
-
-
-@dataclass(frozen=True)
-class Edge:
-    """The version of one supplier -> customer edge in force at `as_of`."""
-
-    supplier_key: str
-    customer_key: str
-    revenue_share: float
 
 
 @dataclass

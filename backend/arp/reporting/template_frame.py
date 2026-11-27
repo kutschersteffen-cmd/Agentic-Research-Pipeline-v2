@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import re
 
+from lxml import etree
 from pptx.enum.shapes import PP_PLACEHOLDER
 
 from arp.reporting.house_style import Tokens, load_tokens, with_frame
@@ -14,10 +15,38 @@ from arp.schemas.reporting import Box, FrameFont, TemplateFrame
 
 _A = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
 _P = "{http://schemas.openxmlformats.org/presentationml/2006/main}"
+_THEME_RELTYPE = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme"
+_A_NS = {"a": "http://schemas.openxmlformats.org/drawingml/2006/main"}
 _TITLES = {PP_PLACEHOLDER.TITLE, PP_PLACEHOLDER.CENTER_TITLE}
 _OTHERS = {PP_PLACEHOLDER.BODY, PP_PLACEHOLDER.SUBTITLE, PP_PLACEHOLDER.OBJECT}
 BUNDLED = {"geist", "geistmono", "hankengrotesk"}
 _FONT_FILE = re.compile(r"^(?P<family>.+)-\d+\.(ttf|otf|woff2)$", re.IGNORECASE)
+
+
+def _theme_xml(prs) -> etree._Element | None:
+    """The theme part is an opaque, unparsed `Part` in python-pptx (no
+    dedicated theme object model), so its color scheme/font scheme are
+    read by parsing `.blob` directly rather than through any python-pptx
+    API -- the same relationship-based lookup PowerPoint itself uses to
+    resolve a slide master's theme.
+    """
+    try:
+        theme_part = prs.slide_masters[0].part.part_related_by(_THEME_RELTYPE)
+    except (IndexError, KeyError, AttributeError):
+        return None
+    try:
+        return etree.fromstring(theme_part.blob)
+    except etree.XMLSyntaxError:
+        return None
+
+
+def _theme_fonts(prs) -> tuple[str | None, str | None]:
+    theme_elm = _theme_xml(prs)
+    if theme_elm is None:
+        return None, None
+    major = theme_elm.find(".//a:fontScheme/a:majorFont/a:latin", _A_NS)
+    minor = theme_elm.find(".//a:fontScheme/a:minorFont/a:latin", _A_NS)
+    return (major.get("typeface") if major is not None else None, minor.get("typeface") if minor is not None else None)
 
 
 def font_family_of(filename: str) -> str | None:
@@ -43,8 +72,6 @@ def _kind(ph):
 
 
 def _theme_font(prs, typeface: str | None, major: bool) -> str | None:
-    from arp.reporting.style_profile import _theme_fonts  # local: style_profile imports this module
-
     mj, mn = _theme_fonts(prs)
     if typeface == "+mj-lt":
         return mj

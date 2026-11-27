@@ -1,7 +1,7 @@
 """Local loaders (device from ARP_MODEL_DEVICE, see arp.models.device) for the registry's transformers models. transformers is imported lazily."""
 import threading
 
-from arp.models import device as _device
+import arp.models.device as _device
 from arp.models.registry import RegistryEntry
 
 _pipes: dict[str, object] = {}

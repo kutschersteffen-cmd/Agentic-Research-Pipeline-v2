@@ -8,6 +8,9 @@ from datetime import date
 _PLACEHOLDER = re.compile(r"^\[[^\[\]]*\]$")
 _NUMBER = re.compile(r"\d+(?:[.,'’]\d+)*")
 
+NO_SOURCE, DRAFTED, EDITED, APPROVED, LEFT_BLANK = "no source", "drafted", "edited", "approved", "left blank"
+CHECK_FIGURE, STALE_SOURCE = "check figure", "stale source"
+
 
 def normalise(text: str) -> str:
     return " ".join(text.casefold().split()).strip(" ?:.;")

@@ -11,7 +11,7 @@ from arp.errors import ClientInputError
 from arp.llm.base import LLMClient
 from arp.portfolio.climate.schemas import FIELD_EVIC, FIELD_REVENUE
 from arp.portfolio.datapoint_mapping import resolve_field_values_for_universe
-from arp.research.indirect_exposure.company_mapper import lookup_isic, resolve_company_isic
+from arp.research.indirect_exposure.company_mapper import company_nace, lookup_isic, resolve_company_isic
 from arp.research.indirect_exposure.factory import code_list
 from arp.research.indirect_exposure.io_import import country_regions
 from arp.research.indirect_exposure.leontief import LeontiefModel
@@ -115,16 +115,6 @@ def _resolve_parts(vc: ValueChain, rule: LinkRule, region: str | None) -> tuple[
     if total:
         weights = {k: w / total for k, w in weights.items()}
     return weights, unresolved
-
-
-def company_nace(company: CompanyRef) -> tuple[str, str, str] | None:
-    """(scheme, code, rev) the `nace` source links by: the NACE code, else a 4-digit ISIC Rev. 4 class the UN table maps."""
-    if company.nace_code:
-        return ("nace21" if company.nace_rev == "2.1" else "nace2"), company.nace_code, company.nace_rev
-    isic = company.isic_code or ""
-    if len(isic) == 4 and isic.isdigit() and isic_to_nace2(isic):
-        return "isic4", isic, "2"
-    return None
 
 
 def nace_weights(vc: ValueChain, company: CompanyRef, region: str | None) -> dict[int, float]:

@@ -1,26 +1,19 @@
 from __future__ import annotations
 
 import logging
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from urllib.parse import parse_qs, urlparse
 
 import httpx
 from bs4 import BeautifulSoup
-from pydantic import BaseModel
 
 from arp.discovery.site_check import is_aggregator
+from arp.discovery.web_search import SearchResult, WebSearchClient
 from arp.holdings.validate import isin_is_valid
 from arp.net_safety import ssrf_guard_request_hook
 from arp.schemas.issuer import lei_is_valid, normalise_lei
 
 logger = logging.getLogger(__name__)
-
-
-class SearchResult(BaseModel):
-    title: str
-    url: str
-    snippet: str = ""
 
 
 class SearchBlocked(RuntimeError):
@@ -42,12 +35,6 @@ class SearchReport:
     @property
     def unreachable(self) -> bool:
         return self.queries > 0 and self.failed == self.queries
-
-
-class WebSearchClient(ABC):
-    @abstractmethod
-    async def search(self, query: str, max_results: int = 5) -> list[SearchResult]:
-        raise NotImplementedError
 
 
 class DuckDuckGoSearchClient(WebSearchClient):

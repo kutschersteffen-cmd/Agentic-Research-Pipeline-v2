@@ -6,29 +6,9 @@ from pathlib import Path
 from lxml import etree
 from pptx import Presentation
 
-from arp.reporting.template_frame import extract_frame, font_family_of
+from arp.reporting.template_frame import _A_NS, _theme_fonts, _theme_xml, extract_frame, font_family_of
 from arp.schemas.reporting import TemplateLayoutInfo, TemplateStyleProfile
 from arp.storage.reporting_store import ReportingStore
-
-_THEME_RELTYPE = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme"
-_A_NS = {"a": "http://schemas.openxmlformats.org/drawingml/2006/main"}
-
-
-def _theme_xml(prs: Presentation) -> etree._Element | None:
-    """The theme part is an opaque, unparsed `Part` in python-pptx (no
-    dedicated theme object model), so its color scheme/font scheme are
-    read by parsing `.blob` directly rather than through any python-pptx
-    API -- the same relationship-based lookup PowerPoint itself uses to
-    resolve a slide master's theme.
-    """
-    try:
-        theme_part = prs.slide_masters[0].part.part_related_by(_THEME_RELTYPE)
-    except (IndexError, KeyError, AttributeError):
-        return None
-    try:
-        return etree.fromstring(theme_part.blob)
-    except etree.XMLSyntaxError:
-        return None
 
 # Maps python-pptx's placeholder type enum names to short, stable labels
 # used in TemplateStyleProfile.layouts[].placeholder_types -- the Content
@@ -74,15 +54,6 @@ def _theme_colors(prs: Presentation) -> dict[str, str]:
             if sys_clr is not None and sys_clr.get("lastClr"):
                 colors[tag] = sys_clr.get("lastClr").upper()
     return colors
-
-
-def _theme_fonts(prs: Presentation) -> tuple[str | None, str | None]:
-    theme_elm = _theme_xml(prs)
-    if theme_elm is None:
-        return None, None
-    major = theme_elm.find(".//a:fontScheme/a:majorFont/a:latin", _A_NS)
-    minor = theme_elm.find(".//a:fontScheme/a:minorFont/a:latin", _A_NS)
-    return (major.get("typeface") if major is not None else None, minor.get("typeface") if minor is not None else None)
 
 
 def extract_style_profile(pptx_path: Path, source_filename: str) -> TemplateStyleProfile:
