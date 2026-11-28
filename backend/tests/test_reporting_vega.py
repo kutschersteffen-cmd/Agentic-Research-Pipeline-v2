@@ -138,5 +138,5 @@ def test_ac18_theme_file_sets_label_size(tmp_path, monkeypatch):
 
 
 def test_ac19_vl_convert_dependency():
-    deps = tomllib.loads((Path(__file__).parents[1] / "pyproject.toml").read_text())["project"]["dependencies"]
+    deps = tomllib.loads((Path(__file__).parents[1] / "pyproject.toml").read_text())["project"]["optional-dependencies"]["reporting"]
     assert "vl-convert-python>=1.9,<2" in [d.replace(" ", "") for d in deps]

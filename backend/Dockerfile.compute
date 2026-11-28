@@ -30,13 +30,13 @@ COPY backend/ ./
 # removed in this same layer, so the image ships without it.
 RUN apt-get update && apt-get install -y --no-install-recommends build-essential \
     && if [ "$VARIANT" = "cuda" ]; then \
-        pip install --no-cache-dir ".[models]" "torch==2.14.1" \
+        pip install --no-cache-dir ".[models,parsing,embeddings,reporting]" "torch==2.14.1" \
         && FASTEMBED_VERSION="$(pip show fastembed | sed -n 's/^Version: //p')" \
         && pip uninstall -y onnxruntime fastembed \
         && pip install --no-cache-dir "fastembed-gpu==${FASTEMBED_VERSION}" "onnxruntime-gpu==1.31.0"; \
     elif [ "$VARIANT" = "cpu" ]; then \
         pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu "torch==2.14.1" "torchvision==0.29.1" \
-        && pip install --no-cache-dir ".[models]"; \
+        && pip install --no-cache-dir ".[models,parsing,embeddings,reporting]"; \
     else \
         echo "VARIANT must be cpu or cuda, got: $VARIANT" >&2 && exit 1; \
     fi \

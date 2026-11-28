@@ -155,7 +155,6 @@ def root(sample_house_universe, pg):
 @pytest.fixture
 def client(root, monkeypatch, tmp_path):
     monkeypatch.setenv("ARP_ENGAGEMENTS_DIR", str(tmp_path / "engagements"))
-    monkeypatch.setenv("ARP_ENGAGEMENT_STORE", "postgres")
     get_settings.cache_clear()
     app.dependency_overrides[get_stream_store] = lambda: StreamStore(root)
     with TestClient(app) as c:

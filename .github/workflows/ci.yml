@@ -93,7 +93,7 @@ jobs:
           cache-dependency-path: backend/pyproject.toml
 
       - name: Install backend package (dev extras)
-        run: pip install -e ".[dev,postgres,emerging_themes]"
+        run: pip install -e ".[all,dev,postgres,emerging_themes]"
 
       - name: Private NLTK data (nltk >= 3.10.4 refuses shared dirs)
         run: . "$GITHUB_WORKSPACE/.github/scripts/private_nltk_data.sh"
@@ -220,7 +220,7 @@ jobs:
 
       - name: Install backend, frontend and Chromium
         run: |
-          (cd backend && pip install -e ".[dev,postgres,emerging_themes]")
+          (cd backend && pip install -e ".[all,dev,postgres,emerging_themes]")
           . .github/scripts/private_nltk_data.sh
           (cd frontend && npm ci)
           python -m playwright install --with-deps chromium
@@ -317,7 +317,7 @@ jobs:
 
       - name: Install backend package
         run: |
-          pip install -e ".[postgres]"
+          pip install -e ".[all,postgres]"
           # pyproject only has ranges: key the cache on what resolved, since parses and embeddings depend on it
           pip show docling docling-core docling-ibm-models fastembed onnxruntime tokenizers \
             | grep -E '^(Name|Version):' >.retrieval-cache-deps.txt
@@ -397,7 +397,7 @@ jobs:
           cache-dependency-path: backend/pyproject.toml
 
       - name: Install backend package
-        run: pip install -e ".[postgres,emerging_themes]"
+        run: pip install -e ".[all,postgres,emerging_themes]"
 
       - name: pip-audit
         continue-on-error: ${{ github.event_name != 'pull_request' }}

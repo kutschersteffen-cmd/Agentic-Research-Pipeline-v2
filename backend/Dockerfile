@@ -39,7 +39,7 @@ COPY backend/pyproject.toml ./
 # cacheable across source-only changes.
 RUN mkdir -p arp && touch arp/__init__.py
 
-ARG EXTRAS=""
+ARG EXTRAS="all"
 RUN --mount=type=cache,target=/root/.cache/pip \
     if [ -n "$EXTRAS" ]; then pip install ".[${EXTRAS}]"; else pip install .; fi
 
@@ -72,7 +72,7 @@ ENV PATH="/opt/venv/bin:${PATH}" \
 
 # House decks render through headless Chromium (arp/reporting/browser.py); a
 # shared path so the non-root arp user finds the browser root installed.
-RUN python -m playwright install --with-deps chromium
+RUN if python -c "import playwright" 2>/dev/null; then python -m playwright install --with-deps chromium; fi
 
 WORKDIR /app
 COPY --from=builder /app/backend ./backend

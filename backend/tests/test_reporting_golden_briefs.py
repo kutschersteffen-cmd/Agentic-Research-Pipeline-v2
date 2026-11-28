@@ -90,13 +90,14 @@ async def test_periodic_brief_reruns_on_fresh_run_data(tmp_path, fake_llm, pg):
 
 def test_client_brief_renders_without_an_llm(tmp_path, fake_llm, monkeypatch, pg):  # vote_items reads runs
     pytest.importorskip("pptx")
+    from arp.reporting import house_pptx
     from arp.stewardship import client_report as cr
     from arp.stewardship.config_store import StreamStore
 
     streams = StreamStore(tmp_path)
     seen = {}
-    real = cr.build_house_pptx
-    monkeypatch.setattr(cr, "build_house_pptx", lambda deck, datasets, *a, **k: seen.update(deck=deck, datasets=datasets) or real(deck, datasets, *a, **k))
+    real = house_pptx.build_house_pptx
+    monkeypatch.setattr(house_pptx, "build_house_pptx", lambda deck, datasets, *a, **k: seen.update(deck=deck, datasets=datasets) or real(deck, datasets, *a, **k))
 
     out = cr.build_pptx(cr.client_report(streams.root, "House programme", []), tmp_path / "r.pptx")
 

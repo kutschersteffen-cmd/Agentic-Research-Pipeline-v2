@@ -12,7 +12,7 @@ from arp.schemas.engagement import (
     IssueStatus,
 )
 from arp.stewardship.style import check
-from arp.storage.engagement_store import EngagementStore
+from arp.storage.postgres_engagement_store import PostgresEngagementStore as EngagementStore
 
 CLOSED = (IssueStatus.RESOLVED, IssueStatus.CLOSED)
 

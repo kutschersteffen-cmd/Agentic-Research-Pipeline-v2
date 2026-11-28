@@ -18,7 +18,7 @@ from arp.schemas.engagement import (
 )
 from arp.stewardship import worklist
 from arp.stewardship.config_store import StreamStore
-from arp.storage.engagement_store import EngagementStore
+from arp.storage.postgres_engagement_store import PostgresEngagementStore
 from tests.conftest import PRINCIPAL
 
 pytestmark = pytest.mark.usefixtures("pg")
@@ -27,8 +27,8 @@ TODAY = date(2026, 9, 27)
 
 
 @pytest.fixture
-def world(tmp_path):
-    engagements = EngagementStore(tmp_path / "e")
+def world(tmp_path, pg):
+    engagements = PostgresEngagementStore(pg)
     _, issue = engagements.open_issue("ACME", "Acme", theme="climate_transition")
     return engagements, StreamStore(tmp_path / "s"), issue
 
