@@ -36,6 +36,7 @@ class TaxonomyStore:
     """
 
     def __init__(self, taxonomies_dir: Path | None = None, *, dsn: str | None = None) -> None:
+        dsn = (dsn or "").strip() or None
         if taxonomies_dir is None and not dsn:
             raise ValueError("TaxonomyStore requires either taxonomies_dir or dsn")
         self.taxonomies_dir = taxonomies_dir

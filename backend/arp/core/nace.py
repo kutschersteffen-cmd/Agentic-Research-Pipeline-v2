@@ -90,6 +90,8 @@ def _sector_rows() -> list[dict[str, str]]:
 def nace_sectors(code: str, rev: str) -> set[str]:
     """EXIOBASE sectors with a table code matching `code`: equal, table coarser, or company coarser."""
     col = {"2": "nace2_code", "2.1": "nace21_code"}[rev]
+    if not code:
+        return set()
     return {
         r["exiobase_sector"]
         for r in _sector_rows()

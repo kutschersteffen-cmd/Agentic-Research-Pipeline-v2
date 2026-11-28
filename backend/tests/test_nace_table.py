@@ -66,6 +66,8 @@ def test_match_rule():
     assert "Production of electricity by wind" in nace_sectors("35.12", "2.1")
     assert "Production of electricity by wind" not in nace_sectors("35.11", "2.1")
     assert nace_sectors("35.12", "2") & {"Production of electricity by wind"} == set()
+    assert nace_sectors("", "2") == set()
+    assert nace_sectors("", "2.1") == set()
 
 
 def test_normalise():

@@ -75,6 +75,52 @@ def test_get_unmigrated_422(api, tmp_path):  # AC-17
         assert res.status_code == 422 and M8 in res.text, path
 
 
+def test_post_versions_and_ratify_unmigrated_422_and_missing_404(api, tmp_path):
+    client, store = api
+    theme = ThemeDefinition(name="T", description="", activities=[ActivityDefinition(name="n", in_scope_description="i", out_of_scope_description="o")])
+    tid = store.create("t", theme, DerivationMethod.MANUAL).taxonomy_id
+    _oldify(tmp_path / "taxonomies" / tid / "v1.json")
+    valid_theme = theme.model_dump(mode="json")
+
+    res = client.post(f"/api/taxonomies/{tid}/versions", json={"theme": valid_theme})
+    assert res.status_code == 422 and M8 in res.text
+
+    res = client.post(f"/api/taxonomies/{tid}/ratify", json={"version": 1})
+    assert res.status_code == 422 and M8 in res.text
+
+    res = client.post("/api/taxonomies/does_not_exist/versions", json={"theme": valid_theme})
+    assert res.status_code == 404 and M8 not in res.text
+
+    res = client.post("/api/taxonomies/does_not_exist/ratify", json={"version": 1})
+    assert res.status_code == 404 and M8 not in res.text
+
+
+def test_promote_unmigrated_taxonomy_422_and_bad_input_400(api, monkeypatch):
+    from arp.api import dossier_deps
+    from arp.api.routers import emerging_themes as et_router
+
+    client, _store = api
+    extra = {deps.get_run_store: lambda: None, dossier_deps.get_dossier_store: lambda: None}
+    app.dependency_overrides.update(extra)
+    try:
+        async def _raise_m8(*_args, **_kwargs):
+            raise ValueError(M8)
+
+        monkeypatch.setattr(et_router, "promote_candidate", _raise_m8)
+        res = client.post("/api/emerging-themes/runs/r1/candidates/th1/promote", json={"reason": "ok", "taxonomy_id": "t_old"})
+        assert res.status_code == 422 and M8 in res.text
+
+        async def _raise_bad_reason(*_args, **_kwargs):
+            raise ValueError("A reason is required to promote a candidate.")
+
+        monkeypatch.setattr(et_router, "promote_candidate", _raise_bad_reason)
+        res = client.post("/api/emerging-themes/runs/r1/candidates/th1/promote", json={"reason": " ", "taxonomy_id": "t_old"})
+        assert res.status_code == 400 and M8 not in res.text
+    finally:
+        for dep in extra:
+            app.dependency_overrides.pop(dep, None)
+
+
 def test_cli_taxonomy_new_version_rejects(tmp_path, monkeypatch):
     from arp.cli import taxonomy as cli_taxonomy
 

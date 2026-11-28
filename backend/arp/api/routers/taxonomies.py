@@ -28,7 +28,7 @@ from arp.schemas.common import CompanyRef
 from arp.schemas.datapoints import DataPointSchema
 from arp.schemas.taxonomy import DerivationMethod, Taxonomy, TaxonomyComparison, TaxonomyRef, TaxonomyStatus
 from arp.schemas.taxonomy_sources import SourceCandidate
-from arp.schemas.thematic import ThemeDefinition
+from arp.schemas.thematic import OLD_FORMAT_MESSAGE, ThemeDefinition
 from arp.storage.taxonomy_store import TaxonomyStore
 
 logger = logging.getLogger(__name__)
@@ -220,6 +220,8 @@ def new_taxonomy_version(
     try:
         return store.new_version(taxonomy_id, req.theme, None, req.source_notes)
     except ValueError as exc:
+        if OLD_FORMAT_MESSAGE in str(exc):
+            raise
         raise HTTPException(404, str(exc)) from exc
 
 
@@ -238,6 +240,8 @@ def ratify_taxonomy(
     try:
         ratified = store.ratify(taxonomy_id, req.version, principal.name)
     except ValueError as exc:
+        if OLD_FORMAT_MESSAGE in str(exc):
+            raise
         raise HTTPException(404, str(exc)) from exc
     try:  # the schema never fails a ratify: POST .../schema regenerates it
         SchemaRegistry(settings.postgres_dsn).save(build_taxonomy_schema(ratified))

@@ -533,6 +533,18 @@ def test_env_file_store_without_postgres(tmp_path, monkeypatch):
         get_settings.cache_clear()
 
 
+def test_env_file_store_with_whitespace_postgres_dsn(tmp_path, monkeypatch):
+    monkeypatch.setenv("ARP_POSTGRES_DSN", "   ")
+    store = _env_file_store(tmp_path, monkeypatch)
+    try:
+        assert TaxonomyStore(tmp_path / "tax_ws", dsn="   ")._versions_repo is None
+        _assert_env_run(store)
+    finally:
+        from arp.config import get_settings
+
+        get_settings.cache_clear()
+
+
 @pytest.mark.skipif(not DSN, reason="ARP_TEST_POSTGRES_DSN not set")
 def test_env_file_store_with_postgres_configured(pg, tmp_path, monkeypatch):  # spec: "Postgres or file"
     _assert_env_run(_env_file_store(tmp_path, monkeypatch))

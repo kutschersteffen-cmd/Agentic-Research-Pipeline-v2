@@ -132,7 +132,7 @@ def _link_rule_stores() -> list:
     """Every place link rules can be stored: the file store in ARP_PORTFOLIOS_DIR, plus Postgres when configured."""
     settings = get_settings()
     files = PortfolioStore(settings.portfolios_dir)
-    return [files, build_portfolio_store(settings)] if settings.postgres_dsn else [files]
+    return [files, build_portfolio_store(settings)] if (settings.postgres_dsn or "").strip() else [files]
 
 
 
