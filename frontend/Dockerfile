@@ -36,6 +36,8 @@ RUN npm run build
 
 FROM nginx:1.27-alpine AS runtime
 
+RUN apk upgrade --no-cache
+
 COPY --from=builder /app/dist /usr/share/nginx/html
 # A template: nginx's entrypoint fills in the names below at container start
 # and writes /etc/nginx/conf.d/default.conf (see nginx.conf).
