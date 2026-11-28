@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from arp.domains import DOMAINS
+from arp.platform import hooks
 from arp.runtime import container
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -39,9 +40,13 @@ def test_five_bounded_context_facades_expose_declared_public_contracts() -> None
             assert hasattr(facade, symbol), f"{domain_name}.public missing exported symbol {symbol!r}"
 
 
-def test_composition_root_wire_is_idempotent() -> None:
+def test_composition_root_wire_is_idempotent(monkeypatch) -> None:
+    monkeypatch.setattr(hooks, "_extraction_runner", None)
     container.wire()
     container.wire()
+    create_fn, execute_fn = hooks.get_extraction_runner()
+    assert callable(create_fn)
+    assert callable(execute_fn)
 
 
 def test_strict_architecture_dag_has_zero_violations_and_zero_cycles() -> None:
