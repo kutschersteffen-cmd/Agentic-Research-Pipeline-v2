@@ -1,8 +1,8 @@
 # Theme Radar signal store: keep every fetched item, retry fetches, daily light scan, radar health
 
-Status: Draft, for owner approval
+Status: Approved by owner (Wave 0b batch approval, 2026-11-28)
 Slug: `theme-radar-signal-store`
-Risk: `risk:normal` for slices a, b and c (new Postgres tables, fetchers, a scheduler); `risk:low` for slice d (radar health)
+Risk: adding Postgres tables/columns (`signal_items`, `signal_scans`) is `risk:high` per `.claude/skills/steward/SKILL.md:19`. In Fast-Track Option A, the unified idempotent Alembic `0002` DDL PR (`F2`) carries `risk:high` (owner merge), making the application logic PR (`F7`, slices a–d backend) `risk:normal` and the UI slice (`F13`) `risk:normal`/`risk:low`.
 Size: `M`, four slices (R&D Lab plan wave 4, items 22 and 27; Theme Radar spec S1)
 
 ## Decisions for the owner
@@ -35,8 +35,9 @@ graph sources to it, S6 (Source Workbench) queries it per source type.
 
 - Switch on a daily light scan that collects news, filings and regulator items every day without any model call.
 - Re-run a full scan on what is already stored, without fetching again (`"fetch": false`).
-- See on the Emerging Themes page, under the automatic schedule, how healthy the last scan was: failed requests
-  per source, how old the newest item from each source is, and what share of items ended up in no cluster.
+- See on the Theme Radar page (`#/emergingThemes`, `EmergingThemesDetector.tsx`), under the automatic schedule, how
+  healthy the last scan was: failed requests per source, how old the newest item from each source is, and what share
+  of items ended up in no cluster.
 
 ## What exists today (main `7e2e955`)
 
@@ -53,12 +54,15 @@ graph sources to it, S6 (Source Workbench) queries it per source type.
   xbrl_source=None)` fetches from every source with `since = now - emerging_themes_lookback_days` (14), writes
   `mentions.jsonl`, extracts with `tag_mention`, clusters with `cluster_tags`, scores, writes candidates.
   `run_emerging_themes(...)` wraps create + execute.
-- `scheduler.py`: `default_sources(settings)`; `EmergingThemesScheduler(IntervalScheduler)` with config file
-  `<emerging_themes_state_dir>/schedule.json`, off by default, 168 h. `IntervalScheduler` fires its first run 5 s
-  after the app starts once enabled.
+- `scheduler.py`: `default_sources(settings)`; `EmergingThemesScheduler` subclasses
+  `arp.platform.interval_scheduler.IntervalScheduler` (not `arp.orchestration.interval_scheduler`) with config file
+  `<emerging_themes_state_dir>/schedule.json`, off by default, 168 h. In v2 (`PR #26`, `#53`), all schedulers run in
+  the dedicated leader-elected worker process (`backend/arp/worker/main.py::_build_schedulers()`, NOT FastAPI
+  `api/main.py` lifespan); `IntervalScheduler` fires its first run 5 s after worker start once enabled.
 - `api/routers/emerging_themes.py`: `POST /api/emerging-themes/runs` (`companies` or `universe_path`),
   candidates, promote/reject/disconfirm, `GET/PUT /api/emerging-themes/schedule`.
-- `storage/postgres_models.py`: `ChunkEmbeddingModel` (`chunk_embeddings`: `chunk_id`, `embed_model`,
+- `backend/arp/db/postgres_models.py` (canonical ORM home in v2, re-exported by `arp/storage/postgres_models.py`):
+  `ChunkEmbeddingModel` (`chunk_embeddings`: `chunk_id`, `embed_model`,
   `embedding vector`), written by `storage/postgres_embeddings.py`. `ensure_schema` (`arp db init-postgres`) creates
   missing tables and adds missing columns.
 - `retrieval/embeddings.py`: `embed_texts(texts) -> np.ndarray` (384 dims), `EMBED_MODEL_NAME =
@@ -76,7 +80,7 @@ graph sources to it, S6 (Source Workbench) queries it per source type.
 - G4. A daily light scan fetches and stores items and records per-source counts, with no extraction, clustering or
   model call; it is off by default and switched on in the UI.
 - G5. Every scan records radar health (failed requests per source, lag since the newest item per source, share of
-  items in no cluster), served by an API and shown on the Emerging Themes page.
+  items in no cluster), served by an API and shown on the Theme Radar page (`#/emergingThemes`).
 - G6. The names later specs build on are fixed: tables `signal_items` and `signal_scans`, `SignalSourceType`
   values `news | filings | regulators | research | jobs`, `SignalStore.read_items`.
 
@@ -147,14 +151,22 @@ Times are ISO 8601 UTC strings as `arp.schemas.common.now_iso()` writes them. Pe
 scan source's `MentionSource.name` and hold every source the scan was given; for the three default sources the
 name equals the `MentionSourceType` value they emit (`gdelt`, `edgar_fts`, `regulatory_rss`).
 
-### Tables (`backend/arp/storage/postgres_models.py`, created by `ensure_schema`)
+### Tables (`backend/arp/db/postgres_models.py`, re-exported by `arp/storage/postgres_models.py`, + idempotent Alembic `0002`)
+
+Add `SignalItemModel` and `SignalScanModel` in canonical `backend/arp/db/postgres_models.py` (with re-exports in
+`backend/arp/storage/postgres_models.py`), ship an idempotent Alembic `0002` migration
+(`backend/migrations/versions/0002_*.py` using `if_not_exists=True` on tables/indexes plus
+`ALTER TABLE signal_scans ADD COLUMN IF NOT EXISTS` for the slice-d columns `fetch_failures`, `lag_hours`,
+`unclustered_share`, unified with `desk_uploads` in `F2`), and update `backend/tests/test_alembic_pg.py` from
+hardcoded `["0001_baseline"]` to a single linear head check:
 
 - `signal_items`: `content_hash` (primary key), `source`, `source_type`, `title`, `text`, `url`,
   `raw_entity_names` (JSONB list), `published_at` (timestamptz, null), `published_at_is_estimated` (bool),
   `item_at` (timestamptz, indexed), `first_seen_at` (timestamptz), `last_seen_at` (timestamptz).
 - `signal_scans`: `scan_id` (primary key), `kind`, `run_id` (null), `started_at`, `finished_at` (timestamptz,
-  indexed), `items_fetched`, `items_new` (JSONB); slice d adds `fetch_failures`, `lag_hours` (JSONB) and
-  `unclustered_share` (float, null) through the existing additive column reconciliation.
+  indexed), `items_fetched`, `items_new` (JSONB); slice d adds `fetch_failures`, `lag_hours` (JSONB, nullable with
+  `server_default="'{}'::jsonb"` for zero `schema_report()` drift on pre-existing tables) and
+  `unclustered_share` (float, null) through both Alembic `0002` and additive column reconciliation.
 
 ### Content hash
 
@@ -184,9 +196,13 @@ every other field copied. `published_at` is stored as `timestamptz` and returned
 UTC value (EDGAR's `"2026-11-10"` comes back as `"2026-11-10T00:00:00+00:00"`); a `published_at` that does not parse
 as ISO 8601 is stored as null with `published_at_is_estimated = True`.
 
-The app builds one store in `api/deps.py::get_signal_store()` (`lru_cache`d, `SignalStore(get_settings().postgres_dsn)`),
-used by `POST /runs`, `GET /health` and both schedulers. The light-scan scheduler dependency reads `get_settings()`
-the way `get_emerging_themes_scheduler` does.
+The app builds one store in `backend/arp/api/deps.py::get_signal_store()` (`lru_cache`d,
+`SignalStore(get_settings().postgres_dsn)`), used by `POST /runs`, `GET /health` and both schedulers. The light-scan
+scheduler dependency `get_light_scan_scheduler()` in `backend/arp/api/deps.py` reads `get_settings()` the way
+`get_emerging_themes_scheduler` does. **v2 `arch_guard --strict` placement:** `SignalStore` MUST stay in
+`backend/arp/emerging_themes/signal_store.py` and factories `get_signal_store()` / `get_light_scan_scheduler()` MUST
+stay in `backend/arp/api/deps.py` — NEVER place `SignalStore` in `arp/storage/` (doing so creates an
+`arp.storage <-> arp.emerging_themes` / `arp.retrieval` cycle).
 
 ### Full scan (`pipeline.py`)
 
@@ -231,17 +247,21 @@ None` and `fetch: bool = True`. Without `signal_store` nothing changes (A2). Wit
   fetches from every source with `since = now - emerging_themes_light_scan_lookback_days` (new setting, default 2),
   `add_items` each result, records and returns a `SignalScan` with `kind="light"`, `run_id=None`. No model, no
   universe, no run, no topic period. A source whose `fetch` raises counts `items_fetched = items_new = 0`.
-- `scheduler.LightScanScheduler(IntervalScheduler)`, `job_id = "emerging-themes-light-scan"`, config file
+- `scheduler.LightScanScheduler` MUST subclass `arp.platform.interval_scheduler.IntervalScheduler` (not
+  `arp.orchestration.interval_scheduler`), `job_id = "emerging-themes-light-scan"`, config file
   `<emerging_themes_state_dir>/light_scan/schedule.json`, config model `LightScanScheduleConfig(enabled: bool,
   interval_hours: float = 24.0, last_scan_id: str | None = None, next_run_at: str | None = None)`. `enabled`
   defaults to the new setting `emerging_themes_light_scan_enabled` (default `False`). Its run calls
-  `run_light_scan(default_sources(settings), …)` and sets `last_scan_id`. Started with the other schedulers.
+  `run_light_scan(default_sources(settings), …)` and sets `last_scan_id`. MUST be mounted in
+  `backend/arp/worker/main.py::_build_schedulers()` (NOT FastAPI `api/main.py` lifespan).
 - `GET /api/emerging-themes/light-scan-schedule` and `PUT` (same shape, `interval_hours <= 0` gives 422 with
   `Interval must be greater than 0 hours.` as the weekly one).
-- UI, section "Automatic schedule": a checkbox labelled `Daily light scan: fetch and store new items, no clustering`
-  bound to `enabled`. "Save schedule" first PUTs the light-scan config, then the weekly one, and shows the existing
-  saved text; if either PUT fails, its `detail` shows in the existing `role="alert"` status and the other stays saved.
-  If the weekly schedule could not be loaded, the checkbox is not shown (as the rest of the form today).
+- UI, on the `Theme Radar` page (`#/emergingThemes`, `frontend/src/pages/EmergingThemesDetector.tsx`, coexisting with
+  `theme-radar-screen`), inside section "Automatic schedule": a checkbox labelled `Daily light scan: fetch and store
+  new items, no clustering` bound to `enabled`. "Save schedule" first PUTs the light-scan config, then the weekly one,
+  and shows the existing saved text; if either PUT fails, its `detail` shows in the existing `role="alert"` status and
+  the other stays saved. If the weekly schedule could not be loaded, the checkbox is not shown (as the rest of the form
+  today).
 
 ### Radar health (slice d)
 
@@ -258,8 +278,9 @@ Every recorded scan (light and full) also holds:
 `GET /api/emerging-themes/health?limit=10` returns `{"scans": [SignalScan, …]}`, newest `finished_at` first,
 at most `limit` (1-50, default 10; outside that range 422).
 
-UI, below the "Automatic schedule" section and shown even when the schedule could not be loaded, an `h3`
-`Radar health`. All rounding here is half up (`Math.round`):
+UI, on the `Theme Radar` page (`#/emergingThemes`, `EmergingThemesDetector.tsx`), below the "Automatic schedule"
+section and shown even when the schedule could not be loaded, an `h3` `Radar health`. All rounding here is half up
+(`Math.round`):
 
 - No scans: the text `No scans recorded yet.`
 - Else the line `Latest scan: <light|full>, finished <YYYY-MM-DD HH:MM> UTC`, then a table with header
@@ -346,7 +367,7 @@ stand-ins; no row makes a model call.
 | AC-28 | Fresh Postgres; light scan enabled; `default_sources` replaced by one stub source returning 1 item | the scheduler's scheduled run fires once | `last_scan_id` in the light-scan schedule equals the recorded scan's `scan_id` | unit |
 | AC-29 | Fresh Postgres; a full scan recorded by AC-9's call | `store.latest_scans(1)` | one scan, `kind="full"`, `run_id` = that run's id, `items_new == {<source name>: 5}` | holdout |
 | AC-10c | AC-10's setup | the same call | `store.latest_scans(1)[0]` has `kind="full"`, `items_fetched == items_new == {<source name>: 0}` | holdout |
-| AC-30 | Running app, Emerging Themes page (the stack may make one live light scan once enabled) | tick `Daily light scan: fetch and store new items, no clustering`, click "Save schedule", reload; then untick and save again to clean up | after the reload the checkbox is ticked | evaluator |
+| AC-30 | Running app, Theme Radar page (`#/emergingThemes`) (the worker may make one live light scan once enabled) | tick `Daily light scan: fetch and store new items, no clustering`, click "Save schedule", reload; then untick and save again to clean up | after the reload the checkbox is ticked | evaluator |
 | AC-31 | Fresh Postgres; `default_sources(settings, transport=…)`; every GDELT request 404, EDGAR 200 `{"hits": {"hits": []}}`, RSS 200 `<rss version="2.0"><channel></channel></rss>` | `run_light_scan` | `fetch_failures == {"edgar_fts": 0, "gdelt": 4, "regulatory_rss": 0}` | holdout |
 | AC-32 | Fresh Postgres; sources: a `MentionSource` named `boom` whose `fetch` raises `RuntimeError`, and a GDELT source returning 1 item | `run_light_scan` | returns normally; `fetch_failures["boom"] == 1`; `items_new == {"boom": 0, "gdelt": 1}` | holdout |
 | AC-33 | Fresh Postgres; R = `item("https://r.example/1", "Fed statement", "Rates held", REGULATORY_RSS)` added with `seen_at` = now − 30 h; `default_sources(settings, transport=…)` with every RSS feed returning `<rss version="2.0"><channel><item><title>Fed statement</title><link>https://r.example/1</link><description>Rates held</description></item></channel></rss>`, GDELT returning 1 new article, EDGAR `{"hits": {"hits": []}}` | `run_light_scan` | `lag_hours == {"edgar_fts": None, "gdelt": 0.0, "regulatory_rss": 30.0}` | holdout |
@@ -354,10 +375,10 @@ stand-ins; no row makes a model call.
 | AC-35 | AC-21 done | `store.latest_scans(1)` | `unclustered_share is None` | holdout |
 | AC-36 | Fresh Postgres; 12 scans recorded with distinct `finished_at` | `GET /api/emerging-themes/health`, then `?limit=3`, then `?limit=0` | 10 scans newest first; 3 scans; 422 | holdout |
 | AC-37 | Fresh Postgres, no scans | `GET /api/emerging-themes/health` | 200 `{"scans": []}` | holdout |
-| AC-38 | Running app; one light scan recorded with `finished_at=2026-11-25T06:00Z`, `fetch_failures={"gdelt":0,"edgar_fts":2,"regulatory_rss":0}`, `lag_hours={"gdelt":0.4,"edgar_fts":30,"regulatory_rss":null}` (seeded with `record_scan`) | open the Emerging Themes page | `Latest scan: light, finished 2026-11-25 06:00 UTC`; rows `News (GDELT) · 0 · under 1 h ago`, `Filings (SEC EDGAR) · 2 · 30 h ago`, `Regulators (RSS) · 0 · none yet` in that order | evaluator |
+| AC-38 | Running app; one light scan recorded with `finished_at=2026-11-25T06:00Z`, `fetch_failures={"gdelt":0,"edgar_fts":2,"regulatory_rss":0}`, `lag_hours={"gdelt":0.4,"edgar_fts":30,"regulatory_rss":null}` (seeded with `record_scan`) | open the Theme Radar page (`#/emergingThemes`) | `Latest scan: light, finished 2026-11-25 06:00 UTC`; rows `News (GDELT) · 0 · under 1 h ago`, `Filings (SEC EDGAR) · 2 · 30 h ago`, `Regulators (RSS) · 0 · none yet` in that order | evaluator |
 | AC-39 | AC-38 plus an older full scan with `unclustered_share=0.42`, `finished_at=2026-11-24T09:00Z` | open the page | `Items in no cluster: 42% (full scan finished 2026-11-24 09:00 UTC)` | evaluator |
 | AC-39b | only AC-38's scan recorded | open the page | `Items in no cluster: no full scan yet` | evaluator |
-| AC-40 | Running app, no scans recorded | open the Emerging Themes page | under the `Radar health` heading the text `No scans recorded yet.` | evaluator |
+| AC-40 | Running app, no scans recorded | open the Theme Radar page (`#/emergingThemes`) | under the `Radar health` heading the text `No scans recorded yet.` | evaluator |
 | AC-41 | a Postgres schema where `signal_scans` was created without `fetch_failures`, `lag_hours`, `unclustered_share` and holds one row | `arp db init-postgres` | exits 0; the three columns exist; `store.latest_scans(1)` returns the old row with `fetch_failures == {}`, `lag_hours == {}`, `unclustered_share is None` | holdout |
 
 Must not change: A1 (AC-27), A2 (AC-12), A3 (AC-20, AC-20b, AC-20c), A4 (AC-23 and `run_light_scan` takes no model client).
@@ -370,10 +391,10 @@ Build in order; each slice is one PR with `Spec: theme-radar-signal-store` and a
 
 | Slice | Scope | Risk | Rows |
 |-------|-------|------|------|
-| a | `SignalSourceType`, `SignalItem`, `signal_items` table, `SignalStore.add_items/read_items`, `get_signal_store`, embeddings, full scan reads the store (with the item cap), `fetch` flag (function, API, scheduler) | `risk:normal` | AC-1, AC-2, AC-3, AC-4, AC-5, AC-5b, AC-6, AC-6b, AC-7, AC-8, AC-9, AC-10, AC-10b, AC-11, AC-12, AC-13 |
+| a | `SignalSourceType`, `SignalItem`, `signal_items` table (unified in `F2` Alembic `0002`, `risk:high`), `SignalStore.add_items/read_items`, `get_signal_store`, embeddings, full scan reads the store (with the item cap), `fetch` flag (function, API, scheduler) | `risk:high` for Postgres DDL (`F2`), `risk:normal` for app logic (`F7`) | AC-1, AC-2, AC-3, AC-4, AC-5, AC-5b, AC-6, AC-6b, AC-7, AC-8, AC-9, AC-10, AC-10b, AC-11, AC-12, AC-13 |
 | b | retries, `failed_requests`, `transport` (fetchers and `default_sources`), SEC limiter, RSS User-Agent | `risk:normal` | AC-14, AC-15, AC-16, AC-17, AC-18, AC-19, AC-19b, AC-20, AC-20b, AC-20c |
-| c | `SignalScan` (without the slice-d fields), `signal_scans` table, `record_scan/latest_scans`, full-scan scan rows, `run_light_scan`, `LightScanScheduler`, its API and checkbox | `risk:normal` | AC-21, AC-22, AC-23, AC-24, AC-25, AC-26, AC-27, AC-28, AC-29, AC-10c, AC-30 |
-| d | health fields and columns, `GET /health`, the `Radar health` block | `risk:low` | AC-31, AC-32, AC-33, AC-34, AC-35, AC-36, AC-37, AC-38, AC-39, AC-39b, AC-40, AC-41 |
+| c | `SignalScan` (without the slice-d fields), `signal_scans` table (unified in `F2` Alembic `0002`, `risk:high`), `record_scan/latest_scans`, full-scan scan rows, `run_light_scan`, `LightScanScheduler` (`arp.platform.interval_scheduler`, mounted in `arp/worker/main.py`), its API and checkbox | `risk:high` for Postgres DDL (`F2`), `risk:normal` for app logic (`F7`) | AC-21, AC-22, AC-23, AC-24, AC-25, AC-26, AC-27, AC-28, AC-29, AC-10c, AC-30 |
+| d | health fields and columns (unified in `F2` Alembic `0002`, `risk:high`), `GET /health`, the `Radar health` block | `risk:high` for Postgres DDL (`F2`), `risk:normal` for app logic (`F7`) / `risk:low` for UI-only | AC-31, AC-32, AC-33, AC-34, AC-35, AC-36, AC-37, AC-38, AC-39, AC-39b, AC-40, AC-41 |
 
 Every builder makes the smallest diff with the lowest complexity: no refactors, no new abstractions beyond the
 names above, no unrelated cleanup. After slice c and d, `openwiki/` needs the weekly refresh to mention the store.

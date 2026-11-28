@@ -1,6 +1,6 @@
 # Theme precision scorecard and calibrated confidence
 
-Status: Draft, for owner approval
+Status: Approved by owner (Wave 0b batch approval, 2026-11-28)
 Slug: `theme-precision-scorecard`
 Risk: `risk:normal` (CLI, matcher routing, one API endpoint, one results box; no auth, money or `risk:high` path)
 Size: `M`, three slices (see `## Slices`). R&D Lab plan items 1 and 5, fixes findings P1 and P3.
@@ -95,8 +95,12 @@ arp golden-set theme --set <name or dir> [--documents-dir <dir>] [--taxonomy <id
 - **Taxonomy.** Without `--taxonomy`: `tax_<set_id>`, latest version, from `<set dir>/taxonomies`. With `--taxonomy`:
   that id (and `--taxonomy-version`, default latest) from `--taxonomies-dir`, default `Settings.taxonomies_dir`. Not
   found: exit 1 with `Taxonomy not found: <id>`. A draft taxonomy version is accepted.
+  *(v2 persistence note: `TaxonomyStore(taxonomies_dir)` remains file-backed (`dsn=None`) for golden-set directories,
+  while server-side `get_taxonomy_store()` uses Postgres `JsonDocumentRepo` with `dsn=settings.postgres_dsn`.)*
 - **New taxonomy** `backend/tests/golden/exposure/ai_datacentre_operators/taxonomies/tax_ai_datacentre_operators/`
-  (`latest.json` → version 1, `v1.json`), same shape as the electrolyser one, one activity:
+  (`latest.json` → version 1, `v1.json`), authored directly in `#343`'s EXIOBASE `core_sectors` schema (no legacy
+  `core_isic_codes`; `arp/core/nace.py` stays a strict leaf in v2), same shape as the post-`#343` electrolyser
+  taxonomy, one activity:
   name `AI data-centre operation`; in scope = the set's `subject`; out of scope `Supplies chips, servers, cooling
   or power to data centres that others own or operate; buys cloud capacity without owning or operating the data
   centres`; seed keywords `data center`, `data centre`, `colocation`, `hyperscale`, `GPU`, `AI infrastructure`;
@@ -179,7 +183,9 @@ arp golden-set calibrate --report <file.json> [--report <file.json> ...]
 - Review routing: the confidence test in `_run_adjudicator_node` uses `calibrated_confidence` when it is set, else the
   raw `confidence`, against `confidence_review_threshold` (unchanged, 0.6). The other flag reasons are unchanged.
 - The file is read when a match is adjudicated; a missing or unreadable file means no calibration (a warning in the log
-  for an unreadable one).
+  for an unreadable one). **v2 `arch_guard --strict` rule:** the runtime confidence calibration reader/loader MUST
+  live in `backend/arp/research/` (or `arp/schemas/`), NEVER imported from `arp/golden_set/` (`arp.golden_set ->
+  arp.research` already exists, so an import in the reverse direction creates a package cycle).
 
 ### Slice 3: results screen (items 1c and 5, UI)
 
@@ -241,7 +247,9 @@ A doc id is `<case_id>_<first 16 hex chars of sha256 of the file bytes>`. Stand-
 every entry wrapped as `{"output": …}`; `model/AgentOpinion.json` = one entry (`stance` `s`, `rationale` `r`, no citations, `exposure_estimate` `pure_play`)
 and `model/AdjudicatorOutput.json` = a list with the entries for a, b, c, e, f in that order
 (`exposure_estimate` `pure_play` for include, `none` for exclude; `adjudicator_rationale` `r`; every citation has
-`doc_type` `annual_report`). If a later spec renames or reshapes
+`doc_type` `DocType.OTHER` / `"other"` — `"annual_report"` is not a valid `DocType` enum value in
+`backend/arp/schemas/common.py`, and `_case_documents` maps the `annual_report/` directory to `DocType.OTHER`). If a
+later spec renames or reshapes
 `AdjudicatorOutput`, that spec updates these fixtures. "Run F" = `arp golden-set theme --set F/ --documents-dir <docs>
 --split tune` with these stand-ins and with `ARP_HYBRID_RETRIEVAL_ENABLED=false` and
 `ARP_MODELS_UNIVERSE_FUNNEL_ENABLED=false` (keyword-only evidence, so case g gets no evidence and no model call).
@@ -280,7 +288,8 @@ activity (seed keyword `electrolyser`), with the default settings except `confid
 by `build_llm_client` under `ARP_STANDINS_DIR`, and one document `doc_1` with text `We manufacture electrolyser
 stacks.` (`documents_by_id` = `{"doc_1": <it>}`). The stand-in `AgentOpinion` is as above; the stand-in
 `AdjudicatorOutput` is as the row says, always with `exposure_estimate` `pure_play`. "One grounded citation" =
-`doc_id` `doc_1`, `doc_type` `annual_report`, quote `We manufacture electrolyser stacks.` "Then" reads the returned match.
+`doc_id` `doc_1`, `doc_type` `DocType.OTHER` (`"other"`, since `"annual_report"` is not a valid `DocType` enum value),
+quote `We manufacture electrolyser stacks.` "Then" reads the returned match.
 
 | ID | Given | When | Then (observable, exact) | Checked by |
 |----|-------|------|--------------------------|------------|

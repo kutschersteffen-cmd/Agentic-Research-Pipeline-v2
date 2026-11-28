@@ -1,6 +1,6 @@
 # Risk themes: company risk view, risk mode for theme runs, water-scarcity scorecard
 
-Status: Draft, for owner approval
+Status: Approved by owner (Wave 0b batch approval, 2026-11-28)
 Slug: `theme-risk-mode`
 Risk: `risk:normal` (new CLI, a theme-run mode, two API endpoints, one results region; no auth, money or `risk:high` path)
 Size: four slices, `M`, `M`, `S`, `S` (see `## Slices`). R&D Lab plan item 10, fixes finding P6. Mock-up screen 11
@@ -71,8 +71,8 @@ so it needs a stable way to start one from a topic name and search terms.
   with per-channel quotes, "Send to StewardIQ", "Draft an engagement question", Download. Theme Workbench (item 13) and
   Ask this theme (item 14) own those.
 - A form in Theme Builder to start a risk theme. Theme Radar 21c starts them; the API is open to any caller.
-- Resuming an interrupted risk run (`arp/orchestration/jobs.py` refuses theme runs without an extraction schema; a
-  risk run has none). Start it again instead.
+- Resuming an interrupted risk run (`backend/arp/orchestration/resume.py` refuses theme runs without an extraction
+  schema; a risk run has none). Start it again instead.
 - The Run quality box (`theme-precision-scorecard` slice 3) for risk runs.
 - Ratings, likelihood or impact scores; the ESRS matrix image; feeding the risk view into stewardship ranking (as in
   the approved spec).
@@ -91,6 +91,10 @@ so it needs a stable way to start one from a topic name and search terms.
 
 Build `docs/superpowers/specs/2026-11-01-company-risk-view-design.md` (steps, output JSON, CLI, roadmap) with these
 amendments. Where the two disagree, this section wins.
+
+**v2 `arch_guard --strict` CLI placement:** The Typer CLI (`arp risk-view run|batch|golden`) MUST live in
+`backend/arp/cli/risk_view.py` (`entrypoint` layer) and register in `backend/arp/cli/__init__.py` — NEVER place Typer
+CLI definitions or entrypoint imports inside `backend/arp/risk_view/` (`legacy` layer), which stays pure logic and data.
 
 - **A1, section finder on text, shared.** New `arp/risk_view/section.py` with
   `find_risk_section(text: str) -> tuple[int, int] | None` (char offsets, end exclusive). It works on lines of plain
@@ -124,7 +128,9 @@ amendments. Where the two disagree, this section wins.
   "suppliers, raw materials and logistics", `regulation` "laws, permits and regulation", `cyber` "cyber security and IT
   systems", `people` "employees, health and safety", `financial` "interest rates, currency, credit and liquidity",
   `market` "demand, prices and competition", `geopolitical` "war, sanctions and trade restrictions". Highest score
-  ≥ 0.5 wins, else `other`.
+  ≥ 0.5 wins, else `other`. Because `arp.models.classify` depends on the optional `[models]` extra
+  (`transformers`/`torch` in `backend/pyproject.toml`), guard optional NLI imports/availability cleanly when `[models]`
+  is not installed.
 - **A6, test seams.** The risk view calls `models.classify` as `from arp import models` / `models.classify(...)` and
   embeddings as `from arp.retrieval import embeddings` / `embeddings.embed_texts(...)`, and the PDF parse through the
   module as in A1, so a test patches `arp.models.classify`, `arp.retrieval.embeddings.embed_texts` and
@@ -278,7 +284,8 @@ confidence 0.00-0.50: calls 0, correct 0, rate n/a
   with `--min-recall-core needs an activity set.` Stored scorecard as in that spec. `arp golden-set calibrate` reads a
   risk report's tune bins like any other.
 - New taxonomy `backend/tests/golden/exposure/water_scarcity_exposed/taxonomies/tax_water_scarcity_exposed/`
-  (`latest.json` → 1, `v1.json`): `build_risk_theme("Water scarcity", ["water scarcity", "water stress",
+  (`latest.json` → 1, `v1.json`), authored in `#343`'s EXIOBASE `core_sectors` schema (post-`F3`, no legacy
+  `core_isic_codes`): `build_risk_theme("Water scarcity", ["water scarcity", "water stress",
   "water shortage", "water availability", "water supply", "drought", "arid"], ["water withdrawal", "water consumption",
   "cooling water", "process water", "ultrapure water", "groundwater", "aquifer", "water rights", "water permit"])`.
   The search terms are the ones the label review searched.
@@ -524,7 +531,7 @@ builder merges `origin/main` first. Slice 2 touches `schemas/thematic.py` and `p
 
 | Slice | Size | PR contents | Rows |
 |---|---|---|---|
-| 1 | M | `backend/arp/risk_view/` (section finder, HTML/PDF headings, mitigations, NLI theme, year-on-year, CLI `run`/`batch`/`golden`), data files, CLI registration, tests. AC-19 is owed until the labels PR (A7) | AC-1 to AC-18 (with AC-17b), AC-91 |
+| 1 | M | `backend/arp/risk_view/` (pure logic & data: section finder, HTML/PDF headings, mitigations, guarded optional NLI theme, year-on-year, data files), Typer CLI `run`/`batch`/`golden` in `backend/arp/cli/risk_view.py` (`entrypoint`) registered in `backend/arp/cli/__init__.py`, tests. AC-19 is owed until the labels PR (A7) | AC-1 to AC-18 (with AC-17b), AC-91 |
 | 2 | M | `kind`/`risk_terms` on `ThemeDefinition`, `RiskDisclosure`/`RiskAssessment`, `arp/research/risk_mode.py`, hook in `_match_company` and the run row, `POST /api/themes/risk-runs`, `GET /api/themes/runs/{run_id}/risk`, OpenAPI + generated types + contract line, tests | AC-30 to AC-56, AC-91, AC-92 |
 | 3 | S | Risk sets in `arp golden-set theme` (scoring, text, JSON, gate messages), water-scarcity risk taxonomy, tests | AC-60 to AC-70, AC-90, AC-91 |
 | 4 | S | Risk exposure region in `ThemeBuilder.tsx`, tests. Needs `UI review (factory)` | AC-80 to AC-88, AC-91 |

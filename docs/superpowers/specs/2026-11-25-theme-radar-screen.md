@@ -1,6 +1,6 @@
 # Theme Radar: momentum flag, one view across scans, company action strength
 
-Status: Draft, for owner approval
+Status: Approved by owner (Wave 0b batch approval, 2026-11-28)
 Slug: `theme-radar-screen`
 Risk: `risk:normal` for every slice (no auth, money, secrets or workflow-gate path)
 Size: `L`, three slices, one PR each (R&D Lab plan wave 4, items 16, 15 and 17)
@@ -27,7 +27,7 @@ roles, SEC capex check), but the screen shows one scan at a time and the numbers
 - There is no momentum flag; `signal_velocity` is a ratio a reader has to interpret.
 - Every company in a candidate gets the same "momentum" number: the cluster's velocity
   (`pipeline.py:255`, `CompanyExposure.momentum`).
-- The R&D Lab tools carry old names (Emerging Themes, Thematic Universe, Decision Studio, Theme dossiers), and the
+- The R&D Lab tools carry old names (Emerging Themes, Thematic Universe, Theme dossiers), and the
   bar does not read Overview · Theme Radar · Theme Builder · More as the owner chose on 2026-11-25.
 
 ## What the user can do afterwards that they cannot do today
@@ -61,10 +61,11 @@ All backend paths under `backend/arp/`, frontend under `frontend/src/`.
   `topic_store.save_period` and `save_lineage_events` (`:176-190`). Only BIRTH clusters are synthesized into
   candidates (`:194-199`). `CompanyExposure(momentum=cluster.velocity)` (`:250-257`). XBRL capex/R&D changes land
   on `candidate.xbrl_corroboration` before exposures are built (`:217-231`).
-- `storage/topic_store.py` `TopicStateStore` (files under `settings.emerging_themes_state_dir / "topics"`):
-  `periods/<period>.json` (that period's `TopicCluster`s), `lineage/<period>.jsonl` (its `LineageEvent`s),
-  `candidates.jsonl` (every candidate ever written). `list_periods()` sorts period keys. A second scan in the same
-  ISO week overwrites that week's period file.
+- `storage/topic_store.py` `TopicStateStore`: in v2 (`PR #52`), uses Postgres `JsonDocumentRepo` (`topic_periods`,
+  `topic_lineage`, `topic_candidates` in `app_documents`) when `dsn` is passed (`get_topic_store()` passes
+  `dsn=settings.postgres_dsn`), and local files under `topics_dir` (`periods/<period>.json`,
+  `lineage/<period>.jsonl`, `candidates.jsonl`) when `dsn=None` (unit/API tests). `list_periods()` sorts period keys.
+  A second scan in the same ISO week overwrites that week's period record.
 - `emerging_themes/lineage.py` `classify_lineage`: BIRTH (no link back), GROWTH (one prior, one successor), SPLIT
   (one prior, several successors), MERGE (several priors), DEATH (prior with no successor, recorded under the
   current period with the prior's `cluster_id`). Links only to the immediately earlier saved period.
@@ -79,10 +80,14 @@ All backend paths under `backend/arp/`, frontend under `frontend/src/`.
 - `pages/EmergingThemesDetector.tsx`: h1 "Emerging Themes"; cards "Run a scan now", "Recent scans" (run table,
   "View candidates"), "Candidates — <run>" (table, expandable detail at `:318-438` with brief, citations, XBRL,
   company exposure line showing `momentum`, decision bar), "Automatic schedule".
-- Navigation: `lib/processes.ts:191-209` R&D Lab `screens`, `row: ["#/designStrategy", "#/themes", "#/decision",
-  "#/index"]`, `more: [taxonomy, theme, strategyReplication, signals, valueChain]`; `rowLinks` puts the workspace
-  name first (`:323`). `lib/nav.ts:9` hub "Themes" with tabs Dossiers / Emerging themes. `App.tsx:66-94` tab
-  labels (palette). `pages/ProcessHub.tsx:690` `WorkspaceOverview` is the generic page for every workspace.
+- Navigation (v2 `b9890fe`): `lib/processes.ts:156-170` R&D Lab `screens` has the 6 surviving screens
+  (`#/designStrategy`, `#/themes`, `#/emergingThemes`, `#/taxonomy`, `#/theme`, `#/valueChain`),
+  `row: ["#/designStrategy", "#/themes"]`, `more: ["#/taxonomy", "#/theme", "#/valueChain"]` (`#/decision` Decision
+  Studio, `#/index` Portfolio Builder, `#/strategyReplication`, `#/signals`, and the Argus `Template` step were
+  removed in v2 PR `2e` `bee5cda` and PR `2g` `c1b9705`); `rowLinks` puts the workspace name first. `lib/nav.ts`
+  hub "Themes" with tabs Dossiers / Emerging themes. `App.tsx:45-78` tab labels (palette), using `HashRouter`
+  (`react-router-dom`) and lazy exports in `frontend/src/features/rd_lab/index.ts`. `pages/ProcessHub.tsx`
+  `WorkspaceOverview` is the generic page for every workspace.
 
 ## Goals
 
@@ -105,8 +110,7 @@ All backend paths under `backend/arp/`, frontend under `frontend/src/`.
 - A persisted item store or daily scans (spec `theme-radar-signal-store`). This spec reads only the existing
   per-scan cluster files and does not depend on that spec.
 - A new action type (for example "launch"). Extraction and its prompt do not change; no golden-set impact.
-- Renaming route ids, API paths, run types or code identifiers (`#/emergingThemes`, `emerging_themes`,
-  `DecisionStudio.tsx` stay).
+- Renaming route ids, API paths, run types or code identifiers (`#/emergingThemes`, `emerging_themes` stay).
 - The "in progress" and "verified themes" Overview cards (R&D Lab plan item 29, another spec), Theme Workbench
   (item 13).
 
@@ -114,8 +118,8 @@ All backend paths under `backend/arp/`, frontend under `frontend/src/`.
 
 - No language model call decides a flag, an id, a status or an action strength.
 - No candidate is ever written twice for the same theme by the growing-theme rule.
-- No old name ("Emerging Themes", "Emerging themes", "Thematic Universe", "Thematic universe", "Decision Studio",
-  "Theme dossiers") in visible text on the screens AC-52 lists.
+- No old name ("Emerging Themes", "Emerging themes", "Thematic Universe", "Thematic universe", "Theme dossiers") in
+  visible text on the screens AC-52 lists.
 - No new config setting, table, service or dependency.
 
 Reviewers check both of the first and last line in the diff (no `arp.llm` import in `radar.py` or in the new
@@ -134,7 +138,8 @@ added); AC-26 and AC-89 pin them.
 ### Cluster source counts (slice 1)
 
 `TopicCluster` gets `source_counts: dict[str, int] = {}`: mentions per source category (keys from the five
-category names, zero counts left out). `clustering.cluster_tags` fills it from each member mention's
+category names, zero counts left out). `cluster_tags` in canonical `backend/arp/text_clustering.py`
+(`arp/emerging_themes/clustering.py` is a compatibility re-export shim in v2) fills it from each member mention's
 `source_type`. A cluster saved before this change has `{}`; wherever counts are read, such a cluster counts 1 for
 the category of each of its `source_types`.
 
@@ -244,7 +249,8 @@ descending, `company_id`, `radar_id`.
 
 ### Theme Radar screen (slice 2)
 
-`#/emergingThemes` (and `#/emergingThemes/<radar_id>`, which opens with that theme selected):
+`#/emergingThemes` (and `#/emergingThemes/<radar_id>`, which opens with that theme selected; uses v2 `HashRouter`,
+lazy export in `frontend/src/features/rd_lab/index.ts`, `typedApi`/TanStack Query, and reconciled `DESIGN.md` tokens):
 
 - h1 "Theme Radar"; help text "Themes companies are starting to put money behind, across your last six scans.
   A theme keeps one id from scan to scan; its flag compares its share of mentions with its own last four scans."
@@ -293,21 +299,24 @@ Visible text only; route ids, files and identifiers stay.
 |---|---|
 | Emerging Themes / Emerging themes (screen `#/emergingThemes`) | Theme Radar |
 | Thematic Universe / Thematic universe (screen `#/theme`) | Theme Builder |
-| Decision Studio (screen `#/decision`) | Scoring Rules |
 | Theme dossiers (screen `#/themes`) | Dossiers |
 
+*(Note: `#/decision` Decision Studio, `#/index` Portfolio Builder, `#/strategyReplication`, `#/signals`, and the Argus
+`Template` step were removed in v2 PR `2e` `bee5cda` and PR `2g` `c1b9705` — only the 3 surviving renames above apply.)*
+
 - Every visible string in `frontend/src` (JSX text, labels, titles, `does` texts, run-type labels, messages,
-  `aria-label`s, placeholders) naming one of these screens uses the new name: for example the `emerging_themes`
-  run-type label "Theme Radar scan", `theme` "Theme Builder run" where a run is meant, "in Scoring Rules".
-- R&D Lab `row`: `#/emergingThemes`, `#/theme`; `more`, in order: `#/decision`, `#/index`, `#/themes`,
-  `#/designStrategy`, `#/taxonomy`, `#/strategyReplication`, `#/signals`, `#/valueChain`. The row's first link
-  (`#/rdLab`) reads "Overview" for R&D Lab only (other workspaces keep their name). The nav keeps the name
-  "R&D Lab screens"; the Overview's h1 stays "R&D Lab".
+  `aria-label`s, placeholders) naming one of these surviving screens uses the new name: for example the
+  `emerging_themes` run-type label "Theme Radar scan", `theme` "Theme Builder run" where a run is meant.
+- R&D Lab `row`: `["#/emergingThemes", "#/theme"]`; `more`, in order (4 items): `["#/themes", "#/designStrategy",
+  "#/taxonomy", "#/valueChain"]` (`Dossiers`, `Build a thematic portfolio`, `Taxonomy Library`, `Value Chain
+  Explorer`). The row's first link (`#/rdLab`) reads `"Overview"` for R&D Lab only (other workspaces keep their name).
+  The nav keeps the name "R&D Lab screens"; the Overview's h1 stays "R&D Lab".
 - `lib/nav.ts`: the "Themes" hub goes, so `#/themes` and `#/emergingThemes` show no tab strip.
 
 ### R&D Lab Overview (slice 3)
 
-`WorkspaceOverview` for `rdLab` only, between the ask box and the process list: a container with two cards, in
+`WorkspaceOverview` for `rdLab` only (using v2 `HashRouter`, `typedApi`/TanStack Query, and reconciled `DESIGN.md`
+tokens), between the ask box and the process list: a container with two cards, in
 this order (item 29 later appends its two cards to the same container):
 
 1. **Radar card**, h2 "What is gaining momentum": the Theme Radar chart (the same component) over all radar themes;
@@ -363,7 +372,7 @@ quality <n>%)" and its intro "(role + Risk/Action strength/Evidence-quality — 
 |---|---|---|---|
 | `rd-lab-rename` | AC-1, AC-12 | R&D Lab bar and More menu change | AC-50, AC-51 |
 | `rd-lab-rename` | AC-8 | "Build a thematic portfolio" moves into More | AC-53 |
-| `rd-lab-rename` | AC-11 (unit) | its text says "Decision Studio" | AC-55 |
+| `rd-lab-rename` | AC-11 (unit) | Argus `Template` step and removed scoring-template screen were deleted in v2 PR `2e`/`2g` | retired (AC-55 retired) |
 | `ui-trim-workspaces` | AC-17, `#/emergingThemes` case only | h1 is Theme Radar | AC-52 |
 | `ui-trim-workspaces` | AC-18, terms `thematic universe` and `emerging themes` only | palette labels change | AC-54 |
 | `ui-trim-workspaces` | AC-19 | the Themes tab strip goes | AC-56 |
@@ -494,11 +503,11 @@ AC-22 worked: `q` W40 share 5/19, W41 9/20, z 18.6842, H ln 2 / ln 5, burst 61.5
 | AC-48 | the running app with Fixture H+ written to `$ARP_EMERGING_THEMES_STATE_DIR/topics` before `e2e_stack.sh up` | open Theme Radar at 1440 and 390 wide, click `alpha` | no two dot labels overlap; each tail ends at its dot; the panel's sections in order: flag line, Scan history, Signals (or the candidate block); `scrollWidth` ≤ the viewport width at 390 | evaluator |
 | AC-49 | AC-40 with e2's `rationale` 600 characters with no line break | click row r2, at 1440 × 900 and at 390 × 844 | the `aside` "Theme details" has `scrollWidth` not greater than its `clientWidth` at both sizes | holdout |
 | AC-50 | e2e stack | open `#/rdLab` | the navigation "R&D Lab screens" reads, in order: links `Overview`, `Theme Radar`, `Theme Builder`, then a button `More` | holdout |
-| AC-51 | AC-50 | press `More` | its items read, in order: `Scoring Rules`, `Portfolio Builder`, `Dossiers`, `Build a thematic portfolio`, `Taxonomy Library`, `Strategy Replication`, `Signals workbench`, `Value Chain Explorer` | holdout |
-| AC-52 | e2e stack | open each of `#/rdLab`, `#/emergingThemes`, `#/theme`, `#/decision`, `#/themes`, `#/index`, `#/designStrategy`, `#/transitionIntel`, `#/argus`, `#/history` | h1 of `#/emergingThemes` `Theme Radar`, `#/theme` `Theme Builder`, `#/decision` `Scoring Rules`, `#/themes` `Dossiers`; on every page, no visible text contains `Emerging Themes`, `Emerging themes`, `Thematic Universe`, `Thematic universe`, `Decision Studio` or `Theme dossiers` (case-sensitive) | holdout |
+| AC-51 | AC-50 | press `More` | its items read, in order: `Dossiers`, `Build a thematic portfolio`, `Taxonomy Library`, `Value Chain Explorer` (the 4 surviving v2 screens) | holdout |
+| AC-52 | e2e stack | open each of `#/rdLab`, `#/emergingThemes`, `#/theme`, `#/themes`, `#/designStrategy`, `#/transitionIntel`, `#/argus`, `#/history` | h1 of `#/emergingThemes` `Theme Radar`, `#/theme` `Theme Builder`, `#/themes` `Dossiers`; on every page, no visible text contains `Emerging Themes`, `Emerging themes`, `Thematic Universe`, `Thematic universe` or `Theme dossiers` (case-sensitive) | holdout |
 | AC-53 | e2e stack | open `#/designStrategy`, then `#/theme`, then `#/emergingThemes` | on `#/designStrategy` the `More` button has `aria-current="page"`; on `#/theme` the link `Theme Builder` does; on `#/emergingThemes` the link `Theme Radar` does | holdout |
-| AC-54 | e2e stack | press Ctrl+K and type, one at a time, `theme radar`, `theme builder`, `scoring rules`, `dossiers` | each shows an option (not `Ask ARP: …`) reading `Theme Radar`, `Theme Builder`, `Scoring Rules`, `Dossiers` respectively; pressing `Theme Radar` opens `#/emergingThemes` | holdout |
-| AC-55 | the Argus workspace's process list | read the step labelled Template | its `does` text is `Build and ratify scoring templates in Scoring Rules (R&D Lab); only ratified versions reach Argus.` | unit |
+| AC-54 | e2e stack | press Ctrl+K and type, one at a time, `theme radar`, `theme builder`, `dossiers` | each shows an option (not `Ask ARP: …`) reading `Theme Radar`, `Theme Builder`, `Dossiers` respectively; pressing `Theme Radar` opens `#/emergingThemes` | holdout |
+| AC-55 | *(retired in v2)* | — | Retired: the Argus `Template` step was removed in v2 (`frontend/src/lib/processes.ts:105-112`) alongside the removed scoring-template screen (`PR 2e`/`2g`) | unit |
 | AC-56 | e2e stack | open `#/themes`, then `#/emergingThemes` | neither page has a `nav.hub-nav` (the Themes tab strip); the document title on `#/emergingThemes` is `Theme Radar · ARP` | holdout |
 | AC-57 | e2e stack | open `#/stewardiq` | its navigation's first link reads `StewardIQ` (other workspaces keep their name; must not change) | holdout |
 | AC-58 | — | CRASH-R | one `role="alert"` contains heading `This screen stopped working`, the text `Something went wrong while showing it. The rest of the app still works: try again, or open another screen.` and a button `Try again`; no page error | holdout |
@@ -544,8 +553,8 @@ and 3 builds on 1's radar):
 
 | Slice | Size | PR contents | Rows |
 |---|---|---|---|
-| 1 | M | `emerging_themes/radar.py` (ids, burst, flag, `build_radar`, `eligible_cluster_ids`), `TopicCluster.source_counts` + `clustering.py`, `pipeline.py` eligibility, `GET /radar` + response models, OpenAPI + `schema.gen.ts`, `contract.ts`, tests | AC-1 to AC-27 (no AC-18) |
-| 2 | L | `EmergingThemesDetector.tsx` (radar card, filters, chart component, list, side panel, `#/emergingThemes/<id>`), renames across `frontend/src`, `processes.ts` row/more and the "Overview" first link, `nav.ts` hub removal, `App.tsx` labels, moved e2e/frontend tests. Needs `UI review (factory)` | AC-30 to AC-62 |
+| 1 | M | `emerging_themes/radar.py` (ids, burst, flag, `build_radar`, `eligible_cluster_ids`), `TopicCluster.source_counts` + canonical `arp/text_clustering.py` (re-exported by `emerging_themes/clustering.py`), `pipeline.py` eligibility, `GET /radar` + response models, OpenAPI + `schema.gen.ts`, `contract.ts`, tests | AC-1 to AC-27 (no AC-18) |
+| 2 | L | `EmergingThemesDetector.tsx` (radar card, filters, chart component, list, side panel, `#/emergingThemes/<id>`), surviving renames across `frontend/src`, `processes.ts` row/more and the "Overview" first link, `nav.ts` hub removal, `App.tsx` labels, moved e2e/frontend tests. Needs `UI review (factory)` | AC-30 to AC-62 (AC-55 retired in v2) |
 | 3 | M | `company_exposure.py` (`compute_action_strength`, `strongest_action_tag`), `CompanyExposure` fields, `pipeline.py` exposure, radar `companies`, OpenAPI + `schema.gen.ts`, R&D Lab Overview cards in `ProcessHub.tsx`, exposure line in the detail block, tests. Needs `UI review (factory)` | AC-70 to AC-89 |
 
 Files this spec owns against the R&D Lab redesign specs (items 1–14, 29): the R&D Lab `row`/`more`/first-link

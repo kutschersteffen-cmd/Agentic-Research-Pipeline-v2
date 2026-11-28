@@ -9,7 +9,8 @@ Size: `L`, four slices, one PR each, built in order 1, 2, 3, 4 (Argus and Resear
 
 Research Desk is a chat where an analyst asks a question about chosen companies and gets an answer whose every
 sentence is checked against its sources. Wave 1 builds it in four PRs: the backend chat over stored reports
-(slice 1), its screens under `#/argus/desk` (slice 2), reviewed values and XBRL facts as sources (slice 3) and
+(slice 1 — already merged on v2 `main` `b9890fe`, commit `c1c3691`, decomposed in PR `#28` and `#36`), its screens
+under `#/argus/desk` (slice 2), reviewed values and XBRL facts as sources (slice 3) and
 reports uploaded into a chat (slice 4).
 
 ## Decisions for the owner
@@ -70,8 +71,9 @@ low-carbon assets?" has to start a full extraction.
   dot."; no type check.
 - Review decisions: `review_items` (`payload` JSONB has `company_id`, `name`, `field_id`, `period_end`, `field`) and
   insert-only `review_decisions` (`decision` approve, edit, correct, reject, escalate, hold; `edited_value`).
-- XBRL: `XbrlStore` (`settings.xbrl_dir`), `read_facts(cik)` gives `FactRow`; `company_ids(cik)` lists the company
-  keys that fetched a CIK; `views.query_facts(..., annual_only=True)`.
+- XBRL: `XbrlStore` (canonical home in v2: `backend/arp/storage/xbrl_store.py` and `backend/arp/storage/xbrl_models.py`;
+  `arp/xbrl_pipeline/{store,models}.py` are compatibility re-export shims; `settings.xbrl_dir`), `read_facts(cik)`
+  gives `FactRow`; `company_ids(cik)` lists the company keys that fetched a CIK; `views.query_facts(..., annual_only=True)`.
 - Retention: `arp retention cleanup [--apply]` (`arp/cli/retention.py`, `arp/retention.py`) prints `deleted: <x>`
   (or `would delete: <x>`) lines and a summary.
 - Roles: `ROLE_RANK = {"viewer": 0, "analyst": 1, "approver": 2}`; `require_role("analyst")` answers `403`
@@ -80,8 +82,11 @@ low-carbon assets?" has to start a full extraction.
   (`arp/standins.py`), which answers `complete_structured(output_model=X)` from `$ARP_STANDINS_DIR/model/X.json`
   (`{"output": {...}}`, a list for successive calls, or `{"error": "..."}` to raise) and logs every call with its
   `prompt` to `calls.jsonl`.
-- Frontend: hash routes; `#/argus` is `ArgusStart`, `#/argus/<flow>/<step>` is `ArgusFlow` (`App.tsx:301-302`);
-  `Orb.tsx` exists.
+- Frontend (v2): `App.tsx` uses `HashRouter` (`react-router-dom`) and lazy feature barrels; `#/argus` is
+  `ArgusStart`, `#/argus/<flow>/<step>` is `ArgusFlow`; `DeskStart` and `DeskChat` export lazily via
+  `frontend/src/features/argus/index.ts`; API calls use `typedApi`/TanStack Query (`frontend/src/api/typedClient.ts`)
+  plus a dedicated SSE helper; styling follows reconciled `DESIGN.md` black-theme tokens (`designDoc.test.ts`,
+  `nightDeskTokens.test.ts`). `Orb.tsx` exists.
 
 ## Goals
 
@@ -116,19 +121,24 @@ low-carbon assets?" has to start a full extraction.
 
 ## Design
 
-### Slice 1: document chat on stored reports (backend)
+### Slice 1: document chat on stored reports (backend — already merged on v2 `main` `b9890fe`, commit `c1c3691`, decomposed in PR `#28` & `#36`)
 
-New package `backend/arp/research_desk/`, router `backend/arp/api/routers/desk.py` (prefix `/api/desk`), tables in
-`backend/arp/db/models.py` next to `RefineTurn` (created by `ensure_schema` like the others).
+Package `backend/arp/research_desk/`, router `backend/arp/api/routers/desk.py` (prefix `/api/desk`), tables in
+`backend/arp/db/models.py` next to `RefineTurn` (`DeskChat`, `DeskScope`, `DeskTurn`, and `DeskUpload` for slice 4).
+Under v2 `arch_guard --strict`, `arp.argus` and `arp.research_desk` MUST stay mutually decoupled (neither imports
+the other; any cross-feature orchestration lives in `arp/api/routers/{argus,desk}.py`).
 
-**Tables**
+**Tables & Alembic `0002` (v2):** For slice 4, add the `DeskUpload` ORM model to `backend/arp/db/models.py` next to
+`DeskChat`/`DeskScope`/`DeskTurn`, ship an idempotent Alembic `0002` migration (`backend/migrations/versions/0002_*.py`
+using `if_not_exists=True` / table-existence guards, unified with the signal-store tables in `F2`), and update
+`backend/tests/test_alembic_pg.py` from hardcoded `["0001_baseline"]` to a single linear head check.
 
 | Table | Columns |
 |---|---|
 | `desk_chats` | `id` int identity PK, `owner_id` text, `title` text, `created_at`, `updated_at` timestamptz |
 | `desk_scope` | `id` int identity PK, `chat_id` FK `desk_chats.id`, `kind` text (`company` \| `universe` \| `run` \| `upload`), `ref` text, `label` text; unique (`chat_id`, `kind`, `ref`) |
 | `desk_turns` | `id` int identity PK, `chat_id` FK, `user_id` text, `question` text, `mode` text (`quick` \| `thorough`), `status` text (`running` \| `done` \| `failed`), `stages` JSONB, `sources` JSONB, `answer` JSONB null, `error` text null, `created_at`, `updated_at`, `finished_at` null; partial unique index `uq_desk_turns_running` on (`chat_id`) where `status = 'running'` |
-| `desk_uploads` (slice 4) | `id` int identity PK, `chat_id` FK, `owner_id`, `filename`, `stored_path`, `size_bytes`, `sha256`, `status` (`reading` \| `ready` \| `failed`), `error` null, `full_text` null, `page_breaks` JSONB, `detected_company_id` null, `detection` (`lei` \| `isin` \| `name` \| `none`), `saved_company_id` null, `saved_doc_type` null, `saved_at` null, `created_at` |
+| `desk_uploads` (slice 4; unified in Alembic `0002`) | `id` int identity PK, `chat_id` FK, `owner_id`, `filename`, `stored_path`, `size_bytes`, `sha256`, `status` (`reading` \| `ready` \| `failed`), `error` null, `full_text` null, `page_breaks` JSONB, `detected_company_id` null, `detection` (`lei` \| `isin` \| `name` \| `none`), `saved_company_id` null, `saved_doc_type` null, `saved_at` null, `created_at` |
 
 **Access.** Every `/api/desk` endpoint uses `require_role("analyst")` (a viewer gets `403` "Requires role 'analyst'
 or higher"). A chat, its turns and uploads belong to `desk_chats.owner_id`; for anyone else (approvers too) every
@@ -268,8 +278,11 @@ with `data: {"status": "<done|failed>"}` and closes. For a finished turn it send
 then `end`. On connect to a running turn it first sends all six current records, then each change; it polls the turn
 every 0.5 s. Owner rule as above (`404` `Turn not found`).
 
-**Routes.** `#/argus/desk` is `pages/desk/DeskStart.tsx`, `#/argus/desk/<chatId>` is `pages/desk/DeskChat.tsx`
-(`desk` is checked before a flow id). Components in `frontend/src/components/argus/`: `OrbChat` (the Orb, a phase
+**Routes & v2 frontend architecture.** `App.tsx` uses `HashRouter` (`react-router-dom`); `#/argus/desk` is
+`pages/desk/DeskStart.tsx` and `#/argus/desk/<chatId>` is `pages/desk/DeskChat.tsx` (`desk` is checked before a flow
+id), both exported lazily via `frontend/src/features/argus/index.ts`. Data calls use `typedApi`/TanStack Query plus a
+dedicated SSE helper, and styling adheres to reconciled `DESIGN.md` black-theme tokens (`designDoc.test.ts`,
+`nightDeskTokens.test.ts`). Components in `frontend/src/components/argus/`: `OrbChat` (the Orb, a phase
 label, an ask box; props `context` and `onAction` kept generic so later Argus PRs only add a prop), `ScopeChips`,
 `StageList`, `FigureCheck`, `CitationPanel`; slice 4 adds `DropZone` there.
 
@@ -328,7 +341,9 @@ A chat id the API answers `404` for shows `Chat not found.`
   item: only that run's items), the latest `review_decisions` row (highest `id`) for that item. Kept only when that
   decision is `approve` (value `payload.field.value`), `edit` or `correct` (value `edited_value`). Unit:
   `payload.field.unit` when present.
-- **XBRL facts**: for every CIK whose `XbrlStore.company_ids(cik)` holds the key, its annual facts (`is_annual`).
+- **XBRL facts**: via canonical `backend/arp/storage/xbrl_store.py` (`XbrlStore`) and `backend/arp/storage/xbrl_models.py`
+  (`arp/xbrl_pipeline/{store,models}.py` are compatibility re-exports), for every CIK whose `XbrlStore.company_ids(cik)`
+  holds the key, its annual facts (`is_annual`).
 
 Each saved row becomes one text line:
 
