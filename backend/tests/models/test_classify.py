@@ -1,8 +1,8 @@
 import httpx
 import pytest
 
+from arp import compute_client as client
 from arp import models
-from arp.compute import client
 from arp.models import cache, local, registry
 
 

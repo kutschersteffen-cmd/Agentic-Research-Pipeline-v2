@@ -1,26 +1,10 @@
 from __future__ import annotations
 
-import json
-from pathlib import Path
-
 from arp.extraction.field_graph import extract_one_field
 from arp.golden_set.schema import GoldenSetCase, GoldenSetCaseResult, GoldenSetReport
 from arp.llm.base import LLMClient
 from arp.schemas.common import SourceDocument, new_id, now_iso
-
-_BUNDLED_CASES_PATH = Path(__file__).parent / "data" / "extraction_cases.json"
-# Real public-filing excerpts of 50,000+ characters with a distractor each (long-document golden cases spec).
-_LONG_CASES_PATH = Path(__file__).parent / "data" / "long_cases.json"
-
-
-def load_cases(path: Path | None = None, long: bool = False) -> list[GoldenSetCase]:
-    """Loads the bundled golden set by default, or a user-supplied file of
-    the same shape (a JSON array of GoldenSetCase objects) -- e.g. a
-    deployment's own accumulated set of previously-reviewed extractions,
-    which is exactly what a "golden set" is meant to grow into over time.
-    """
-    raw = json.loads((path or (_LONG_CASES_PATH if long else _BUNDLED_CASES_PATH)).read_text())
-    return [GoldenSetCase.model_validate(c) for c in raw]
+from arp.schemas.golden_set import _BUNDLED_CASES_PATH, _LONG_CASES_PATH, load_cases  # noqa: E402, F401
 
 
 def _values_match(expected: str | float | bool | None, actual: str | float | bool | None, tolerance: float) -> bool:

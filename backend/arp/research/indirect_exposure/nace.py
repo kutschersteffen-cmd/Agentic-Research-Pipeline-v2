@@ -19,3 +19,4 @@ __all__ = [
     "nace_title",
     "normalise_nace",
 ]
+from arp.core.nace import _NACE_REVS  # noqa: F401

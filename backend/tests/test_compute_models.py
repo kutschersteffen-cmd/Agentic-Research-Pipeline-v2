@@ -5,7 +5,7 @@ import httpx
 import numpy as np
 import pytest
 
-from arp.compute import client
+from arp import compute_client as client
 from arp.config import Settings
 from arp.extraction.field_graph import field_evidence
 from arp.retrieval import embeddings, rerank
@@ -139,7 +139,7 @@ def test_embed_409_falls_back(transport, monkeypatch):  # AC-46
 
 
 def test_emerging_themes_embeds_in_cloud(transport, monkeypatch):  # AC-23
-    from arp.emerging_themes import clustering
+    from arp import text_clustering as clustering
 
     transport.route(EMBED, lambda request: httpx.Response(
         200, json={"vectors": [[0.0] * embeddings.EMBED_DIM for _ in json.loads(request.content)["texts"]]}

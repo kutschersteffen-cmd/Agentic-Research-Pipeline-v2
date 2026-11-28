@@ -6,7 +6,7 @@ import pytest
 
 from arp.api import deps
 from arp.errors import ClientInputError
-from arp.orchestration import hooks
+from arp.platform import hooks
 from arp.retrieval import registry_factory
 from arp.runtime import container
 from arp.storage import factories as storage_factories

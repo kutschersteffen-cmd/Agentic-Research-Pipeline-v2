@@ -35,7 +35,9 @@ def issuer_key(company: CompanyRef, idmap=None, *, session=None) -> tuple[str, s
     issuer (the golden source); else its LEI; else a provisional key. `idmap` is an IdentifierMapStore."""
     if company.entity_id:
         return str(company.entity_id), "INTERNAL"
-    if session is not None and _session_resolver is not None:
+    if session is not None:
+        if _session_resolver is None:
+            raise RuntimeError("issuer_key(session=...) called before arp.db.companies registered the session resolver")
         resolved = _session_resolver(session, company)
         if resolved:
             return str(resolved), "INTERNAL"
