@@ -563,3 +563,44 @@ class VoteDecisionModel(Base):
     decided_by: Mapped[str | None] = _text()
     decided_at: Mapped[datetime | None] = _ts()
     run_id: Mapped[str | None] = _text()
+
+
+class SignalItemModel(Base):
+    """The Theme Radar signal store (arp/emerging_themes/signal_store.py): every item an Emerging Themes
+    scan fetched, once per content hash."""
+
+    __tablename__ = "signal_items"
+
+    content_hash: Mapped[str] = mapped_column(String, primary_key=True)
+    source: Mapped[str] = mapped_column(String, nullable=False)
+    source_type: Mapped[str] = mapped_column(String, nullable=False)
+    title: Mapped[str] = mapped_column(Text, nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    url: Mapped[str] = mapped_column(Text, nullable=False)
+    raw_entity_names: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    published_at_is_estimated: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    item_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class SignalScanModel(Base):
+    """One recorded Emerging Themes scan (light or full), including Radar health metrics."""
+
+    __tablename__ = "signal_scans"
+
+    scan_id: Mapped[str] = mapped_column(String, primary_key=True)
+    kind: Mapped[str] = mapped_column(String, nullable=False)
+    run_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    finished_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    items_fetched: Mapped[dict[str, int]] = mapped_column(JSONB, nullable=False, default=dict)
+    items_new: Mapped[dict[str, int]] = mapped_column(JSONB, nullable=False, default=dict)
+    fetch_failures: Mapped[dict[str, int] | None] = mapped_column(
+        JSONB, nullable=True, default=dict, server_default=sql_text("'{}'::jsonb")
+    )
+    lag_hours: Mapped[dict[str, float | None] | None] = mapped_column(
+        JSONB, nullable=True, default=dict, server_default=sql_text("'{}'::jsonb")
+    )
+    unclustered_share: Mapped[float | None] = mapped_column(Float, nullable=True)
