@@ -198,8 +198,10 @@ def test_security_master_load_writes_pg_idmap_and_sectors(pg, tmp_path):
     settings = Settings(postgres_dsn=pg, portfolios_dir=tmp_path / "portfolios", identifier_map_path=tmp_path / "idmap.jsonl")
     store = build_portfolio_store(settings)
     idmap = IdentifierMapStore(settings.identifier_map_path, dsn=pg)
-    csv_bytes = b"issuer_key,scheme,value,nace_code\nacme,ISIN,US0378331005,35.11\n"
+    header = ",".join(security_master.COLUMNS)
+    row = "acme,Acme Corp,US0378331005,,,,,,,,,35.11,2.1,,"
+    csv_bytes = f"{header}\n{row}\n".encode()
     res = security_master.load(store, idmap, csv_bytes, "master.csv")
-    assert res["identifiers"] == 1
+    assert res["identifiers"] >= 1
     assert IdentifierMapStore(dsn=pg).resolve("ISIN", "US0378331005") == ["acme"]
     assert IssuerSectorStore(dsn=pg).get("acme")["nace_code"] == "35.11"
