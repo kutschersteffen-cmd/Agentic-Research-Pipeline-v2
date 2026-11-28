@@ -24,40 +24,21 @@ dependencies = [
     "beautifulsoup4>=4.12,<5.0",
     "lxml>=5.2,<7.0",
     "pypdf>=6.19.0,<7.0",
-    # Exact: the cloud parser (arp/compute/) must report the same parser_version() as a local install.
-    "docling==2.140.0",
-    "docling-core==2.101.1",
-    "docling-ibm-models==4.0.3",
-    "docling-parse==7.22.3",
     "cryptography>=42.0,<51.0",
     "trafilatura==2.3.1",
     "python-multipart>=0.0.9,<1.0",
     "numpy>=1.26,<3.0",
     "openpyxl==3.1.5",
-    "fastembed>=0.9,<1.0",
     "google-auth>=2.40,<3.0",  # ID tokens for the Cloud Run compute services
-    # Presentation & Reporting Tool (arp/reporting/): deterministic house-deck
-    # pptx/pdf rendering. python-docx backs RFP document parsing/filling;
-    # reportlab draws the PDFs of `arp compute` and test fixtures.
-    "python-pptx>=1.0,<2.0",
     # House-deck images (arp/storage/report_images.py): checks, EXIF rotation, downscaling.
     "Pillow>=10.0,<13.0",
     "python-docx>=1.1,<2.0",
-    "reportlab>=4.0,<5.0",
-    # House-deck charts in the HTML/PDF (arp/reporting/vega.py): Vega-Lite rendered in-process, no browser.
-    "vl-convert-python>=1.9,<2",
-    # HTML house deck (arp/reporting/html_render.py, browser.py): jinja2
-    # templates, rendered to pdf/png and fit-measured in headless Chromium.
-    # CI and dev install the browser with `python -m playwright install chromium`.
     "jinja2>=3.1,<4.0",
-    "playwright>=1.45,<2.0",
     # Postgres is the system of record (arp/db/): runs, companies, review.
     "sqlalchemy>=2.0,<3.0",
     "psycopg[binary]>=3.1,<4.0",
     "pgvector>=0.3,<1.0",
     "alembic>=1.14,<2.0",
-    # Company graph (arp/company_graph.py): supply edges for theme exposure layers, in Neo4j.
-    "neo4j>=5.28,<6.0",
     # Company site / report identification (arp/discovery/names.py, site checks):
     # fuzzy name match, legal-suffix stripping, host -> registrable domain.
     "rapidfuzz>=3.14,<4.0",
@@ -78,6 +59,33 @@ dev = [
 # Empty: Postgres is required now and its packages are in `dependencies`.
 # Kept so existing `pip install -e ".[postgres,...]"` lines keep working.
 postgres = []
+# Exact: the cloud parser (arp/compute/) must report the same parser_version() as a local install.
+parsing = [
+    "docling==2.140.0",
+    "docling-core==2.101.1",
+    "docling-ibm-models==4.0.3",
+    "docling-parse==7.22.3",
+]
+# Presentation & Reporting Tool (arp/reporting/): deterministic house-deck pptx/pdf/png/Vega rendering
+# plus reportlab PDFs for `arp compute` and test fixtures.
+reporting = [
+    "python-pptx>=1.0,<2.0",
+    "reportlab>=4.0,<5.0",
+    "vl-convert-python>=1.9,<2",
+    "playwright>=1.45,<2.0",
+]
+# Company graph (arp/company_graph.py): supply edges for theme exposure layers, in Neo4j.
+graph = [
+    "neo4j>=5.28,<6.0",
+]
+# Local dense retrieval embeddings (arp/retrieval/).
+embeddings = [
+    "fastembed>=0.9,<1.0",
+]
+# Convenience bundle installing all standard optional feature stacks (excluding GPU/PyTorch models).
+all = [
+    "arp[parsing,reporting,graph,embeddings]",
+]
 # Emerging Themes Scanner (arp/emerging_themes/): embedding-based
 # clustering with lineage tracking across an entire investment universe's
 # public-source mention flow. Kept opt-in, same reasoning as `postgres`
