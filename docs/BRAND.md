@@ -4,23 +4,20 @@ Colours, type and components live in [`DESIGN.md`](../DESIGN.md). This file cove
 
 ## Mark: Pixel A
 
-A letter A built from ten squares. The apex is the brand colour: orange, #ea4c14 on light grounds and
-the brighter #ff6a2b on dark grounds. It marks where a person ratifies what the agents proposed.
-Brand orange lives in the apex and in the landing animation's glow; the interface's "needs a
-person" signal is amber (see DESIGN.md, The Brand Colour Rule).
+A letter A built from ten squares. The apex is the brand colour: orange (`#ff6a2b` on the app's black ground; `#ea4c14` only when printed or placed on external light grounds). It marks where a person ratifies what the agents proposed. Brand orange lives in the logo apex and in the square of the landing caption; the interface's "needs a person" signal is amber (see `DESIGN.md`, The Brand Colour Rule).
 
 | File | Use |
 |------|-----|
-| `docs/brand/arp-mark.svg` | Light grounds (ink + brand orange) |
-| `docs/brand/arp-mark-night.svg` | Dark grounds (ink + brand orange #ff6a2b) |
-| `docs/brand/arp-lockup.svg` | Lockup for light grounds: "ARP" spelled on the mark's grid |
-| `docs/brand/arp-lockup-night.svg` | Lockup for dark grounds |
+| `docs/brand/arp-mark-night.svg` | App / dark grounds (ink + brand orange `#ff6a2b`) |
+| `docs/brand/arp-lockup-night.svg` | Lockup for app / dark grounds: "ARP" spelled on the mark's grid |
+| `docs/brand/arp-mark.svg` | External / print light grounds (ink + `#ea4c14`) |
+| `docs/brand/arp-lockup.svg` | Lockup for external / print light grounds |
 | `frontend/public/favicon.svg` | Favicon, switches with system theme |
 
 ## Lockup sizes
 
 - **Landing page:** the large animated lockup.
-- **App sidebar:** the lockup at 32px high. It is the first thing in the sidebar.
+- **App top bar:** the lockup at 28px high on the left edge of the top bar (there is no app sidebar).
 - **Favicon and small uses:** the mark alone, never below 16px high.
 
 ## Lockup
@@ -35,10 +32,10 @@ mark alone.
 
 - Ink everywhere except the apex square. Never recolour the other squares or change the grid.
 - Square geometry, no rounding, no shadows, no gradients on the mark itself. Its square is the
-  marker of the interface (DESIGN.md, Pixel Mark Language).
+  marker of the interface (`DESIGN.md`, Pixel Mark Language).
 - Clear space: one square (10 units) on all sides. Minimum size 16px high; the grid stays legible down to 16px.
 - On a coloured or photo ground use the single-colour version: all ink or all white, apex included.
-- Do not use brand orange anywhere else: not in the mark's neighbourhood, not in the app interface. The landing animation is the one exception.
+- Do not use brand orange anywhere else: only the logo apex and the square of the landing caption (never in the app interface).
 
 ## Voice
 
