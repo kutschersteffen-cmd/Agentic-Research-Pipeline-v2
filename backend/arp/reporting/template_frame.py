@@ -8,17 +8,21 @@ from __future__ import annotations
 import re
 
 from lxml import etree
-from pptx.enum.shapes import PP_PLACEHOLDER
 
 from arp.reporting.house_style import Tokens, load_tokens, with_frame
 from arp.schemas.reporting import Box, FrameFont, TemplateFrame
+
+try:
+    from pptx.enum.shapes import PP_PLACEHOLDER
+except ImportError:  # optional extra: arp[reporting]
+    PP_PLACEHOLDER = None  # type: ignore[assignment]
 
 _A = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
 _P = "{http://schemas.openxmlformats.org/presentationml/2006/main}"
 _THEME_RELTYPE = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme"
 _A_NS = {"a": "http://schemas.openxmlformats.org/drawingml/2006/main"}
-_TITLES = {PP_PLACEHOLDER.TITLE, PP_PLACEHOLDER.CENTER_TITLE}
-_OTHERS = {PP_PLACEHOLDER.BODY, PP_PLACEHOLDER.SUBTITLE, PP_PLACEHOLDER.OBJECT}
+_TITLES = {PP_PLACEHOLDER.TITLE, PP_PLACEHOLDER.CENTER_TITLE} if PP_PLACEHOLDER is not None else set()
+_OTHERS = {PP_PLACEHOLDER.BODY, PP_PLACEHOLDER.SUBTITLE, PP_PLACEHOLDER.OBJECT} if PP_PLACEHOLDER is not None else set()
 BUNDLED = {"geist", "geistmono", "hankengrotesk"}
 _FONT_FILE = re.compile(r"^(?P<family>.+)-\d+\.(ttf|otf|woff2)$", re.IGNORECASE)
 
