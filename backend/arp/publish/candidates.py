@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from arp.orchestration.review_queue import effective_decisions, item_states, latest_decisions
+from arp.job_runtime.review_queue import effective_decisions, item_states, latest_decisions
 from arp.publish.facts import FactCandidate
 from arp.schemas.common import Citation
 from arp.schemas.review import field_item_key, period_key

@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from arp.core.safe_path import UnsafeIdentifierError, safe_id
 from arp.db.company_view import resolve_ref
-from arp.storage.postgres_models import StwCompanyModel
-from arp.storage.safe_path import UnsafeIdentifierError, safe_id
+from arp.db.postgres_models import StwCompanyModel
 
 
 def _safe(key: str) -> bool:

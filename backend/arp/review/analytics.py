@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 from arp.config import Settings
 from arp.holdings.intake import previous_month_end
-from arp.orchestration.interval_scheduler import IntervalScheduler
+from arp.platform.interval_scheduler import IntervalScheduler
 from arp.schemas.review import field_item_key, period_key
 from arp.storage.atomic_io import atomic_write_text
 from arp.storage.run_store import RunStore

@@ -26,9 +26,9 @@ from anthropic import NotFoundError
 from anthropic.types import Message
 from anthropic.types.messages import MessageBatch
 
+from arp.job_runtime.step_tally import cancel_requested, current_run_id, record_batch_wait
 from arp.llm.base import LLMUsage, T
 from arp.llm.langchain_client import LangChainAnthropicClient
-from arp.orchestration.step_tally import cancel_requested, current_run_id, record_batch_wait
 
 CUSTOM_ID_LEN = 64
 
@@ -39,13 +39,7 @@ def custom_id(params: dict) -> str:
     return hashlib.sha256(blob.encode()).hexdigest()[:CUSTOM_ID_LEN]
 
 
-class BatchRequestFailed(Exception):
-    """A batch entry came back errored, expired or canceled (or not at all)."""
-
-    def __init__(self, result_type: str, error: str = "") -> None:
-        super().__init__(f"batch request {result_type}" + (f": {error}" if error else ""))
-        self.result_type = result_type
-        self.error = error
+from arp.platform.llm.base import BatchRequestFailed  # noqa: E402, F401
 
 
 class BatchingLLMClient(LangChainAnthropicClient):

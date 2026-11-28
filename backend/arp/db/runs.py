@@ -16,7 +16,9 @@ from sqlalchemy import delete, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
+from arp.core.jsonl_io import append_jsonl, read_jsonl
 from arp.db import observations as observations_db
+from arp.db.companies import resolve_universe
 from arp.db.models import (
     Company,
     DecisionKind,
@@ -36,8 +38,6 @@ from arp.db.run_files import RunArtifactFiles, _jsonb_safe, done_keys_from_rows
 from arp.db.session import transaction
 from arp.schemas.common import CompanyRef, RunManifest, now_iso
 from arp.schemas.review import field_item_key, period_key
-from arp.storage.jsonl_io import append_jsonl, read_jsonl
-from arp.universe import resolve_universe
 
 _DECISIONS = {d.value for d in DecisionKind}
 # Decision-log rows that are not review-queue decisions, so carry no DecisionKind: emerging-theme

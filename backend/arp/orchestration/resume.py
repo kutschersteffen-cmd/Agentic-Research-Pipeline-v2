@@ -7,8 +7,9 @@ from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
 from arp.errors import ClientInputError
+from arp.job_runtime.jobs import hold_run
 from arp.llm.factory import batch_settings, build_llm_client, build_verifier_llm_client
-from arp.orchestration.jobs import _xbrl_source, hold_run
+from arp.retrieval.registry_factory import _xbrl_source
 from arp.schemas.common import JobStatus, RunManifest, now_iso
 from arp.storage.run_store import RunStore
 

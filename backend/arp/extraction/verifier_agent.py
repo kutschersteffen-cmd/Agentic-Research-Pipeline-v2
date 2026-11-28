@@ -7,9 +7,9 @@ from enum import StrEnum
 from pydantic import BaseModel, Field, ValidationError
 
 from arp.extraction.extractor_agent import ExtractionDraft, PeriodValue, extract_field, format_evidence
+from arp.job_runtime.review_queue import same_value
 from arp.llm.base import LLMClient, LLMUsage
 from arp.normalise.value import TypedValue, typed_value
-from arp.orchestration.review_queue import same_value
 from arp.schemas.common import Citation, DocumentChunk
 from arp.schemas.datapoints import FieldDefinition, ValueState
 

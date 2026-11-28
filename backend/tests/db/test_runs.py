@@ -239,7 +239,7 @@ def _start(monkeypatch, runs_dir):
 
 
 def test_startup_refuses_pending_schema_steps(pg, tmp_path, monkeypatch):
-    from arp.storage import postgres_schema
+    from arp.db import postgres_schema
 
     monkeypatch.setattr(postgres_schema, "SCHEMA_STEPS", (
         *postgres_schema.SCHEMA_STEPS, postgres_schema.SchemaStep("9999_test", "not applied", lambda conn: None)))

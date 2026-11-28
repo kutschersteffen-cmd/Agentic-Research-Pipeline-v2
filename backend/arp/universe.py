@@ -6,8 +6,8 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
+from arp.core.nace import nace_known, normalise_nace
 from arp.errors import ClientInputError
-from arp.research.indirect_exposure.nace import nace_known, normalise_nace
 from arp.schemas.common import CompanyRef
 from arp.storage.safe_path import file_inside
 
@@ -85,19 +85,7 @@ def load_company_universe(path: str | Path) -> list[CompanyRef]:
     return companies
 
 
-def resolve_universe(companies: list[CompanyRef], session) -> tuple[list[CompanyRef], list[dict]]:
-    """Sets `entity_id` on each company via the registry. Identity conflicts are returned (not resolved)."""
-    from arp.db.companies import resolve_company
-
-    resolved: list[CompanyRef] = []
-    conflicts: list[dict] = []
-    for c in companies:
-        r = resolve_company(session, c)
-        if r.conflict:
-            conflicts.append({"kind": "identity_conflict", "company_id": c.company_id, "conflict": [str(u) for u in r.conflict]})
-        else:
-            resolved.append(c.model_copy(update={"entity_id": r.company_id}))
-    return resolved, conflicts
+from arp.db.companies import resolve_universe  # noqa: E402, F401
 
 
 def saved_universes(runs_dir: str | Path) -> list[str]:

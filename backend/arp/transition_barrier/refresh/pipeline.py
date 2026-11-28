@@ -4,8 +4,8 @@ import logging
 
 from arp.config import Settings
 from arp.errors import NotConfigured
-from arp.orchestration.job_manager import JobManager
-from arp.orchestration.review_queue import queue_for_review
+from arp.job_runtime.job_manager import JobManager
+from arp.job_runtime.review_queue import queue_for_review
 from arp.schemas.transition_barrier import BarrierRefreshFinding
 from arp.storage.run_store import RunStore
 from arp.transition_barrier.dataset import current_scores

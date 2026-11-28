@@ -6,7 +6,7 @@ from arp.config import Settings
 from arp.discovery.site_finder import WebSearchClient
 from arp.ingestion.registry import DocumentSourceRegistry
 from arp.llm.base import LLMClient, LLMUsage
-from arp.orchestration.cost_tracker import combine_usage
+from arp.platform.cost_tracker import combine_usage
 from arp.research.indirect_exposure.leontief import LeontiefModel
 from arp.research.rd_exposure.news_scoring import score_news_mentions
 from arp.research.revenue_exposure.resolver import extract_schema_fields, is_sector_relevant

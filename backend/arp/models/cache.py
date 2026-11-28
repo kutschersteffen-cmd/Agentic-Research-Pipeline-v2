@@ -5,8 +5,8 @@ from collections.abc import Callable
 from typing import Any
 
 from arp.config import get_settings
+from arp.core.atomic_io import atomic_write_text
 from arp.models.registry import RegistryEntry
-from arp.storage.atomic_io import atomic_write_text
 
 
 def cached(e: RegistryEntry, texts: list[str], labels: tuple[str, ...] | None,

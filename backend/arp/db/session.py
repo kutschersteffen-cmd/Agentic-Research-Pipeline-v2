@@ -14,8 +14,8 @@ from sqlalchemy.exc import TimeoutError as PoolTimeout
 from sqlalchemy.orm import Session
 
 from arp.config import get_settings
+from arp.db.postgres import get_engine
 from arp.errors import NotConfigured
-from arp.storage.postgres import get_engine
 
 logger = logging.getLogger(__name__)
 T = TypeVar("T")
@@ -48,7 +48,7 @@ def require_postgres(settings) -> str:
 def require_cutover(settings) -> None:
     """Startup check (app lifespan, every CLI command but `arp db ...`): the Postgres schema has no
     missing table, column or pending step. `ARP_SKIP_CUTOVER_CHECK=1` skips it."""
-    from arp.storage.postgres_schema import schema_gaps
+    from arp.db.postgres_schema import schema_gaps
 
     if settings.skip_cutover_check:
         return

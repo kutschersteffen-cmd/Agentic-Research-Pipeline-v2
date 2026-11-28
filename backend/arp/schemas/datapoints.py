@@ -336,3 +336,16 @@ class ExtractionRecord(BaseModel):
     held_documents: list[dict] = Field(default_factory=list)
     documents: list[dict] = Field(default_factory=list)
     generated_at: str = Field(default_factory=now_iso)
+
+
+class PeriodValue(BaseModel):
+    value: str | float | bool | None = None
+    state: ValueState = ValueState.FOUND
+    raw_value_text: str | None = None
+    unit_text: str | None = None
+    period_text: str | None = None
+    planned_period_end: str | None = Field(
+        default=None, description="The planned period (ISO date from the list given) this value belongs to, if any."
+    )
+    basis_text: str | None = None
+    citations: list[Citation] = Field(default_factory=list)

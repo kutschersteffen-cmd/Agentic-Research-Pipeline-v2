@@ -37,7 +37,7 @@ def harness(monkeypatch, tmp_path):
         return company
 
     monkeypatch.setattr(precision, "prepare_company", identity)
-    monkeypatch.setattr("arp.orchestration.jobs._xbrl_source", lambda settings: "xbrl")  # Settings() enables XBRL facts
+    monkeypatch.setattr("arp.retrieval.registry_factory._xbrl_source", lambda settings: "xbrl")  # Settings() enables XBRL facts
 
     async def run(rows, expected):
         async def fake_extract(company, schema, **kwargs):

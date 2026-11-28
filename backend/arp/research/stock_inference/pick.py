@@ -15,7 +15,7 @@ from arp.config import Settings
 from arp.extraction.schema_builder import draft_schema
 from arp.grounding import ground_citations
 from arp.ingestion.registry import DocumentSourceRegistry
-from arp.orchestration.job_manager import JobManager
+from arp.job_runtime.job_manager import JobManager
 from arp.research.authority_taxonomy.consolidate import consolidate
 from arp.research.authority_taxonomy.extract import extract_source
 from arp.research.authority_taxonomy.matching import match_activities

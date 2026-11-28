@@ -10,9 +10,9 @@ from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import TYPE_CHECKING, Literal
 
+from arp.db.source_loads import LoadRecord, record_load
 from arp.errors import ClientInputError
 from arp.holdings.validate import RowError, Validated, iso_date
-from arp.portfolio.loads import LoadRecord, record_load
 from arp.schemas.common import now_iso
 from arp.schemas.issuer import ARP_NAMESPACE, normalise_lei
 from arp.schemas.portfolio import HolderConfig, Holding, Portfolio, SecurityRef, SecurityResolution

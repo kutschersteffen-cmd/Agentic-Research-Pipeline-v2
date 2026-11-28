@@ -6,7 +6,6 @@ import re
 from dataclasses import dataclass
 from datetime import date
 
-from arp.extraction.extractor_agent import PeriodValue
 from arp.normalise import fx
 from arp.normalise.locale import Decimal, parse_number
 from arp.normalise.parsing import to_number
@@ -19,7 +18,7 @@ from arp.normalise.period import (
     resolve_period,
 )
 from arp.normalise.units import convert, lookup_scale, lookup_unit, split_unit
-from arp.schemas.datapoints import FieldDataType, FieldDefinition, ValueState
+from arp.schemas.datapoints import FieldDataType, FieldDefinition, PeriodValue, ValueState
 from arp.schemas.review import ReasonCode
 
 NUMERIC = {FieldDataType.NUMBER, FieldDataType.CURRENCY_AMOUNT, FieldDataType.PERCENTAGE}

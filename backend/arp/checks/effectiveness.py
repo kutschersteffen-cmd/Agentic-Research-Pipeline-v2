@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
 
-from arp.orchestration.review_queue import _kind, effective_decisions
+from arp.job_runtime.review_queue import _kind, effective_decisions
 from arp.schemas.review import field_item_key, period_key
 from arp.storage.run_store import RunStore
 

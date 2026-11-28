@@ -10,7 +10,7 @@ from sqlalchemy import DateTime, ForeignKey, Index, Integer, Numeric, Text, Uuid
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
-from arp.storage.postgres_models import Base
+from arp.db.postgres_models import Base
 
 
 class AgentExploration(Base):

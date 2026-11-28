@@ -157,8 +157,9 @@ def test_second_fetch_of_unchanged_file_skips_reverify_and_intake_checks(tmp_pat
     monkeypatch.setattr(intake, "_check_pdf", lambda path: pdf_checks.append(path))
     monkeypatch.setattr(local_files, "parse_file_to_text_with_pages", lambda path: ("Green capex was 5m.", []))
     captures = []
-    orig_latest = downloader.latest_capture
-    monkeypatch.setattr(downloader, "latest_capture", lambda *a: captures.append(a) or orig_latest(*a))
+    from arp.storage import capture_log
+    orig_latest = capture_log.latest_capture
+    monkeypatch.setattr(capture_log, "latest_capture", lambda *a: captures.append(a) or orig_latest(*a))
     orig_get = LocalBlobStore.get
     monkeypatch.setattr(LocalBlobStore, "get", lambda self, key: gets.append(key) or orig_get(self, key))
     store = DocumentContentStore(tmp_path / "store", dsn=pg_dsn())

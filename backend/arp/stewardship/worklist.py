@@ -34,7 +34,7 @@ from pathlib import Path
 from urllib.parse import quote, unquote
 
 from arp.schemas.engagement import FIR_THEME_LABELS, EngagementRecord, EscalationStage
-from arp.showcase.schema import FIELD_IDS as SIMULATED_FIELDS
+from arp.schemas.showcase import FIELD_IDS as SIMULATED_FIELDS
 from arp.stewardship.config_store import PolicyStore, component_ids, validate_weights
 from arp.stewardship.monitoring import OPEN
 from arp.stewardship.notes import NoteLog

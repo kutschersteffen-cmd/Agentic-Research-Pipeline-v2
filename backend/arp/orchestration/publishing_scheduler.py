@@ -11,8 +11,8 @@ from pydantic import BaseModel, Field
 
 from arp.config import Settings
 from arp.db.session import require_dsn
-from arp.orchestration.interval_scheduler import IntervalScheduler
 from arp.orchestration.reground import reground_if_parser_changed
+from arp.platform.interval_scheduler import IntervalScheduler
 from arp.publish.facts import Fact, PublishStore, ts_now
 from arp.publish.gate import reground, sample
 from arp.publish.reader import facts_as_of
@@ -69,7 +69,7 @@ class PublishingScheduler(IntervalScheduler):
         return lambda a: facts_as_of(store, a)
 
     def _reground(self, today: date) -> tuple[str, str]:
-        from arp.ingestion.indexing_config import IndexingConfig
+        from arp.platform.storage.indexing_config import IndexingConfig
         from arp.retrieval.content_store_factory import content_store_for
         from arp.storage.document_blob_store import blob_store_for
 

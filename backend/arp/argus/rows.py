@@ -14,7 +14,7 @@ from arp.argus.companies import problem_of
 from arp.argus.flows import ArgusFlow
 from arp.core.auth import Principal
 from arp.db.models import Company, CompanyIdentifier
-from arp.orchestration.review_queue import effective_decisions
+from arp.job_runtime.review_queue import effective_decisions
 from arp.review.items import list_open_items
 from arp.schemas.common import RunManifest
 from arp.schemas.review import results_field_key

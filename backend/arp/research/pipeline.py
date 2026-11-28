@@ -8,10 +8,10 @@ from arp.config import Settings
 from arp.db.fields import SchemaRegistry
 from arp.discovery.site_finder import build_web_search_client
 from arp.ingestion.registry import DocumentSourceRegistry
+from arp.job_runtime.batch_runner import run_company_batch
+from arp.job_runtime.job_manager import JobManager
 from arp.llm.base import LLMClient, LLMUsage
-from arp.orchestration.batch_runner import run_company_batch
-from arp.orchestration.cost_tracker import combine_usage, estimate_cost_usd
-from arp.orchestration.job_manager import JobManager
+from arp.platform.cost_tracker import combine_usage, estimate_cost_usd
 from arp.research.funnel import funnel_query
 from arp.research.funnel_thresholds import thresholds_for
 from arp.research.indirect_exposure.company_mapper import resolve_company_isic
@@ -188,7 +188,7 @@ async def resume_theme_run(
 ) -> str:
     """Reconstructs and re-invokes execute_theme_run for an existing run_id
     from what create_theme_run persisted. Called by
-    arp.orchestration.jobs.resume_run, which checks the run is resumable,
+    arp.job_runtime.jobs.resume_run, which checks the run is resumable,
     holds its lease and resets it to RUNNING first; nothing is redone:
     run_batch's own resumability (skipping item keys already in
     results.jsonl) picks up exactly where the run left off.

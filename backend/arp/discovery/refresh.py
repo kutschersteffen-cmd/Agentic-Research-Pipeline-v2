@@ -15,7 +15,7 @@ from arp.storage.jsonl_io import append_jsonl, read_jsonl
 if TYPE_CHECKING:
     from arp.config import Settings
     from arp.ingestion.registry import DocumentSourceRegistry
-    from arp.orchestration.jobs import LocalJobLauncher
+    from arp.job_runtime.jobs import LocalJobLauncher
     from arp.schemas.datapoints import DataPointSchema
     from arp.storage.run_store import RunStore
 
@@ -40,8 +40,8 @@ def _job(run_id: str, schema: DataPointSchema, companies: list[CompanyRef], sett
          run_store: RunStore, registry: DocumentSourceRegistry):
     async def job() -> None:
         from arp.llm.factory import build_llm_client, build_verifier_llm_client
-        from arp.orchestration.hooks import get_extraction_runner
-        from arp.orchestration.jobs import _xbrl_source
+        from arp.platform.hooks import get_extraction_runner
+        from arp.retrieval.registry_factory import _xbrl_source
 
         _, execute_extraction_run = get_extraction_runner()
         await execute_extraction_run(
@@ -72,8 +72,8 @@ async def refresh_on_events(
     if not events:
         return []
     from arp.db.fields import SchemaRegistry, UnreleasedFieldError
-    from arp.orchestration.hooks import get_extraction_runner
-    from arp.orchestration.jobs import get_job_launcher
+    from arp.job_runtime.jobs import get_job_launcher
+    from arp.platform.hooks import get_extraction_runner
 
     create_extraction_run, _ = get_extraction_runner()
     schemas = []

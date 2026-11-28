@@ -12,7 +12,6 @@ from urllib.parse import urljoin, urlparse
 import httpx
 import tldextract
 from bs4 import BeautifulSoup
-from pydantic import BaseModel
 
 from arp.discovery.names import clean_name, names_match
 from arp.net_safety import UnsafeURLError, ssrf_guard_request_hook
@@ -54,9 +53,7 @@ _TITLE_SEPARATORS = re.compile(r"[|\-–:]")
 _HOMEPAGE_NAME_EVIDENCE = ("name_in_title", "name_in_site_name", "name_in_jsonld")
 
 
-class SiteCheck(BaseModel):
-    verdict: Literal["owned", "unclear", "rejected"]
-    evidence: list[str]
+from arp.schemas.discovery import SiteCheck  # noqa: E402, F401
 
 
 @functools.cache

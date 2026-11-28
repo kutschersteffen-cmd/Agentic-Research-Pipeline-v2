@@ -6,8 +6,8 @@ from __future__ import annotations
 
 import logging
 
+import arp.compute_client as compute_client
 from arp import models
-from arp.compute import client as compute_client
 from arp.models import local
 from arp.models.registry import entry, model_header
 from arp.schemas.common import DocumentChunk

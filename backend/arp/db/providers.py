@@ -59,7 +59,7 @@ class IngestReport:
 
 
 def _blob_store():
-    from arp.storage.document_blob_store import LocalBlobStore
+    from arp.platform.storage.document_blob_store import LocalBlobStore
 
     return LocalBlobStore(get_settings().blob_store_dir)
 

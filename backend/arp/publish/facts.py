@@ -13,7 +13,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from arp.errors import ClientInputError, NotConfigured
-from arp.orchestration.review_queue import same_value
+from arp.job_runtime.review_queue import same_value
 from arp.schemas.common import Citation, new_id
 
 FactKey = tuple[str, str, str, str]

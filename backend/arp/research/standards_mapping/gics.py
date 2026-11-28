@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-import csv
-from dataclasses import dataclass
-from pathlib import Path
-
 from pydantic import BaseModel, Field
 
+from arp.core.gics import GicsReferenceEntry, load_company_gics, load_gics_reference  # noqa: F401
 from arp.llm.base import LLMClient, LLMUsage
 from arp.schemas.standards import GicsMatch
 from arp.schemas.thematic import ActivityDefinition
@@ -33,13 +30,6 @@ one-sentence rationale grounded in the activity's own in-scope \
 description."""
 
 
-@dataclass
-class GicsReferenceEntry:
-    code: str
-    label: str
-    level: str
-
-
 class _GicsSelection(BaseModel):
     code: str
     rationale: str
@@ -47,20 +37,6 @@ class _GicsSelection(BaseModel):
 
 class _GicsSelectionList(BaseModel):
     matches: list[_GicsSelection] = Field(default_factory=list)
-
-
-def load_gics_reference(path: Path) -> list[GicsReferenceEntry]:
-    entries: list[GicsReferenceEntry] = []
-    with path.open(newline="") as f:
-        for row in csv.DictReader(f):
-            entries.append(GicsReferenceEntry(code=row["code"].strip(), label=row["label"].strip(), level=row.get("level", "").strip()))
-    return entries
-
-
-def load_company_gics(path: Path) -> dict[str, str]:
-    """company_id -> GICS code, from a user-supplied CSV (company_id,gics_code)."""
-    with path.open(newline="") as f:
-        return {row["company_id"].strip(): row["gics_code"].strip() for row in csv.DictReader(f)}
 
 
 def _format_reference_list(reference: list[GicsReferenceEntry]) -> str:

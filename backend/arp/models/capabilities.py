@@ -3,8 +3,8 @@ from collections.abc import Callable
 
 import numpy as np
 
+import arp.compute_client as client
 import arp.models.local as local
-from arp.compute import client
 from arp.models.cache import cached
 from arp.models.registry import entry, model_header, provenance
 

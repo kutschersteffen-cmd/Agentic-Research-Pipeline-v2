@@ -15,7 +15,6 @@ from sqlalchemy import DateTime, func, inspect, select, text, true
 from sqlalchemy.orm import Session
 
 from arp.db.session import transaction
-from arp.engagement.tracking_agent import log_commitment_verified
 from arp.errors import ClientInputError
 from arp.schemas.common import new_id, now_iso
 from arp.schemas.engagement import (
@@ -37,6 +36,7 @@ from arp.schemas.engagement import (
     WatchItem,
     WatchTopic,
     evidence_text,
+    log_commitment_verified,
 )
 from arp.storage.postgres_models import (
     StwActivityModel,

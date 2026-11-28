@@ -27,7 +27,7 @@ from arp.storage.taxonomy_store import TaxonomyStore
 async def _and_drain(coro):
     """Awaits `coro`, then every job it launched (event-driven refresh runs),
     so `asyncio.run` returning does not cancel them; prints their run ids."""
-    from arp.orchestration.jobs import get_job_launcher
+    from arp.job_runtime.jobs import get_job_launcher
 
     result = await coro
     started = await get_job_launcher().drain()

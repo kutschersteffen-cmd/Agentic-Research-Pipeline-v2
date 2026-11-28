@@ -6,8 +6,8 @@ from typing import Literal
 from pydantic import BaseModel, Field, StrictBool, create_model, field_validator, model_validator
 
 from arp.llm.base import LLMClient, LLMUsage
-from arp.schemas.common import Citation, DocumentChunk
-from arp.schemas.datapoints import FieldDataType, FieldDefinition, ValueState
+from arp.schemas.common import DocumentChunk
+from arp.schemas.datapoints import FieldDataType, FieldDefinition
 
 _SYSTEM_PROMPT = """\
 You are a precise financial/ESG data extraction analyst. You will be given \
@@ -55,17 +55,7 @@ def format_evidence(chunks: list[DocumentChunk], header: tuple[str, ...] = ("doc
     return "\n\n---\n\n".join(blocks)
 
 
-class PeriodValue(BaseModel):
-    value: str | float | bool | None = None
-    state: ValueState = ValueState.FOUND
-    raw_value_text: str | None = None
-    unit_text: str | None = None
-    period_text: str | None = None
-    planned_period_end: str | None = Field(
-        default=None, description="The planned period (ISO date from the list given) this value belongs to, if any."
-    )
-    basis_text: str | None = None
-    citations: list[Citation] = Field(default_factory=list)
+from arp.schemas.datapoints import PeriodValue  # noqa: E402, F401
 
 
 class ExtractionDraft(BaseModel):

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from arp.orchestration.hooks import register_extraction_runner
+from arp.platform.hooks import register_extraction_runner
 
 
 def wire() -> None:

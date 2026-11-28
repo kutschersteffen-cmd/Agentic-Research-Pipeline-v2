@@ -467,3 +467,41 @@ class MeetingSummaryDraft(BaseModel):
     summary: str
     commitments_identified: list[str] = Field(default_factory=list, description="Plain-language commitment texts, if any were made in the meeting.")
     follow_up_actions: list[str] = Field(default_factory=list)
+
+
+EVIDENCE_MSG = "Evidence is required to verify a commitment."
+
+
+class MissingEvidence(ValueError):
+    pass
+
+
+def check_evidence(record: EngagementRecord | None, issue_id: str, commitment_id: str, evidence: str | None) -> None:
+    """Raises MissingEvidence for a blank `evidence`, or for none on a commitment whose target date is
+    after today (UTC). A missing one on a due or undated commitment passes (spec showcase-stewardship-fixes B2)."""
+    from datetime import UTC, datetime
+
+    if evidence is not None:
+        if not evidence.strip():
+            raise MissingEvidence(EVIDENCE_MSG)
+        return
+    issue = next((i for i in record.issues if i.issue_id == issue_id), None) if record else None
+    commitment = next((c for c in issue.commitments if c.commitment_id == commitment_id), None) if issue else None
+    if commitment and commitment.target_date and commitment.target_date[:10] > datetime.now(UTC).date().isoformat():
+        raise MissingEvidence(EVIDENCE_MSG)
+
+
+def log_commitment_verified(
+    store, company_id: str, issue_id: str, commitment_id: str, verified_by: str, evidence: str | None = None
+) -> EngagementRecord:
+    check_evidence(store.get(company_id), issue_id, commitment_id, evidence)
+    record = store.update_commitment_status(
+        company_id, issue_id, commitment_id, CommitmentStatus.VERIFIED, verified_by, evidence
+    )
+    issue = next(i for i in record.issues if i.issue_id == issue_id)
+    if issue.commitments and all(c.status == CommitmentStatus.VERIFIED for c in issue.commitments):
+        record = store.set_milestone_stage(
+            company_id, issue_id, MilestoneStage.COMMITMENT_VERIFIED, reason="All commitments verified."
+        )
+        record = store.set_issue_status(company_id, issue_id, IssueStatus.RESOLVED)
+    return record

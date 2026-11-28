@@ -5,7 +5,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from arp.config import get_settings
-from arp.research.standards_mapping.gics import load_company_gics, load_gics_reference
+from arp.core.gics import load_company_gics, load_gics_reference
 from arp.schemas.common import CompanyRef
 from arp.schemas.portfolio import AggregationResult, AggregationRow, Holding, PivotCell, PivotResult, SecurityRef, TrendPoint
 

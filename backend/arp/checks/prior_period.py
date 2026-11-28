@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 from arp.checks.plausibility import numeric_of
 from arp.checks.runner import threshold_ref
-from arp.extraction.history import PriorValue, RunHistory
+from arp.job_runtime.history import PriorValue, RunHistory
 from arp.schemas.common import new_id, now_iso
 from arp.schemas.datapoints import (
     CheckOutcome,

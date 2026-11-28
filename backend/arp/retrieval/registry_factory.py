@@ -50,3 +50,21 @@ def build_registry(settings: Settings, content_store: DocumentContentStore) -> D
 def get_registry() -> DocumentSourceRegistry:
     settings = get_settings()
     return build_registry(settings, get_document_content_store())
+
+
+def _xbrl_source(settings: Settings):
+    """Built as arp.api.deps.get_xbrl_source builds it; the pipelines
+    themselves check xbrl_facts_enabled."""
+    from arp.ingestion.edgar import EdgarDocumentSource
+    from arp.ingestion.xbrl import XbrlFactSource
+    from arp.platform.storage.indexing_config import IndexingConfig
+    from arp.retrieval.content_store_factory import content_store_for
+
+    edgar = EdgarDocumentSource(
+        settings.edgar_user_agent,
+        settings.cache_dir,
+        content_store=content_store_for(settings),
+        submissions_ttl_hours=settings.edgar_submissions_ttl_hours,
+        indexing_config=IndexingConfig.from_settings(settings),  # the blob store tagged values are frozen into
+    )
+    return XbrlFactSource(edgar, settings.cache_dir, ttl_hours=settings.xbrl_facts_ttl_hours)

@@ -10,8 +10,8 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from arp.discovery.site_finder import SearchReport
-from arp.orchestration import jobs
-from arp.orchestration.job_manager import JobManager
+from arp.job_runtime import jobs
+from arp.job_runtime.job_manager import JobManager
 from arp.research.authority_taxonomy.consolidate import consolidate
 from arp.research.authority_taxonomy.discovery import Candidate, discover_candidates
 from arp.research.authority_taxonomy.extract import extract_source

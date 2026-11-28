@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict
 
 from arp.api.auth import Principal
 from arp.errors import ClientInputError
-from arp.orchestration.review_queue import (
+from arp.job_runtime.review_queue import (
     decision_history,
     get_review_queue,  # noqa: F401 - re-exported for router callers
     latest_decisions,

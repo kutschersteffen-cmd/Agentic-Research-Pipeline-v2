@@ -1,0 +1,110 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+from pydantic import BaseModel, Field, model_validator
+
+from arp.schemas.common import CompanyRef, DocType
+from arp.schemas.datapoints import FieldDefinition, ValueState
+
+
+class GoldenSetCase(BaseModel):
+    """One manually verified (evidence, correct answer) pair for a single
+    extraction field. The fixture set as a whole is the regression harness
+    the METHODOLOGY.md gap analysis calls for: run it against a new
+    prompt/model before that change reaches a real batch, not after.
+
+    `document_text` stands in for a company's full disclosure text --
+    short and self-contained by design, so a human reviewer can actually
+    read and verify every case (the same reasoning `docs/METHODOLOGY.md`
+    gives for keeping the LLM's own context narrow).
+    """
+
+    case_id: str
+    description: str = Field(description="What precision failure this case is designed to catch.")
+    company_name: str
+    field: FieldDefinition
+    document_text: str
+    doc_type: DocType = DocType.OTHER
+    expected_value: str | float | bool | None
+    value_tolerance: float = Field(
+        default=0.01, description="Absolute tolerance for numeric comparisons; ignored for non-numeric values."
+    )
+    expect_not_disclosed: bool = Field(
+        default=False, description="True when expected_value is intentionally None (a 'not disclosed' case)."
+    )
+    notes: str = ""
+
+
+class GoldenSetCaseResult(BaseModel):
+    case_id: str
+    description: str
+    passed: bool
+    expected_value: str | float | bool | None
+    actual_value: str | float | bool | None
+    confidence: float
+    grounded: bool
+    needs_review: bool
+    extractor_model: str | None = None
+    verifier_model: str | None = None
+    detail: str = ""
+
+
+class GoldenSetReport(BaseModel):
+    total: int
+    passed: int
+    failed_case_ids: list[str] = Field(default_factory=list)
+    results: list[GoldenSetCaseResult] = Field(default_factory=list)
+    run_at: str = ""
+    extractor_model: str | None = None
+    verifier_model: str | None = None
+    extractor_input_tokens: int = 0  # summed over the cases' extractor calls (evidence-gate spec: --gate on vs off)
+
+    @property
+    def all_passed(self) -> bool:
+        return self.passed == self.total
+
+
+class ExpectedValue(BaseModel):
+    field_id: str
+    period_end: str | None = Field(default=None, description="None matches the field's latest-period row.")
+    value: str | float | bool | None = None
+    value_state: ValueState
+
+    @model_validator(mode="after")
+    def _found_needs_value(self) -> ExpectedValue:
+        if self.value_state == ValueState.FOUND and self.value is None:
+            raise ValueError(f"{self.field_id}: value_state=found needs a value")
+        return self
+
+
+class RecordGoldenCase(BaseModel):
+    """A company with hand-checked answers for a whole schema. Its documents live in
+    `<documents_dir>/<company_id>/`."""
+
+    case_id: str
+    company: CompanyRef
+    expected: list[ExpectedValue]
+
+
+class PrecisionReport(BaseModel):
+    schema_id: str
+    total: int
+    auto_accepted: int
+    auto_accepted_correct: int
+    precision: float | None = Field(description="Correct share of auto-accepted rows; None when none were auto-accepted.")
+    review_rate: float
+    coverage: float
+    wrong_auto_accepted: list[dict] = Field(default_factory=list)
+
+
+_BUNDLED_CASES_PATH = Path(__file__).resolve().parents[1] / "golden_set" / "data" / "extraction_cases.json"
+_LONG_CASES_PATH = Path(__file__).resolve().parents[1] / "golden_set" / "data" / "long_cases.json"
+
+
+def load_cases(path: Path | None = None, long: bool = False) -> list[GoldenSetCase]:
+    """Loads the bundled golden set by default, or a user-supplied JSON array of GoldenSetCase objects."""
+    import json
+
+    raw = json.loads((path or (_LONG_CASES_PATH if long else _BUNDLED_CASES_PATH)).read_text())
+    return [GoldenSetCase.model_validate(c) for c in raw]

@@ -5,7 +5,7 @@ import json
 import typer
 
 from arp.cli._shared import _run_store
-from arp.orchestration.job_manager import JobManager
+from arp.job_runtime.job_manager import JobManager
 from arp.research.pipeline import load_theme_run_matches, rank_theme_matches
 from arp.research.results_diff import diff_theme_results
 from arp.schemas.common import JobStatus

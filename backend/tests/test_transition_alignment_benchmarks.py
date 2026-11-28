@@ -339,7 +339,8 @@ def test_scenario_unknown_group(ta_dirs):  # noqa: F811
 def test_scenario_missing_in_bundled_refused(tmp_path, bundled_dirs, monkeypatch):
     bundled = tmp_path / "bundled"
     shutil.copytree(benchmarks.BUNDLED_DIR, bundled)
-    monkeypatch.setattr(benchmarks, "BUNDLED_DIR", bundled)
+    from arp.transition_data import benchmarks as canonical_benchmarks
+    monkeypatch.setattr(canonical_benchmarks, "BUNDLED_DIR", bundled)
     edit_bm(bundled, lambda r: r.pop("scenario_prices"))
     result = _cli("validate", "--data-dir", str(bundled))
     assert result.exit_code == 1
