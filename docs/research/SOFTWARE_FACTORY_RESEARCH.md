@@ -374,7 +374,7 @@ insufficient.
 
 **On going "dark".** Holdout scenarios and digital twins are what make StrongDM's no-review rule defensible. Without
 them, removing human review just removes the last check. For this repo, which handles investment research data and
-has a [Corporate Readiness Plan](CORPORATE_READINESS_PLAN.md), the right target is Shapiro's Level 4. Humans approve
+has a [Corporate Readiness Plan](../CORPORATE_READINESS_PLAN.md), the right target is Shapiro's Level 4. Humans approve
 the spec and merge the PR, and they review the intent of the change rather than every line, as Anthropic does.
 Agents do everything in between.
 

@@ -424,4 +424,4 @@ arp db reindex opensearch         # also: object-store, engagement
 | [`INDEX_CONSTRUCTION.md`](docs/INDEX_CONSTRUCTION.md) | How the index engine builds a review, stage by stage, with a verified UI walkthrough |
 | [`TRANSITION_BARRIER_ASSESSMENT.md`](docs/TRANSITION_BARRIER_ASSESSMENT.md) | The 35 criteria and their source lists |
 | [`EMERGING_THEMES_VOCABULARY.md`](docs/EMERGING_THEMES_VOCABULARY.md) | How each scored dimension maps to the research vocabulary |
-| [`THEMATIC_INTELLIGENCE_ARCHITECTURE_REVIEW.md`](docs/THEMATIC_INTELLIGENCE_ARCHITECTURE_REVIEW.md), [`DATABASE_STORAGE_REVIEW.md`](docs/DATABASE_STORAGE_REVIEW.md), [`SPEC_GAP_ANALYSIS.md`](docs/SPEC_GAP_ANALYSIS.md) | Architecture reviews and gap analyses |
+| [`THEMATIC_INTELLIGENCE_ARCHITECTURE_REVIEW.md`](docs/reviews/THEMATIC_INTELLIGENCE_ARCHITECTURE_REVIEW.md), [`DATABASE_STORAGE_REVIEW.md`](docs/reviews/DATABASE_STORAGE_REVIEW.md), [`SPEC_GAP_ANALYSIS.md`](docs/SPEC_GAP_ANALYSIS.md) | Architecture reviews and gap analyses |

@@ -54,7 +54,7 @@ fifteen at a glance.
 ## 1. The approach, as designed
 
 Four tiers, each with an explicit rationale in
-[`docs/METHODOLOGY.md`](METHODOLOGY.md) and in the module docstrings:
+[`docs/METHODOLOGY.md`](../METHODOLOGY.md) and in the module docstrings:
 
 | Tier | Holds | Written by | Authoritative? |
 | --- | --- | --- | --- |

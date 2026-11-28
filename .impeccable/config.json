@@ -42,21 +42,9 @@
       },
       {
         "rule": "design-system-font",
-        "value": "jetbrains mono",
-        "createdAt": "2026-11-08T11:19:37.447Z",
-        "reason": "agent: frontend/src/index.css dark theme already uses this font; mockup reproduces current dark mode"
-      },
-      {
-        "rule": "design-system-font",
-        "value": "hanken grotesk",
-        "createdAt": "2026-11-08T11:19:37.459Z",
-        "reason": "agent: frontend/src/index.css dark theme already uses this font; mockup reproduces current dark mode"
-      },
-      {
-        "rule": "design-system-font",
         "value": "source serif 4",
         "createdAt": "2026-11-08T11:44:25.507Z",
-        "reason": "user confirmed: serif chosen for Night Desk source excerpt; add to DESIGN.md when built"
+        "reason": "Evidence paper source-excerpt serif defined in DESIGN.md (The Serif Means Source Rule)"
       }
     ]
   }

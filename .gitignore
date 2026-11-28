@@ -33,8 +33,6 @@ taxonomies/*
 !taxonomies/.gitkeep
 portfolios/*
 !portfolios/.gitkeep
-frameworks/*
-!frameworks/.gitkeep
 stewardship_streams/
 data/identifier_map.jsonl
 data/documents/*
@@ -48,9 +46,6 @@ config/users.json
 
 # OS
 .DS_Store
-
-projects/*
-!projects/.gitkeep
 
 # graphify output
 graphify-out/

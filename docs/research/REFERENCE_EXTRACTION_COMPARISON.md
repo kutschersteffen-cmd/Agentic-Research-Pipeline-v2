@@ -16,7 +16,7 @@ The closest things here are the **Data-Point Extraction Engine**
 analogue to the maturity score: fixed indicators, per-indicator RAG verdicts, citations.
 
 Verdicts use the same three levels as
-[`SPEC_GAP_ANALYSIS.md`](SPEC_GAP_ANALYSIS.md): **Built**, **Partial**, **Not built**.
+[`SPEC_GAP_ANALYSIS.md`](../SPEC_GAP_ANALYSIS.md): **Built**, **Partial**, **Not built**.
 
 ## Summary
 
