@@ -16,8 +16,6 @@ from arp.ingestion.xbrl import XbrlFactSource
 from arp.retrieval.content_store_factory import content_store_for
 from arp.schemas.taxonomy import TaxonomyRef
 from arp.storage.document_store import DocumentContentStore
-from arp.storage.engagement_store import EngagementStore
-from arp.storage.engagement_store_factory import build_engagement_store
 from arp.storage.portfolio_store import portfolio_directories
 from arp.storage.portfolio_store_factory import build_portfolio_store
 from arp.storage.postgres_engagement_store import PostgresEngagementStore
@@ -38,8 +36,8 @@ async def _and_drain(coro):
     return result
 
 
-def _engagement_store() -> EngagementStore | PostgresEngagementStore:
-    return build_engagement_store(get_settings())
+def _engagement_store() -> PostgresEngagementStore:
+    return PostgresEngagementStore(require_dsn(get_settings()))
 
 
 

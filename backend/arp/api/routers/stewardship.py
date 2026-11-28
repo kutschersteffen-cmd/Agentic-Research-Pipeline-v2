@@ -26,7 +26,7 @@ from arp.stewardship.sample import load_sample
 from arp.stewardship.style import check as style_check
 from arp.stewardship.trigger_store import TriggerStore, trigger_id
 from arp.stewardship.universe import HouseUniverseSetting
-from arp.storage.engagement_store import EngagementStore
+from arp.storage.postgres_engagement_store import PostgresEngagementStore as EngagementStore
 
 router = APIRouter(prefix="/api/stewardship", tags=["stewardship"])
 

@@ -14,12 +14,13 @@ from fastapi.testclient import TestClient
 from arp.api.deps import get_stream_store, settings_dep
 from arp.api.main import app
 from arp.config import Settings, get_settings
+from arp.db.session import require_dsn
 from arp.schemas.engagement import Commitment, CommitmentStatus, EngagementIssue, EngagementRecord
 from arp.stewardship import worklist
 from arp.stewardship.config_store import PolicyStore, StreamStore
 from arp.stewardship.intake import intake_votes
 from arp.stewardship.trigger_store import TriggerStore, trigger_id
-from arp.storage.engagement_store_factory import build_engagement_store
+from arp.storage.postgres_engagement_store import PostgresEngagementStore
 
 pytestmark = pytest.mark.usefixtures("sample_house_universe", "pg")
 SNAPSHOT = Path(__file__).parent / "fixtures" / "stewardship_worklist_unchanged_main.json"
@@ -34,7 +35,6 @@ def root():
 @pytest.fixture
 def client(root, monkeypatch, tmp_path):
     monkeypatch.setenv("ARP_ENGAGEMENTS_DIR", str(tmp_path / "engagements"))
-    monkeypatch.setenv("ARP_ENGAGEMENT_STORE", "postgres")
     get_settings.cache_clear()
     app.dependency_overrides[get_stream_store] = lambda: StreamStore(root)
     with TestClient(app) as c:
@@ -113,7 +113,7 @@ def test_new_trigger_shows_without_restart(client, root):
 def test_overdue_commitment_counts_until_the_issue_closes(client):
     # AC-6, AC-56, AC-54
     past = (datetime.now(UTC).date() - timedelta(days=30)).isoformat()
-    eng = build_engagement_store(get_settings())
+    eng = PostgresEngagementStore(require_dsn(get_settings()))
     for company in ("SYN05", "SYN11"):
         issue = _issue(client, company)
         eng.add_commitment(company, issue, Commitment(text="Publish targets", target_date=past, recorded_by="tester"))
@@ -129,7 +129,7 @@ def test_overdue_commitment_counts_until_the_issue_closes(client):
 def test_broken_commitments_count_and_weigh_nothing(client):
     # AC-30, AC-53
     issue = _issue(client, "SYN08")
-    eng = build_engagement_store(get_settings())
+    eng = PostgresEngagementStore(require_dsn(get_settings()))
     for text in ("Publish targets", "Split chair and CEO"):
         c = Commitment(text=text, recorded_by="tester")
         eng.add_commitment("SYN08", issue, c)

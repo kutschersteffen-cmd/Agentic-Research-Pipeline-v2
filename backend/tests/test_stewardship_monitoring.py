@@ -14,7 +14,7 @@ from arp.api.routers.stewardship import (
 from arp.stewardship.config_store import PolicyStore, StreamStore
 from arp.stewardship.monitoring import evaluate, load_graph, preview
 from arp.stewardship.universe import SAMPLE_PATH
-from arp.storage.engagement_store import EngagementStore
+from arp.storage.postgres_engagement_store import PostgresEngagementStore
 from tests.conftest import PRINCIPAL
 
 SAMPLE = json.loads(SAMPLE_PATH.read_text())
@@ -40,8 +40,8 @@ def test_sample_triggers_are_valid_and_unmatched_without_engagements():
     assert triggers and all(t["engagement_id"] is None and t["severity"] in {"low", "medium", "high"} for t in triggers)
 
 
-def test_a_trigger_is_matched_to_an_open_engagement_on_the_same_theme(tmp_path):
-    store = EngagementStore(tmp_path)
+def test_a_trigger_is_matched_to_an_open_engagement_on_the_same_theme(pg):
+    store = PostgresEngagementStore(pg)
     _, issue = store.open_issue("SYN10", "Synthetic Company 10", theme="climate_transition")
     store.open_issue("SYN09", "Synthetic Company 09", theme="board_governance")  # other theme: no match
     by_issuer = {t["issuer_id"]: t for t in evaluate(load_graph(), SAMPLE, store.list_all())}
@@ -98,8 +98,8 @@ def test_an_invalid_trigger_type_is_rejected_on_save(tmp_path):
         PolicyStore(tmp_path).save("monitoring_rules", graph, "", "Designer", SAMPLE)
 
 
-def test_open_engagement_from_a_trigger_uses_the_rule_and_only_once(tmp_path):
-    streams, engagements = StreamStore(tmp_path / "s"), EngagementStore(tmp_path / "e")
+def test_open_engagement_from_a_trigger_uses_the_rule_and_only_once(tmp_path, pg):
+    streams, engagements = StreamStore(tmp_path / "s"), PostgresEngagementStore(pg)
     body = OpenFromTriggerRequest(issuer_id="SYN10", rule="clti_laggard")
     opened = open_engagement_from_trigger(body, streams, engagements, PRINCIPAL)
     [issue] = engagements.get("SYN10").issues
@@ -117,10 +117,10 @@ def test_open_engagement_from_a_trigger_uses_the_rule_and_only_once(tmp_path):
     assert unknown.value.status_code == 404
 
 
-def test_a_stored_trigger_no_longer_raised_can_still_open_an_engagement(tmp_path):
+def test_a_stored_trigger_no_longer_raised_can_still_open_an_engagement(tmp_path, pg):
     from arp.stewardship.trigger_store import TriggerStore
 
-    streams, engagements = StreamStore(tmp_path / "s"), EngagementStore(tmp_path / "e")
+    streams, engagements = StreamStore(tmp_path / "s"), PostgresEngagementStore(pg)
     stored = {"issuer_id": "GONE", "company": "Gone Co", "sector": "Utilities", "type": "score_change",
               "theme": "climate_transition", "severity": "medium", "rule": "clti_laggard", "reason": "CLTI 20",
               "engagement_id": None}

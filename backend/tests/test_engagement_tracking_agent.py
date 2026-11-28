@@ -4,7 +4,7 @@ from arp.engagement.tracking_agent import (
     log_outreach_sent,
 )
 from arp.schemas.engagement import CommitmentStatus, IssueStatus, MilestoneStage, TriggerSource
-from arp.storage.engagement_store import EngagementStore
+from arp.storage.postgres_engagement_store import PostgresEngagementStore
 
 
 def _open_issue(store):
@@ -12,8 +12,8 @@ def _open_issue(store):
     return issue
 
 
-def test_log_outreach_sent_advances_to_contacted(tmp_path):
-    store = EngagementStore(tmp_path)
+def test_log_outreach_sent_advances_to_contacted(pg):
+    store = PostgresEngagementStore(pg)
     issue = _open_issue(store)
     record = log_outreach_sent(store, "C1", issue.issue_id, "Sent opening letter.", "jane.pm")
     updated = record.issues[0]
@@ -21,8 +21,8 @@ def test_log_outreach_sent_advances_to_contacted(tmp_path):
     assert len(updated.correspondence) == 1
 
 
-def test_log_meeting_summary_validated_with_commitments_advances_to_commitment_made(tmp_path):
-    store = EngagementStore(tmp_path)
+def test_log_meeting_summary_validated_with_commitments_advances_to_commitment_made(pg):
+    store = PostgresEngagementStore(pg)
     issue = _open_issue(store)
     record = log_meeting_summary_validated(
         store, "C1", issue.issue_id, "Discussed transition plan.", ["Will publish a transition plan by Q4."], "jane.pm"
@@ -33,8 +33,8 @@ def test_log_meeting_summary_validated_with_commitments_advances_to_commitment_m
     assert updated.commitments[0].status == CommitmentStatus.OPEN
 
 
-def test_log_meeting_summary_validated_without_commitments_advances_to_response_received(tmp_path):
-    store = EngagementStore(tmp_path)
+def test_log_meeting_summary_validated_without_commitments_advances_to_response_received(pg):
+    store = PostgresEngagementStore(pg)
     issue = _open_issue(store)
     record = log_meeting_summary_validated(store, "C1", issue.issue_id, "Discussed, no firm commitments yet.", [], "jane.pm")
     updated = record.issues[0]
@@ -42,8 +42,8 @@ def test_log_meeting_summary_validated_without_commitments_advances_to_response_
     assert updated.commitments == []
 
 
-def test_log_commitment_verified_resolves_issue_when_all_verified(tmp_path):
-    store = EngagementStore(tmp_path)
+def test_log_commitment_verified_resolves_issue_when_all_verified(pg):
+    store = PostgresEngagementStore(pg)
     issue = _open_issue(store)
     record = log_meeting_summary_validated(store, "C1", issue.issue_id, "Meeting held.", ["Publish transition plan."], "jane.pm")
     commitment_id = record.issues[0].commitments[0].commitment_id
@@ -55,8 +55,8 @@ def test_log_commitment_verified_resolves_issue_when_all_verified(tmp_path):
     assert updated.status == IssueStatus.RESOLVED
 
 
-def test_log_commitment_verified_does_not_resolve_when_other_commitments_open(tmp_path):
-    store = EngagementStore(tmp_path)
+def test_log_commitment_verified_does_not_resolve_when_other_commitments_open(pg):
+    store = PostgresEngagementStore(pg)
     issue = _open_issue(store)
     record = log_meeting_summary_validated(
         store, "C1", issue.issue_id, "Meeting held.", ["Publish transition plan.", "Appoint a board sponsor."], "jane.pm"

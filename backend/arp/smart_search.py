@@ -98,7 +98,7 @@ async def smart_search(question: str, llm: LLMClient, *, issues: list[dict], out
 def datahub_lists(settings, store, idmap, run_store, taxonomy, reports, today) -> dict[str, list[dict]]:
     """The three lists Smart Search filters: open issues, the output catalog and the feeds (also used by Ask ARP)."""
     from arp import catalog
-    from arp.holdings import feeds, issues
+    from arp.portfolio import feeds, issues
 
     return {
         "issues": issues.open_issues(store, idmap, run_store, today),

@@ -10,7 +10,6 @@ from arp.reporting.browser import write_pdf
 from arp.reporting.chart_data import deck_from_plan
 from arp.reporting.content_planner import draft_report_plan
 from arp.reporting.house_pipeline import build_house_deck, render_house_outputs
-from arp.reporting.house_pptx import build_house_pptx
 from arp.reporting.html_render import render_deck_html
 from arp.reporting.lint import lint_deck
 from arp.reporting.storyline import draft_storyline
@@ -246,6 +245,8 @@ class ReportingService:
         # The builders are sync and chart-heavy: run them in a thread so a render doesn't block the API's event loop.
         deck = deck_from_plan(plan)
         if output_format == OutputFormat.PPTX:
+            from arp.reporting.house_pptx import build_house_pptx
+
             return await asyncio.to_thread(build_house_pptx, deck, datasets, out_path)
         if output_format == OutputFormat.PDF:
             return await write_pdf(await asyncio.to_thread(render_deck_html, deck, datasets), out_path)

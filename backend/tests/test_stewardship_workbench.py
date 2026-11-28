@@ -34,7 +34,6 @@ def root():
 @pytest.fixture
 def client(root, monkeypatch, tmp_path):
     monkeypatch.setenv("ARP_ENGAGEMENTS_DIR", str(tmp_path / "engagements"))
-    monkeypatch.setenv("ARP_ENGAGEMENT_STORE", "postgres")
     monkeypatch.setenv("ARP_PORTFOLIOS_DIR", str(tmp_path / "portfolios"))
     get_settings.cache_clear()
     get_portfolio_store.cache_clear()  # cached by the groups routes

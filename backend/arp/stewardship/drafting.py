@@ -29,7 +29,7 @@ from arp.schemas.engagement import (
 )
 from arp.stewardship.style import check
 from arp.storage.atomic_io import atomic_write_text
-from arp.storage.engagement_store import EngagementStore
+from arp.storage.postgres_engagement_store import PostgresEngagementStore as EngagementStore
 
 # Wording that asks for something under a consequence, or names an escalation lever.
 PRESSURE = re.compile(

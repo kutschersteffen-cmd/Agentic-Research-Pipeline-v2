@@ -12,6 +12,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 from arp.config import Settings
+from arp.db.session import require_dsn
 from arp.portfolio.climate.esg_intake import MONTH
 from arp.portfolio.loads import latest_load
 from arp.portfolio.monitoring.evaluator import evaluate_news_triggers, evaluate_threshold_rules, list_alerts
@@ -20,8 +21,8 @@ from arp.stewardship.alerts_feed import LIVE
 from arp.stewardship.config_store import PolicyStore
 from arp.stewardship.trigger_store import TriggerStore
 from arp.stewardship.universe import from_portfolio
-from arp.storage.engagement_store_factory import build_engagement_store
 from arp.storage.portfolio_store import PortfolioStore
+from arp.storage.postgres_engagement_store import PostgresEngagementStore
 
 GRADE_LETTERS = "ABCDEF"  # the transition grades of arp/showcase/simulate.py GRADES
 
@@ -82,7 +83,7 @@ def run_month(
     for fields in (vote_ledger_feed.issuer_fields(votes), alerts_feed.issuer_fields(live)):
         for issuer in sample["issuers"]:
             issuer["fields"].update(fields.get(issuer["issuer_id"], {}))
-    records = build_engagement_store(settings).list_all()
+    records = PostgresEngagementStore(require_dsn(settings)).list_all()
     triggers = monitoring.evaluate(PolicyStore(settings.stewardship_streams_dir).active("monitoring_rules"), sample, records)
     trigger_store = TriggerStore(settings.stewardship_streams_dir, dsn=settings.postgres_dsn)
     stored = trigger_store.record_run(month, triggers)

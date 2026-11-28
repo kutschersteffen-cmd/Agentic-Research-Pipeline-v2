@@ -1,9 +1,8 @@
-import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { HashRouter, useLocation, useNavigate } from "react-router-dom";
 import { canLeave } from "./lib/leaveGuard";
 import { ProcessBar, StartPage, WorkspaceOverview } from "./pages/ProcessHub";
-import { ArgusFlow } from "./pages/ArgusFlow";
 import { singleFlight, stepFromUrl } from "./lib/argusFlow";
-import { ArgusNew, ArgusStart, openNewFlow } from "./pages/ArgusStart";
 import { WORKSPACES, workspaceOfProcess, type WorkspaceId } from "./lib/processes";
 import { STAGE_TABS } from "./pages/steward/common";
 import { SUB_TABS as RISK_TABS } from "./lib/subTabs";
@@ -20,34 +19,26 @@ import { api } from "./api/client";
 import { listAllRuns } from "./lib/poll";
 import { HUBS, entryTab, redirectHash, safeDecode } from "./lib/nav";
 import { Landing } from "./pages/Landing";
-
-// Pages load on demand so the first screen does not ship every page and its editors.
-const ThemeBuilder = lazy(() => import("./pages/ThemeBuilder").then((x) => ({ default: x.ThemeBuilder })));
-const TransitionBarrierAssessment = lazy(() => import("./pages/TransitionBarrierAssessment").then((x) => ({ default: x.TransitionBarrierAssessment })));
-const EmergingThemesDetector = lazy(() => import("./pages/EmergingThemesDetector").then((x) => ({ default: x.EmergingThemesDetector })));
-const ReviewQueue = lazy(() => import("./pages/ReviewQueue").then((x) => ({ default: x.ReviewQueue })));
-const RunHistory = lazy(() => import("./pages/RunHistory").then((x) => ({ default: x.RunHistory })));
-const DataLibrary = lazy(() => import("./pages/DataLibrary").then((x) => ({ default: x.DataLibrary })));
-const AuthorityTaxonomyRun = lazy(() => import("./pages/AuthorityTaxonomyRun").then((x) => ({ default: x.AuthorityTaxonomyRun })));
-const TaxonomyLibrary = lazy(() => import("./pages/TaxonomyLibrary").then((x) => ({ default: x.TaxonomyLibrary })));
-const BackgroundAgents = lazy(() => import("./pages/BackgroundAgents").then((x) => ({ default: x.BackgroundAgents })));
-const EngagementDashboard = lazy(() => import("./pages/EngagementDashboard").then((x) => ({ default: x.EngagementDashboard })));
-const StewardWorkflow = lazy(() => import("./pages/StewardWorkflow").then((x) => ({ default: x.StewardWorkflow })));
-const PortfolioRiskMonitoringTool = lazy(() => import("./pages/PortfolioRiskMonitoringTool").then((x) => ({ default: x.PortfolioRiskMonitoringTool })));
-const ReportBuilder = lazy(() => import("./pages/ReportBuilder").then((x) => ({ default: x.ReportBuilder })));
-const ValueChainExplorer = lazy(() => import("./pages/value-chain/ValueChainExplorer").then((x) => ({ default: x.ValueChainExplorer })));
-const Search = lazy(() => import("./pages/Search").then((x) => ({ default: x.Search })));
-const SecurityMaster = lazy(() => import("./pages/SecurityMaster").then((x) => ({ default: x.SecurityMaster })));
-const Feeds = lazy(() => import("./pages/Feeds").then((x) => ({ default: x.Feeds })));
-const Issues = lazy(() => import("./pages/Issues").then((x) => ({ default: x.Issues })));
-const SmartSearch = lazy(() => import("./pages/SmartSearch").then((x) => ({ default: x.SmartSearch })));
-const Outputs = lazy(() => import("./pages/Outputs").then((x) => ({ default: x.Outputs })));
-const ArgusWalkthrough = lazy(() => import("./pages/ArgusWalkthrough").then((x) => ({ default: x.ArgusWalkthrough })));
-const Company = lazy(() => import("./pages/Company").then((x) => ({ default: x.Company })));
-const DesignStrategy = lazy(() => import("./pages/DesignStrategy").then((x) => ({ default: x.DesignStrategy })));
-const ThemeDossiers = lazy(() => import("./pages/ThemeDossiers").then((x) => ({ default: x.ThemeDossiers })));
-const Agent = lazy(() => import("./pages/Agent").then((x) => ({ default: x.Agent })));
-const RfpAnswers = lazy(() => import("./pages/RfpAnswers").then((x) => ({ default: x.RfpAnswers })));
+import { ArgusFlow, ArgusNew, ArgusStart, ArgusWalkthrough, openNewFlow } from "./features/argus";
+import {
+  EngagementDashboard,
+  PortfolioRiskMonitoringTool,
+  ReportBuilder,
+  RfpAnswers,
+  StewardWorkflow,
+} from "./features/stewardiq";
+import { TransitionBarrierAssessment } from "./features/transition";
+import {
+  AuthorityTaxonomyRun,
+  DesignStrategy,
+  EmergingThemesDetector,
+  TaxonomyLibrary,
+  ThemeBuilder,
+  ThemeDossiers,
+  ValueChainExplorer,
+} from "./features/rd_lab";
+import { Company, DataLibrary, Feeds, Issues, Outputs, Search, SecurityMaster, SmartSearch } from "./features/data_hub";
+import { Agent, BackgroundAgents, ReviewQueue, RunHistory } from "./features/agent";
 
 const TABS = [
   { id: "home", label: "Start" },
@@ -100,22 +91,14 @@ const PALETTE_ITEMS: PaletteItem[] = [
 
 /** The URL is the source of truth for where you are: `#/<tab>/<param>...`,
  * so refresh, Back and a pasted link all land on the same view -- e.g.
- * `#/voting/<run id>` or `#/review/extraction/<run id>`. */
-function parseHash(hash = window.location.hash): { tab: TabId; params: string[] } {
-  const [tab, ...params] = hash.replace(/^#\/?/, "").split("/").filter(Boolean).map(safeDecode);
+ * `#/review/extraction/<run id>`. */
+function parsePath(pathname: string): { tab: TabId; params: string[] } {
+  const [tab, ...params] = pathname.replace(/^\/?/, "").split("/").filter(Boolean).map(safeDecode);
   // Old links: the Theme Machine and Design Studio boxes merged into R&D Lab;
   // the Processes screen's processes now live on their workspace pages.
   if (tab === "themeMachine" || tab === "designStudio") return { tab: "rdLab", params: [] };
   if (tab === "processes") return { tab: workspaceOfProcess(params[0])?.id ?? "home", params: [] };
   return TABS.some((t) => t.id === tab) ? { tab: tab as TabId, params } : { tab: "home", params: [] };
-}
-
-/** The route for the current URL, after replacing a removed screen's link with
- * its replacement (replaceState, so Back never returns to the dead route). */
-function readRoute() {
-  const target = redirectHash(window.location.hash);
-  if (target) history.replaceState(null, "", target);
-  return parseHash();
 }
 
 /** `#/agent/<plan_id>` selects a plan, `#/agent/ask/<thread_id>` an ask thread, `#/agent/exploration/<id>` an
@@ -133,36 +116,42 @@ function agentParams(s: NonNullable<Selection>): string[] {
   return [s.kind, s.id];
 }
 
-function navigate(tab: TabId, ...params: string[]) {
-  window.location.hash = "/" + [tab, ...params].map(encodeURIComponent).join("/");
+function buildPath(tab: TabId, ...params: string[]) {
+  return "/" + [tab, ...params].map(encodeURIComponent).join("/");
 }
 
 function App() {
-  const [route, setRoute] = useState(readRoute);
+  const location = useLocation();
+  const routerNavigate = useNavigate();
+  const initialTarget = redirectHash(`#${location.pathname}`);
+  const initialPath = initialTarget ? initialTarget.slice(1) : location.pathname;
+  const [route, setRoute] = useState(() => parsePath(initialPath));
   const active = route.tab;
   const [waiting, setWaiting] = useState<WaitingCounts | null>(null);
   const [recentRuns, setRecentRuns] = useState<RunManifest[]>([]);
   const [pendingTaxonomyId, setPendingTaxonomyId] = useState<string | null>(null);
 
-  // The hash last shown, so a navigation the open screen refuses can be put back.
-  const shownHash = useRef(window.location.hash);
-  useEffect(() => {
-    const onHash = () => {
-      const next = readRoute();
-      // Any change of address remounts a guarded screen (its key is its params), so even a link to the same tab asks.
-      if (window.location.hash !== shownHash.current && !canLeave()) {
-        // hashchange cannot be cancelled; replaceState restores the URL without firing it again.
-        history.replaceState(null, "", shownHash.current || "#");
-        setAgentAsk(null); // a refused move to the Agent screen must not leave its question queued
-        return;
-      }
-      shownHash.current = window.location.hash;
-      setRoute(next);
-      window.scrollTo(0, 0);
-    };
-    window.addEventListener("hashchange", onHash);
-    return () => window.removeEventListener("hashchange", onHash);
-  }, []);
+  const navigate = (tab: TabId, ...params: string[]) => routerNavigate(buildPath(tab, ...params));
+
+  // The pathname last shown, so a navigation the open screen refuses can be put back.
+  const shownPath = useRef(initialPath);
+  useLayoutEffect(() => {
+    const target = redirectHash(`#${location.pathname}`);
+    if (target) {
+      routerNavigate(target.slice(1), { replace: true });
+      return;
+    }
+    if (location.pathname === shownPath.current) return;
+    // Any change of address remounts a guarded screen (its key is its params), so even a link to the same tab asks.
+    if (!canLeave()) {
+      routerNavigate(shownPath.current, { replace: true });
+      setAgentAsk(null); // a refused move to the Agent screen must not leave its question queued
+      return;
+    }
+    shownPath.current = location.pathname;
+    setRoute(parsePath(location.pathname));
+    window.scrollTo(0, 0);
+  }, [location.pathname, routerNavigate]);
 
   // An announcement belongs to the screen it was made on: another screen starts with an empty live region.
   useEffect(() => {
@@ -215,13 +204,13 @@ function App() {
       const target = ctrlJTarget(canAsk);
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "j" && target) {
         e.preventDefault();
-        window.location.hash = target.replace(/^#/, "");
+        routerNavigate(target.replace(/^#/, ""));
         setAgentFocus(Date.now());
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [canAsk]);
+  }, [canAsk, routerNavigate]);
   function go(id: TabId) {
     navigate(id);
   }
@@ -261,7 +250,7 @@ function App() {
         waiting={waiting}
         onSearch={() => setPaletteOpen(true)}
       />
-      <WorkspaceRow hash={window.location.hash} />
+      <WorkspaceRow hash={`#${location.pathname}`} />
       {paletteOpen && (
         <CommandPalette
           items={[...PALETTE_ITEMS, ...recentRuns.map(runItem)]}
@@ -280,7 +269,7 @@ function App() {
             ))}
           </nav>
         )}
-        <ErrorBoundary>
+        <ErrorBoundary resetKey={route}>
         <Suspense fallback={<p className="muted" role="status">Loading…</p>}>
         {active === "home" && <StartPage />}
         {active === "argus" && route.params[0] === "new" && <ArgusNew preset={route.params[1] ?? null} />}
@@ -324,14 +313,17 @@ function App() {
 }
 
 /** Opening ARP lands on the landing page; any other address opens the app as before. */
+export function AppEntry() {
+  const { pathname } = useLocation();
+  return entryTab(`#${pathname}`) === "welcome" ? <Landing /> : <App />;
+}
+
 function Root() {
-  const [landing, setLanding] = useState(() => entryTab(window.location.hash) === "welcome");
-  useEffect(() => {
-    const onHash = () => setLanding(entryTab(window.location.hash) === "welcome");
-    window.addEventListener("hashchange", onHash);
-    return () => window.removeEventListener("hashchange", onHash);
-  }, []);
-  return landing ? <Landing /> : <App />;
+  return (
+    <HashRouter>
+      <AppEntry />
+    </HashRouter>
+  );
 }
 
 export default Root;
