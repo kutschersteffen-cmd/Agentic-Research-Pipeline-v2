@@ -111,6 +111,7 @@ def _theme_run() -> str:
 
 def _shows_handed_over(page, names):
     page.wait_for_url(STEP_1)
+    page.get_by_text("Add one company").first.wait_for()
     for name in names:
         page.get_by_text(name).first.wait_for()
         assert page.get_by_text(name).count() >= 1
@@ -133,6 +134,7 @@ def test_portfolio_selection_hands_over_to_step_1(page, sub):  # AC-65
     fid = STEP_1.search(page.url).group(1)
     rows = _ok(page.request.get(f"{API}/api/argus/flows/{fid}"))["companies"]
     assert len(rows) >= 1  # the seeded demo holdings
+    page.get_by_text("Add one company").first.wait_for()
     page.get_by_text(rows[0]["name"]).first.wait_for()
     assert page.get_by_text(rows[0]["name"]).count() >= 1
 
