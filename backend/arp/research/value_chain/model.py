@@ -3,7 +3,6 @@ from __future__ import annotations
 import csv
 import functools
 import json
-import re
 import threading
 from collections.abc import Sequence
 from dataclasses import dataclass, field
@@ -12,6 +11,7 @@ from typing import Literal
 
 import numpy as np
 
+from arp.core.nace import sector_name
 from arp.errors import ClientInputError
 
 # Read-only queries on a build from `arp io build-full`; spec Appendix B:
@@ -120,11 +120,6 @@ class PriceShock:
 
 def region_label(code: str) -> str:
     return ROW_LABELS.get(code, code)
-
-
-def sector_name(raw: str) -> str:
-    """The sector as the explorer shows it: the archive's name without a trailing " (31)"."""
-    return re.sub(r" \(\d+\)$", "", raw)
 
 
 def _opt(cell: str) -> float | None:

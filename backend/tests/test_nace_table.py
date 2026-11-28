@@ -1,16 +1,21 @@
 import csv
 from pathlib import Path
 
-from arp.research.indirect_exposure.nace import (
+from arp.core.nace import (
     _SECTORS,
+    code_set_sectors,
+    isic4_section,
     isic_to_nace2,
+    nace2_to_isic4,
     nace_known,
     nace_sectors,
     nace_title,
     normalise_nace,
+    sector_nace2_codes,
+    sector_name,
 )
 
-_ICIO = _SECTORS.parent / "exiobase_ixi_to_icio2025.csv"
+_ICIO = _SECTORS.parent.parent / "migrate" / "exiobase_ixi_to_icio2025.csv"
 
 
 def _table() -> list[dict[str, str]]:
@@ -75,3 +80,25 @@ def test_isic_route():
 def test_known_and_title():
     assert nace_known("35.11", "2") and nace_known("35.12", "2.1") and not nace_known("99.99", "2")
     assert nace_title("35.11", "2") and nace_title("99.99", "2") is None
+
+
+def test_sector_nace2_codes_and_isic4():
+    assert sector_nace2_codes("Copper production") == ["24.44"]
+    assert nace2_to_isic4("24.44") == ["2420"]
+
+
+def test_isic4_section_from_division():
+    assert (isic4_section("01"), isic4_section("24"), isic4_section("35"), isic4_section("99")) == ("A", "C", "D", "U")
+    assert isic4_section("00") is None
+
+
+def test_core_nace_helpers_and_shim_reexports():
+    from arp.research.indirect_exposure import nace as shim
+
+    assert sector_name("Manufacture of electrical machinery and apparatus n.e.c. (31)") == (
+        "Manufacture of electrical machinery and apparatus n.e.c."
+    )
+    assert "Manufacture of electrical machinery and apparatus n.e.c." in code_set_sectors("isic4", "2710", "2")
+    assert shim.sector_name is sector_name
+    assert shim.code_set_sectors is code_set_sectors
+    assert shim.sector_nace2_codes is sector_nace2_codes
