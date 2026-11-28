@@ -14,7 +14,6 @@ from arp.llm.factory import build_llm_client
 from arp.reporting.datasets import parse_tabular_upload
 from arp.reporting.service import ReportingService
 from arp.reporting.storyline import content_cap
-from arp.reporting.style_profile import ingest_template
 from arp.schemas.reporting import (
     AudienceProfile,
     DeckSettings,
@@ -34,6 +33,8 @@ reporting_app = typer.Typer(help="Presentation & Reporting Tool: LLM-drafted con
 
 @reporting_app.command("ingest-template")
 def reporting_ingest_template(pptx_path: Path = typer.Argument(..., exists=True, help="A .pptx template to extract the house style from.")) -> None:
+    from arp.reporting.style_profile import ingest_template
+
     style = ingest_template(_reporting_store(), pptx_path, pptx_path.name)
     typer.echo(f"Ingested template {style.template_id} ({len(style.layouts)} layouts, {len(style.theme_colors)} theme colors)")
     typer.echo(json.dumps(style.model_dump(mode="json"), indent=2))

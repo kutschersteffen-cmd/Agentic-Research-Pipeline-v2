@@ -2,11 +2,6 @@
 
 from __future__ import annotations
 
-from pptx.chart.data import CategoryChartData, XyChartData
-from pptx.dml.color import RGBColor
-from pptx.enum.chart import XL_CHART_TYPE, XL_LEGEND_POSITION
-from pptx.util import Pt
-
 from arp.errors import ClientInputError
 from arp.reporting.design import DesignTheme, categorical_color
 from arp.schemas.reporting import (
@@ -19,15 +14,35 @@ from arp.schemas.reporting import (
     SlideContent,
 )
 
-_XL_CHART_TYPE = {
-    ChartType.BAR: XL_CHART_TYPE.BAR_CLUSTERED,
-    ChartType.COLUMN: XL_CHART_TYPE.COLUMN_CLUSTERED,
-    ChartType.STACKED_COLUMN: XL_CHART_TYPE.COLUMN_STACKED,
-    ChartType.LINE: XL_CHART_TYPE.LINE_MARKERS,
-    ChartType.AREA: XL_CHART_TYPE.AREA,
-    ChartType.PIE: XL_CHART_TYPE.PIE,
-    ChartType.DOUGHNUT: XL_CHART_TYPE.DOUGHNUT,
-    ChartType.RADAR: XL_CHART_TYPE.RADAR_MARKERS,
+try:
+    from pptx.chart.data import CategoryChartData, XyChartData
+    from pptx.dml.color import RGBColor
+    from pptx.enum.chart import XL_CHART_TYPE, XL_LEGEND_POSITION
+    from pptx.util import Pt
+
+    _XL_CHART_TYPE = {
+        ChartType.BAR: XL_CHART_TYPE.BAR_CLUSTERED,
+        ChartType.COLUMN: XL_CHART_TYPE.COLUMN_CLUSTERED,
+        ChartType.STACKED_COLUMN: XL_CHART_TYPE.COLUMN_STACKED,
+        ChartType.LINE: XL_CHART_TYPE.LINE_MARKERS,
+        ChartType.AREA: XL_CHART_TYPE.AREA,
+        ChartType.PIE: XL_CHART_TYPE.PIE,
+        ChartType.DOUGHNUT: XL_CHART_TYPE.DOUGHNUT,
+        ChartType.RADAR: XL_CHART_TYPE.RADAR_MARKERS,
+    }
+except ImportError:  # optional extra: arp[reporting]
+    CategoryChartData = XyChartData = RGBColor = XL_CHART_TYPE = XL_LEGEND_POSITION = Pt = None  # type: ignore[assignment]
+    _XL_CHART_TYPE = {}
+
+_NATIVE_CHART_TYPES = {
+    ChartType.BAR,
+    ChartType.COLUMN,
+    ChartType.STACKED_COLUMN,
+    ChartType.LINE,
+    ChartType.AREA,
+    ChartType.PIE,
+    ChartType.DOUGHNUT,
+    ChartType.RADAR,
 }
 _PIE_TYPES = {ChartType.PIE, ChartType.DOUGHNUT}
 
@@ -62,7 +77,7 @@ def _as_float_or_zero(value: object) -> float:
 
 
 def is_native(spec: ChartSpec) -> bool:
-    return spec.chart_type in _XL_CHART_TYPE
+    return spec.chart_type in _NATIVE_CHART_TYPES
 
 
 def _build_scatter_data(spec: ChartSpec, ds: QuantitativeDataset) -> tuple[XL_CHART_TYPE, XyChartData]:

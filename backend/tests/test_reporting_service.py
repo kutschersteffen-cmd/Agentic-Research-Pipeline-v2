@@ -137,7 +137,7 @@ async def test_render_from_plan_builds_off_the_event_loop(tmp_path, monkeypatch)
         out.write_bytes(b"")
         return out
 
-    monkeypatch.setattr("arp.reporting.service.build_house_pptx", slow_build)
+    monkeypatch.setattr("arp.reporting.house_pptx.build_house_pptx", slow_build)
     store = _store(tmp_path)
     service = ReportingService(store)
     from arp.schemas.reporting import ReportManifest

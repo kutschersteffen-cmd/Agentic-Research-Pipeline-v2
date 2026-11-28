@@ -10,9 +10,6 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from playwright.async_api import Error as PlaywrightError
-from playwright.async_api import async_playwright
-
 from arp.config import Settings
 from arp.errors import NotConfigured
 from arp.reporting.design_checks import ANATOMY
@@ -46,6 +43,11 @@ class BrowserUnavailable(NotConfigured):
 
 @asynccontextmanager
 async def _page(html: str, scale: float = 1.0):
+    try:
+        from playwright.async_api import Error as PlaywrightError
+        from playwright.async_api import async_playwright
+    except ImportError as exc:
+        raise BrowserUnavailable("HTML/PDF rendering requires optional extra: pip install 'arp[reporting]'") from exc
     t = load_tokens().canvas
     async with async_playwright() as p:
         try:

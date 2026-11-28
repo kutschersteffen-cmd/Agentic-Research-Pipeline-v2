@@ -8,8 +8,12 @@ from __future__ import annotations
 
 import io
 import re
+import threading
 
-from docling.utils.locks import pypdfium2_lock
+try:
+    from docling.utils.locks import pypdfium2_lock
+except ImportError:  # optional extra: arp[parsing]
+    pypdfium2_lock = threading.Lock()
 
 _SCALE = 2.0  # 144 dpi: table digits stay legible, the image stays under the model's size limit
 _MAX_BOXES = 20

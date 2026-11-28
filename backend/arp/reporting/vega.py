@@ -13,8 +13,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import vl_convert as vlc
-
 from arp.reporting.chart_data import ChartDataError, _as_float_or_zero, _column, _dataset_by_id
 from arp.reporting.design import DesignTheme, categorical_color
 from arp.reporting.house_style import Mode, Tokens
@@ -43,6 +41,14 @@ POINT_R = 6
 _fonts_registered: set[str] = set()
 
 
+def _vlc():
+    try:
+        import vl_convert as vlc
+    except ImportError as exc:
+        raise ImportError("Vega-Lite chart rendering requires optional extra: pip install 'arp[reporting]'") from exc
+    return vlc
+
+
 def theme_config(tokens: Tokens, mode: Mode) -> dict:
     """The theme file with `{key}` strings filled from the palette and `{body}` from the body font."""
     subs = {**palette(tokens, mode), "body": family(tokens.fonts.body)}
@@ -61,6 +67,7 @@ def theme_config(tokens: Tokens, mode: Mode) -> dict:
 
 def _register_fonts(tokens: Tokens) -> None:
     """The house fonts and the template's, once per process, so label widths are measured with the real faces."""
+    vlc = _vlc()
     for d in (STYLE_DIR / "fonts", tokens.font_dir):
         if d and str(d) not in _fonts_registered and Path(d).is_dir():
             vlc.register_font_directory(str(d))
@@ -365,10 +372,10 @@ def _spec(p: ChartPrim, layers: list[dict], tokens: Tokens, mode: Mode) -> dict:
 
 def to_svg(spec: dict, tokens: Tokens) -> str:
     _register_fonts(tokens)
-    return vlc.vegalite_to_svg(spec, vl_version=VL_VERSION)
+    return _vlc().vegalite_to_svg(spec, vl_version=VL_VERSION)
 
 
 def to_png(spec: dict, tokens: Tokens) -> bytes:
     """The PowerPoint picture: scale 2, so a `w` × `h` px box is `round(2w)` × `round(2h)` pixels."""
     _register_fonts(tokens)
-    return vlc.vegalite_to_png(spec, vl_version=VL_VERSION, scale=2)
+    return _vlc().vegalite_to_png(spec, vl_version=VL_VERSION, scale=2)
