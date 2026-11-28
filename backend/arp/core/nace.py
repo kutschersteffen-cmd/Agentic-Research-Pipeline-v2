@@ -10,12 +10,18 @@ from pathlib import Path
 _REF = Path(__file__).resolve().parent.parent / "research"
 _SECTORS = _REF / "indirect_exposure" / "reference" / "exiobase_nace.csv"
 _ISIC_NACE = _REF / "standards_mapping" / "reference" / "un_isic4_nace2.csv"
+_NACE_ISIC = _REF / "standards_mapping" / "reference" / "un_nace2_isic4.csv"
 _NACE_REVS = _REF / "standards_mapping" / "reference" / "eurostat_nace2_nace21.csv"
 
 
 def _rows(path: Path) -> list[dict[str, str]]:
     with path.open(newline="", encoding="utf-8") as f:
         return list(csv.DictReader(f))
+
+
+def sector_name(raw: str) -> str:
+    """The sector as the explorer shows it: the archive's name without a trailing " (31)"."""
+    return re.sub(r" \(\d+\)$", "", raw)
 
 
 def normalise_nace(code: str) -> str:
@@ -51,8 +57,29 @@ def nace_title(code: str, rev: str) -> str | None:
     return _headings(rev).get(code)
 
 
+@cache
+def _isic4_sections() -> dict[str, str]:
+    """ISIC Rev.4 division -> section letter; the UN table lists each section row before its divisions."""
+    out, section = {}, ""
+    for r in _rows(_NACE_ISIC):
+        code = r["ISIC4code"]
+        if code.isalpha():
+            section = code
+        elif len(code) == 2:
+            out[code] = section
+    return out
+
+
+def isic4_section(division: str) -> str | None:
+    return _isic4_sections().get(division)
+
+
 def isic_to_nace2(isic4: str) -> list[str]:
     return sorted({r["NACE2code"] for r in _rows(_ISIC_NACE) if r["ISIC4code"] == isic4})
+
+
+def nace2_to_isic4(code: str) -> list[str]:
+    return sorted({r["ISIC4code"] for r in _rows(_NACE_ISIC) if r["NACE2code"] == code})
 
 
 @cache
@@ -63,6 +90,8 @@ def _sector_rows() -> list[dict[str, str]]:
 def nace_sectors(code: str, rev: str) -> set[str]:
     """EXIOBASE sectors with a table code matching `code`: equal, table coarser, or company coarser."""
     col = {"2": "nace2_code", "2.1": "nace21_code"}[rev]
+    if not code:
+        return set()
     return {
         r["exiobase_sector"]
         for r in _sector_rows()
@@ -71,5 +100,18 @@ def nace_sectors(code: str, rev: str) -> set[str]:
     }
 
 
+def code_set_sectors(scheme: str, code: str, rev: str) -> set[str]:
+    """Sector names (suffix-free) of a company_nace triple: a 4-digit ISIC Rev.4 class
+    through the UN table, anything else (NACE code, 2-digit ISIC division) as a NACE code."""
+    codes = isic_to_nace2(code) if scheme == "isic4" and len(code) == 4 else [code]
+    return {sector_name(s) for c in codes for s in nace_sectors(c, rev)}
+
+
 def division_sectors(division: str) -> set[str]:
     return nace_sectors(division, "2")
+
+
+def sector_nace2_codes(sector: str) -> list[str]:
+    return sorted(
+        {r["nace2_code"] for r in _sector_rows() if sector_name(r["exiobase_sector"]) == sector and r["nace2_code"]}
+    )

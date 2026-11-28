@@ -12,12 +12,12 @@ from arp.llm.base import LLMClient, LLMUsage
 from arp.research.arbitration import compute_arbitration
 from arp.research.company_role import derive_company_role
 from arp.research.funnel import FunnelQuery, score_pair
+from arp.research.indirect_exposure.company_mapper import company_nace
 from arp.research.indirect_exposure.exposure import compute_indirect_exposure
 from arp.research.indirect_exposure.leontief import LeontiefModel
 from arp.research.matcher_agents import run_adjudicator, run_advocate, run_opposing
 from arp.research.rd_exposure.resolver import RDResolverContext, resolve_company_activity_rd_exposure
 from arp.research.revenue_exposure.resolver import RevenueResolverContext, band_exposure, resolve_company_activity_exposure
-from arp.research.value_chain.links import company_nace
 from arp.retrieval.select_evidence import select_relevant_chunks
 from arp.schemas.common import CompanyRef, DocumentChunk, SourceDocument
 from arp.schemas.exposure import IndirectExposureResult
@@ -52,7 +52,7 @@ class MatchState(TypedDict):
     indirect_model: LeontiefModel | None
     revenue_resolver: RevenueResolverContext | None
     rd_resolver: RDResolverContext | None
-    company_isic: str | None
+    company_sectors: set[str]
     indirect: IndirectExposureResult | None
     revenue_exposure: RevenueExposureResult | None
     rd_exposure: RDExposureResult | None
@@ -68,13 +68,14 @@ class MatchState(TypedDict):
 
 async def _compute_indirect(state: MatchState) -> dict:
     indirect_model = state["indirect_model"]
-    company_isic = state["company_isic"]
+    company_sectors = state["company_sectors"]
     activity = state["activity"]
     indirect = None
     nace = company_nace(state["company"])
-    if indirect_model is not None and (company_isic or nace) and activity.core_isic_codes:
+    if indirect_model is not None and company_sectors and activity.core_sectors:
+        sector = "" if nace else next(iter(company_sectors))  # without NACE the set is the one LLM-picked sector
         indirect = compute_indirect_exposure(
-            state["company"].company_id, company_isic or "", indirect_model, set(activity.core_isic_codes), indirect_model.edition_label,
+            state["company"].company_id, sector, indirect_model, set(activity.core_sectors), indirect_model.edition_label,
             country=state["company"].country, nace=nace,
         )
     return {"indirect": indirect}
@@ -87,7 +88,7 @@ async def _resolve_revenue(state: MatchState) -> dict:
     revenue_exposure, usage = await resolve_company_activity_exposure(
         state["company"],
         state["activity"],
-        state["company_isic"],
+        state["company_sectors"],
         documents=state["documents"],
         ctx=revenue_resolver,
         llm=state["llm"],
@@ -103,7 +104,7 @@ async def _resolve_rd(state: MatchState) -> dict:
     rd_exposure, usage = await resolve_company_activity_rd_exposure(
         state["company"],
         state["activity"],
-        state["company_isic"],
+        state["company_sectors"],
         documents=state["documents"],
         ctx=rd_resolver,
         llm=state["llm"],
@@ -392,7 +393,7 @@ async def match_company_activity(
     indirect_model: LeontiefModel | None = None,
     revenue_resolver: RevenueResolverContext | None = None,
     rd_resolver: RDResolverContext | None = None,
-    company_isic: str | None = None,
+    company_sectors: set[str] | None = None,
     funnel_thresholds: dict[str, float] | None = None,
     funnel_query: FunnelQuery | None = None,
 ) -> tuple[CompanyMatch, list[LLMUsage]]:
@@ -423,7 +424,7 @@ async def match_company_activity(
         "indirect_model": indirect_model,
         "revenue_resolver": revenue_resolver,
         "rd_resolver": rd_resolver,
-        "company_isic": company_isic,
+        "company_sectors": company_sectors or set(),
         "indirect": None,
         "revenue_exposure": None,
         "rd_exposure": None,

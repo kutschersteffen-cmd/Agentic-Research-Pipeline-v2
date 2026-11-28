@@ -30,6 +30,7 @@ from arp.ingestion.xbrl import XbrlFactSource
 from arp.llm.base import LLMClient
 from arp.schemas.common import CompanyRef
 from arp.schemas.emerging_themes import EmergingThemesScheduleConfig
+from arp.schemas.thematic import OLD_FORMAT_MESSAGE
 from arp.storage.run_store import RunStore
 from arp.storage.taxonomy_store import TaxonomyStore
 from arp.storage.topic_store import TopicStateStore
@@ -100,6 +101,8 @@ async def promote(
     try:
         candidate = await promote_candidate(run_store, taxonomy_store, llm, run_id, theme_id, req.reason, taxonomy_id=req.taxonomy_id)
     except ValueError as exc:
+        if OLD_FORMAT_MESSAGE in str(exc):
+            raise
         raise HTTPException(400, str(exc)) from exc
     tid = candidate.promoted_to_taxonomy_id
     try:

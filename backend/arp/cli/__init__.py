@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import typer
+from typer.core import TyperGroup
 
 from arp.cli.agent import agent_app
 from arp.cli.authority_library import authority_library_app
@@ -37,7 +38,22 @@ from arp.runtime.container import wire as wire_runtime
 
 wire_runtime()
 
-app = typer.Typer(help="Agentic Research Pipeline CLI -- the headless path for 1000s-of-companies batch runs.")
+
+class _RootGroup(TyperGroup):
+    def invoke(self, ctx):
+        """An unmigrated theme (M8) from any command is one stderr line and exit 1, not a traceback."""
+        from arp.schemas.thematic import OLD_FORMAT_MESSAGE
+
+        try:
+            return super().invoke(ctx)
+        except ValueError as exc:
+            if OLD_FORMAT_MESSAGE not in str(exc):
+                raise
+            typer.echo(str(exc), err=True)
+            raise typer.Exit(1) from exc
+
+
+app = typer.Typer(cls=_RootGroup, help="Agentic Research Pipeline CLI -- the headless path for 1000s-of-companies batch runs.")
 
 
 @app.callback()

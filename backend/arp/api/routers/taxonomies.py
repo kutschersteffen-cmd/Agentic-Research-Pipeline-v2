@@ -28,7 +28,7 @@ from arp.schemas.common import CompanyRef
 from arp.schemas.datapoints import DataPointSchema
 from arp.schemas.taxonomy import DerivationMethod, Taxonomy, TaxonomyComparison, TaxonomyRef, TaxonomyStatus
 from arp.schemas.taxonomy_sources import SourceCandidate
-from arp.schemas.thematic import ThemeDefinition
+from arp.schemas.thematic import OLD_FORMAT_MESSAGE, ThemeDefinition
 from arp.storage.taxonomy_store import TaxonomyStore
 
 logger = logging.getLogger(__name__)
@@ -156,7 +156,7 @@ async def create_taxonomy(
 
     elif method == DerivationMethod.INDUSTRY_ANCHORED:
         theme, _usage = await build_theme_industry_anchored(req.name, req.description, model.industry_reference_list(), llm)
-        notes = f"Anchored against {model.edition_label} ({len(model.industry_reference_list())} industries)."
+        notes = f"Anchored against {model.edition_label} ({len(model.industry_reference_list())} EXIOBASE sectors)."
 
     elif method == DerivationMethod.AUTHORITY_SOURCE:
         try:
@@ -220,6 +220,8 @@ def new_taxonomy_version(
     try:
         return store.new_version(taxonomy_id, req.theme, None, req.source_notes)
     except ValueError as exc:
+        if OLD_FORMAT_MESSAGE in str(exc):
+            raise
         raise HTTPException(404, str(exc)) from exc
 
 
@@ -238,6 +240,8 @@ def ratify_taxonomy(
     try:
         ratified = store.ratify(taxonomy_id, req.version, principal.name)
     except ValueError as exc:
+        if OLD_FORMAT_MESSAGE in str(exc):
+            raise
         raise HTTPException(404, str(exc)) from exc
     try:  # the schema never fails a ratify: POST .../schema regenerates it
         SchemaRegistry(settings.postgres_dsn).save(build_taxonomy_schema(ratified))
@@ -335,7 +339,7 @@ async def map_standards(
     settings: Settings = Depends(settings_dep),
     store: TaxonomyStore = Depends(get_taxonomy_store),
 ) -> Taxonomy:
-    """Cross-references every activity's core_isic_codes into NACE, NAICS,
+    """Cross-references every activity's core_sectors into NACE, NAICS,
     SIC (deterministic crosswalk) and GICS (closed-list LLM classification)
     and saves the result as a new taxonomy version. See
     docs/METHODOLOGY.md for why GICS alone needs an LLM call.
