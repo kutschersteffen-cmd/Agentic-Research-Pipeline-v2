@@ -124,7 +124,7 @@ async def _identity(company: CompanyRef, settings: Settings, llm: LLMClient):
         search_client=build_web_search_client(settings.discovery_user_agent),
         max_search_results=settings.identity_resolution_max_search_results,
         confidence_threshold=settings.identity_resolution_confidence_threshold,
-        identifier_map=IdentifierMapStore(settings.identifier_map_path),
+        identifier_map=IdentifierMapStore(settings.identifier_map_path, dsn=settings.postgres_dsn),
     )
     if usages:
         record_cost(settings.llm_model, combine_usage(*usages))

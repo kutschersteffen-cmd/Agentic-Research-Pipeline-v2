@@ -145,7 +145,7 @@ def create_theme_run(
     """
     # The merged company links, overlay and classify_unlinked see; stored with the run, so a resume (and
     # run_company_batch, which reads the stored set) gets it too. API and CLI both create runs here.
-    sectors = IssuerSectorStore(settings.identifier_map_path.with_name("issuer_sectors.json"))
+    sectors = IssuerSectorStore(settings.identifier_map_path.with_name("issuer_sectors.json"), dsn=settings.postgres_dsn)
     companies = [apply_master(c, sectors) for c in companies]
     job_manager = JobManager(run_store)
     manifest = job_manager.create_run(

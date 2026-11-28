@@ -358,7 +358,11 @@ def _funnel_taxonomy(taxonomy_id: str | None, version: int | None, taxonomies_di
     if taxonomy_id is None:
         typer.echo("Provide --taxonomy.", err=True)
         raise typer.Exit(1)
-    taxonomy = TaxonomyStore(taxonomies_dir or get_settings().taxonomies_dir).get(taxonomy_id, version)
+    settings = get_settings()
+    taxonomy = TaxonomyStore(
+        taxonomies_dir or settings.taxonomies_dir,
+        dsn=None if taxonomies_dir else settings.postgres_dsn,
+    ).get(taxonomy_id, version)
     if taxonomy is None:
         typer.echo(f"Taxonomy not found: {taxonomy_id}", err=True)
         raise typer.Exit(1)

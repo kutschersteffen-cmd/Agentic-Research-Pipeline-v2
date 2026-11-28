@@ -116,7 +116,7 @@ def test_schema_is_deterministic_and_refuses_drafts():
 @pytest.fixture
 def api(tmp_path, pg):
     """tax_a: v1 ratified, v2 a draft, nothing registered."""
-    store = TaxonomyStore(tmp_path / "taxonomies")
+    store = TaxonomyStore(tmp_path / "taxonomies", dsn=pg)
     t = _taxonomy()
     created = store.create("Grid", t.theme, DerivationMethod.MANUAL)
     tid = created.taxonomy_id

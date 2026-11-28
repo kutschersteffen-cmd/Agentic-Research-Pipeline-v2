@@ -53,7 +53,7 @@ def _part(row: dict, cid: str) -> dict:
 
 
 def _run(root: Path, *triggers: tuple[str, str, str]) -> None:
-    TriggerStore(root).record_run(datetime.now(UTC).strftime("%Y-%m"), [
+    TriggerStore(root, dsn=get_settings().postgres_dsn).record_run(datetime.now(UTC).strftime("%Y-%m"), [
         {"issuer_id": i, "rule": rule, "type": "controversy", "theme": "climate", "severity": sev, "reason": "test"}
         for i, sev, rule in triggers
     ])  # fmt: skip
@@ -338,7 +338,7 @@ def test_2500_companies_build_in_under_a_second(tmp_path):
     issuers = [{"issuer_id": f"C{n}", "name": f"C{n}", "region": "EU", "sector": "Energy", "fields": {},
                 "holding": {"index_weight_pct": n / 1000, "aum_held_eur_m": n / 10, "change_pct": 0}} for n in range(2500)]  # fmt: skip
     _run(tmp_path, *((f"C{n}", ("high", "medium", "low")[n % 3], "r") for n in range(1000)))
-    assert len(TriggerStore(tmp_path).list_triggers()) == 1000
+    assert len(TriggerStore(tmp_path, dsn=get_settings().postgres_dsn).list_triggers()) == 1000
     past = (date.today() - timedelta(days=5)).isoformat()
     records = [
         EngagementRecord(company_id=f"C{n}", name=f"C{n}", issues=[EngagementIssue(theme="t", commitments=[Commitment(text="x", target_date=past)])])
@@ -347,7 +347,7 @@ def test_2500_companies_build_in_under_a_second(tmp_path):
     timings = []
     for _ in range(3):  # best of three (owner decision, 16 Nov 2026): one slow run on a busy CI machine is noise
         start = time.perf_counter()
-        built = worklist.build(tmp_path, {"issuers": issuers, "note": None}, records)
+        built = worklist.build(tmp_path, {"issuers": issuers, "note": None}, records, dsn=get_settings().postgres_dsn)
         timings.append(time.perf_counter() - start)
         assert len(built["rows"]) == 2500
     assert min(timings) < 1.0, timings

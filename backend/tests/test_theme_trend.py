@@ -79,7 +79,7 @@ def fx(pg, tmp_path, monkeypatch):
     get_settings.cache_clear()
     tax = Taxonomy(taxonomy_id="tax_t", name="T", theme=ThemeDefinition(name="T", description="t"),
                    derivation_method=DerivationMethod.EMPIRICAL)
-    TaxonomyStore(tmp_path / "taxonomies")._write_new_version(tax)
+    TaxonomyStore(tmp_path / "taxonomies", dsn=get_settings().postgres_dsn)._write_new_version(tax)
     tiers = [("a1", "core"), ("a2", "core"), ("a3", "core"), ("a4", "core"), ("a5", "adopter"), ("z1", "unknown")]
     run = InferRun(run_id="r1", stage="drafted", name="f", extractor_model="m", verifier_model="v", taxonomy_id="tax_t",
                    selection=Selection(method="sample", cutoff_reason="all"),
@@ -189,7 +189,7 @@ def test_unknown_taxonomy_and_no_mapping(fx, tmp_path):
     assert res.exit_code == 1 and res.stderr.strip() == "Taxonomy tax_nope not found."
     hand = Taxonomy(taxonomy_id="tax_hand", name="H", theme=ThemeDefinition(name="H", description="h"),
                     derivation_method=DerivationMethod.EMPIRICAL)
-    TaxonomyStore(tmp_path / "taxonomies")._write_new_version(hand)
+    TaxonomyStore(tmp_path / "taxonomies", dsn=get_settings().postgres_dsn)._write_new_version(hand)
     res = fx.run("--quarter", "2026Q2", tax="tax_hand")
     assert res.exit_code == 1 and res.stderr.strip() == (
         "Taxonomy tax_hand has no stock mapping; trend needs a taxonomy made by 'arp taxonomy infer pick'.")

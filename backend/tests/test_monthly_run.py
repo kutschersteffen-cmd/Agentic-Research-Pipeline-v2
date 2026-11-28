@@ -59,7 +59,7 @@ def test_blocked_when_esg_load_failed_evaluates_nothing(store, settings):
     _ready(store, esg_status="failed")
     r = run_month(store, settings, MONTH, portfolio_ids=_ids(store))
     assert r.status == "blocked" and any("esg" in x for x in r.blocked_reasons)
-    assert list_alerts(store) == [] and TriggerStore(settings.stewardship_streams_dir).list_triggers() == []
+    assert list_alerts(store) == [] and TriggerStore(settings.stewardship_streams_dir, dsn=settings.postgres_dsn).list_triggers() == []
 
 
 def test_later_failed_load_beats_earlier_ok(store, settings):
@@ -73,7 +73,7 @@ def test_runs_all_steps_in_order_on_seeded_demo(store, settings):
     r = run_month(store, settings, MONTH, portfolio_ids=_ids(store))
     assert r.status == "ran" and r.blocked_reasons == []
     assert r.alerts == len(list_alerts(store)) > 0
-    stored = TriggerStore(settings.stewardship_streams_dir).list_triggers()
+    stored = TriggerStore(settings.stewardship_streams_dir, dsn=settings.postgres_dsn).list_triggers()
     assert r.triggers == len(stored) > 0 and all(t.is_new for t in stored)
 
 
@@ -83,7 +83,7 @@ def test_rerun_same_month_creates_no_duplicate_alerts_or_new_flags(store, settin
     n_alerts = len(list_alerts(store))
     again = run_month(store, settings, MONTH, portfolio_ids=_ids(store))
     assert len(list_alerts(store)) == n_alerts and again.alerts == 0
-    assert all(t.is_new for t in TriggerStore(settings.stewardship_streams_dir).list_triggers())  # unchanged: still the first run's flags
+    assert all(t.is_new for t in TriggerStore(settings.stewardship_streams_dir, dsn=settings.postgres_dsn).list_triggers())  # unchanged: still the first run's flags
 
 
 def test_empty_universe_runs_with_zero_triggers(tmp_path, settings):
@@ -140,7 +140,7 @@ def test_run_follows_the_activated_monitoring_rules(store, settings):
     rule = table["content"]["rules"][0]["_id"]
     run_month(store, settings, MONTH, portfolio_ids=_ids(store))
     issuers = [i["issuer_id"] for i in from_portfolio(store)["issuers"]]
-    stored = {t.trigger_id for t in TriggerStore(settings.stewardship_streams_dir).list_triggers()}
+    stored = {t.trigger_id for t in TriggerStore(settings.stewardship_streams_dir, dsn=settings.postgres_dsn).list_triggers()}
     assert issuers and {trigger_id(i, rule) for i in issuers} <= stored
 
 
@@ -271,7 +271,7 @@ def test_status_route_reports_loads_and_the_reasons_run_month_would_block_on(sto
         assert c.get("/api/portfolio/monthly-run/status", params={"month": "2026-9"}).status_code == 422
     finally:
         app.dependency_overrides.clear()
-    assert TriggerStore(settings.stewardship_streams_dir).list_triggers() == []  # read-only: nothing persisted
+    assert TriggerStore(settings.stewardship_streams_dir, dsn=settings.postgres_dsn).list_triggers() == []  # read-only: nothing persisted
 
 
 def test_seeded_demo_records_the_loads_its_latest_month_needs(store, settings):

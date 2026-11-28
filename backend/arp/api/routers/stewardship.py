@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from arp.api.auth import Principal, current_user
 from arp.api.deps import get_engagement_store, get_stream_store
+from arp.config import get_settings
 from arp.schemas.engagement import (
     CorrespondenceType,
     InteractionType,
@@ -144,7 +145,7 @@ def list_stored_triggers(
     status: Literal["open", "acknowledged", "resolved"] | None = None,
     streams: StreamStore = Depends(get_stream_store),
 ) -> dict:
-    store = TriggerStore(streams.root)
+    store = TriggerStore(streams.root, dsn=get_settings().postgres_dsn)
     names = store.companies()
     return {"triggers": [{**t.model_dump(), "company": names.get(t.trigger_id, "")} for t in store.list_triggers(status)]}
 
@@ -162,7 +163,9 @@ def post_trigger_transition(
     streams: StreamStore = Depends(get_stream_store),
 ) -> dict:
     try:
-        return TriggerStore(streams.root).transition(trigger_id, body.status, body.decided_by, body.reason).model_dump()
+        return TriggerStore(streams.root, dsn=get_settings().postgres_dsn).transition(
+            trigger_id, body.status, body.decided_by, body.reason
+        ).model_dump()
     except KeyError as exc:
         raise HTTPException(404, "Unknown trigger") from exc
     except ValueError as exc:
@@ -187,7 +190,11 @@ def open_engagement_from_trigger(
     records = engagements.list_all()
     triggers = monitoring.evaluate(PolicyStore(streams.root).active("monitoring_rules"), sample, records)
     trigger = next((t for t in triggers if t["issuer_id"] == body.issuer_id and t["rule"] == body.rule), None)
-    if trigger is None and (stored := TriggerStore(streams.root).stored_trigger(trigger_id(body.issuer_id, body.rule))):
+    if trigger is None and (
+        stored := TriggerStore(streams.root, dsn=get_settings().postgres_dsn).stored_trigger(
+            trigger_id(body.issuer_id, body.rule)
+        )
+    ):
         trigger = {**stored, "engagement_id": monitoring.open_engagements(records).get((stored["issuer_id"], stored["theme"]))}
     if trigger is None:
         raise HTTPException(404, "No active monitoring rule or monthly run raised such a trigger")

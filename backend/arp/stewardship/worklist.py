@@ -265,11 +265,13 @@ def house_rows(
     observations: dict[str, dict],
     today: date,
     issuers: list[dict] | None = None,
+    *,
+    dsn: str | None = None,
 ) -> list[dict]:
     """`indicators()` with stored triggers for the house or requested scope issuers."""
     rows = {"issuers": sample["issuers"] if issuers is None else issuers}
     tiers = {i["issuer_id"]: ("monitor", False) for i in rows["issuers"]}
-    return indicators(rows, records, TriggerStore(root).list_triggers(), tiers, meetings, observations, today)
+    return indicators(rows, records, TriggerStore(root, dsn=dsn).list_triggers(), tiers, meetings, observations, today)
 
 
 def fund_holdings(store) -> dict[str, dict]:
@@ -379,6 +381,7 @@ def build(
     scope: dict | None = None,
     funds: dict[str, dict] | None = None,
     labels: dict[str, str] | None = None,
+    dsn: str | None = None,
 ) -> dict:
     """The worklist of a scope (default: the house). `root` is the stewardship streams dir; `meetings` maps a company
     to its newest vote-ledger meeting date; `observations` maps a company to {field_id: latest observation}; `funds`
@@ -391,8 +394,8 @@ def build(
     scope, funds, labels, observations = scope or resolve_scope("house", sample, None), funds or {}, labels or {}, observations or {}
     cycle = cycle_of(today)
     selections = SelectionLog(root).all_rows(cycle)
-    programmes, notes = ProgrammeLog(root).memberships(), NoteLog(root).summary()
-    rows = house_rows(root, sample, records, meetings or {}, observations, today, scope_issuers(sample, scope, funds))
+    programmes, notes = ProgrammeLog(root, dsn=dsn).memberships(), NoteLog(root, dsn=dsn).summary()
+    rows = house_rows(root, sample, records, meetings or {}, observations, today, scope_issuers(sample, scope, funds), dsn=dsn)
     held = _held(funds, scope["portfolios"])
     held_in: dict[str, list[dict]] = {}
     for pid, fund in funds.items():

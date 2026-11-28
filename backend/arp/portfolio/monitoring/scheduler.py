@@ -50,7 +50,7 @@ class PortfolioMonitoringScheduler(IntervalScheduler):
             except Exception:
                 logger.exception("Scheduled ESG pull for %s failed", previous)
         ids = [p.portfolio_id for p in self.store.list_portfolios()]
-        ran_at = TriggerStore(self.settings.stewardship_streams_dir).last_run_at(previous)
+        ran_at = TriggerStore(self.settings.stewardship_streams_dir, dsn=self.settings.postgres_dsn).last_run_at(previous)
         loads = [latest_load(self.store, "holdings", p, previous) for p in ids] + [latest_load(self.store, "esg", "default", previous)]
         if ran_at and all(load is None or load.at <= ran_at for load in loads):
             return  # the month already ran on these loads: re-running would only append another trigger snapshot

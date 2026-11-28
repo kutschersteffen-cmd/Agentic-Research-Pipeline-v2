@@ -66,7 +66,7 @@ async def run_precision(
         indexing_config=IndexingConfig.from_settings(settings),
     )
     registry = DocumentSourceRegistry([source])
-    identifier_map = IdentifierMapStore(settings.identifier_map_path)
+    identifier_map = IdentifierMapStore(settings.identifier_map_path, dsn=settings.postgres_dsn)
     xbrl_source = None
     if settings.xbrl_facts_enabled:
         from arp.retrieval.registry_factory import _xbrl_source  # the same construction the CLI and API use

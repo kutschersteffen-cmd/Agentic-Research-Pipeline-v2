@@ -64,7 +64,7 @@ async def execute_identity_run(
     edgar = edgar or EdgarDocumentSource(settings.edgar_user_agent, settings.cache_dir)
     search_client = search_client or build_web_search_client(settings.discovery_user_agent)
 
-    idmap = IdentifierMapStore(settings.identifier_map_path)
+    idmap = IdentifierMapStore(settings.identifier_map_path, dsn=settings.postgres_dsn)
     previous = (
         {
             r["company_id"]: IdentityResolutionResult.model_validate(r)

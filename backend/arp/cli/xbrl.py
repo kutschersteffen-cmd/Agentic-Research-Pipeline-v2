@@ -53,7 +53,7 @@ def fetch(
     if tag_list:
         _validate_tags(tag_list)
     run_store = _run_store()
-    index = MasterIndex.build(IdentifierMapStore(settings.identifier_map_path)) if market == "auto" else None
+    index = MasterIndex.build(IdentifierMapStore(settings.identifier_map_path, dsn=settings.postgres_dsn)) if market == "auto" else None
     run_id = create_xbrl_run(companies, tag_list, refresh, run_store, market=market, index=index)
     asyncio.run(execute_xbrl_run(
         run_id, companies, settings=settings, run_store=run_store, tags=tag_list, refresh=refresh,
@@ -68,7 +68,8 @@ def fetch(
 @xbrl_app.command("screen")
 def screen(universe: Path = typer.Option(...)) -> None:
     """Show which source each company would be fetched from; writes no run."""
-    index = MasterIndex.build(IdentifierMapStore(get_settings().identifier_map_path))
+    settings = get_settings()
+    index = MasterIndex.build(IdentifierMapStore(settings.identifier_map_path, dsn=settings.postgres_dsn))
     routes = route_universe(load_company_universe(universe), index)
     for r in routes:
         typer.echo(f"{r.company.company_id}  {r.market or r.status}  {r.basis or '-'}  {r.detail}")
