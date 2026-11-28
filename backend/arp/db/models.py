@@ -769,7 +769,7 @@ class DeskScope(Base):
 
     id: Mapped[int] = _id()
     chat_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("desk_chats.id"))
-    kind: Mapped[str] = mapped_column(Text)  # company | universe | run
+    kind: Mapped[str] = mapped_column(Text)  # company | universe | run | upload
     ref: Mapped[str] = mapped_column(Text)
     label: Mapped[str] = mapped_column(Text)
 
@@ -795,6 +795,34 @@ class DeskTurn(Base):
     created_at: Mapped[datetime] = _ts()
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_NOW, server_default=_NOW)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class DeskUpload(Base):
+    """A report uploaded into a Research Desk chat (spec research-desk-wave1, slice 4)."""
+
+    __tablename__ = "desk_uploads"
+    __table_args__ = (
+        Index("ix_desk_uploads_chat_id", "chat_id"),
+        Index("ix_desk_uploads_created_at", "created_at"),
+    )
+
+    id: Mapped[int] = _id()
+    chat_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("desk_chats.id"), nullable=False)
+    owner_id: Mapped[str] = mapped_column(Text, nullable=False)
+    filename: Mapped[str] = mapped_column(Text, nullable=False)
+    stored_path: Mapped[str] = mapped_column(Text, nullable=False)
+    size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    sha256: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(Text, nullable=False, default="reading", server_default="reading")  # reading | ready | failed
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    full_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    page_breaks: Mapped[list[int]] = mapped_column(JSONB, nullable=False, default=list, server_default=text("'[]'::jsonb"))
+    detected_company_id: Mapped[str | None] = mapped_column(Text, nullable=True)
+    detection: Mapped[str] = mapped_column(Text, nullable=False, default="none", server_default="none")  # lei | isin | name | none
+    saved_company_id: Mapped[str | None] = mapped_column(Text, nullable=True)
+    saved_doc_type: Mapped[str | None] = mapped_column(Text, nullable=True)
+    saved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = _ts()
 
 
 class AppDocument(Base):
