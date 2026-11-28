@@ -11,7 +11,8 @@ import yaml
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
-from arp.compute import client, server
+from arp import compute_client as client
+from arp.compute import server
 from arp.config import Settings
 from arp.models.registry import entry, model_header
 from arp.retrieval import embeddings, rerank

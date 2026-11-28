@@ -2,9 +2,9 @@ import numpy as np
 import pytest
 from typer.testing import CliRunner
 
+from arp import compute_client as client
 from arp.cli import compute as compute_cli
 from arp.cli.compute import compute_app
-from arp.compute import client
 from arp.config import Settings
 from arp.ingestion import local_files
 from arp.retrieval import embeddings, rerank

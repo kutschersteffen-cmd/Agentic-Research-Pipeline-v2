@@ -21,7 +21,7 @@ from arp.discovery.site_finder import WebSearchClient
 from arp.ingestion import esef
 from arp.ingestion.esef import EsefDocumentSource
 from arp.ingestion.registry import DocumentSourceRegistry
-from arp.orchestration import jobs
+from arp.job_runtime import jobs
 from arp.runtime.container import wire as wire_runtime
 from arp.schemas.common import CompanyRef, DocType
 from arp.schemas.datapoints import DataPointSchema, FieldDataType, FieldDefinition, FieldStatus

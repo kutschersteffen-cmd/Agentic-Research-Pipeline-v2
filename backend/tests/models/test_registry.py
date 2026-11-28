@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from arp.models import registry
+from arp.core import model_registry as registry
 
 
 @pytest.fixture

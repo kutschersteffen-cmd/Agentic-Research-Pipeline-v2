@@ -7,7 +7,7 @@ import re
 from functools import cache
 from pathlib import Path
 
-_REF = Path(__file__).resolve().parent.parent
+_REF = Path(__file__).resolve().parent.parent / "research"
 _SECTORS = _REF / "indirect_exposure" / "reference" / "exiobase_nace.csv"
 _ISIC_NACE = _REF / "standards_mapping" / "reference" / "un_isic4_nace2.csv"
 _NACE_REVS = _REF / "standards_mapping" / "reference" / "eurostat_nace2_nace21.csv"

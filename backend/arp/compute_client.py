@@ -19,7 +19,7 @@ import numpy as np
 from arp.config import get_settings
 from arp.schemas.common import TableSpan
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("arp.compute.client")
 
 COOLDOWN_S = 600.0
 RETRY_DELAY_S = 5.0

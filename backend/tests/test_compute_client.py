@@ -7,7 +7,7 @@ import time
 import httpx
 import pytest
 
-from arp.compute import client
+from arp import compute_client as client
 from arp.config import Settings
 from arp.ingestion.local_files import parser_version
 
