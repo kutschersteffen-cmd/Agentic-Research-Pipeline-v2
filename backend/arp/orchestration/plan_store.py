@@ -13,7 +13,7 @@ from sqlalchemy import delete, func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from arp.agent.models import AgentExploration
+from arp.db.agent_models import AgentExploration
 from arp.errors import NotConfigured
 from arp.orchestration.plan_check import check_script
 from arp.orchestration.plan_interp import dry_run

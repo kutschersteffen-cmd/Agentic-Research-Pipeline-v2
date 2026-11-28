@@ -33,6 +33,9 @@ from arp.cli.transition_plan import transition_plan_app
 from arp.cli.universe import universe_app
 from arp.cli.worker import worker_app
 from arp.cli.xbrl import xbrl_app
+from arp.runtime.container import wire as wire_runtime
+
+wire_runtime()
 
 app = typer.Typer(help="Agentic Research Pipeline CLI -- the headless path for 1000s-of-companies batch runs.")
 

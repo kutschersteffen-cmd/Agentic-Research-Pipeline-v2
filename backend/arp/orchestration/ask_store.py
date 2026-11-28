@@ -9,7 +9,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from arp.agent.models import AgentExploration
+from arp.db.agent_models import AgentExploration
 from arp.orchestration.plan_models import AgentAsk, ResearchPlan
 
 HISTORY_TURNS = 5  # the limit POST /api/ask has

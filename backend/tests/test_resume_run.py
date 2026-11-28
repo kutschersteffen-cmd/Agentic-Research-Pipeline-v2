@@ -17,7 +17,8 @@ from arp.ingestion.registry import DocumentSourceRegistry
 from arp.llm.base import LLMUsage
 from arp.llm.batching_client import BatchingLLMClient
 from arp.orchestration.job_manager import JobManager
-from arp.orchestration.jobs import NotResumable, RunBusy, resume_run, run_lease
+from arp.orchestration.jobs import RunBusy, run_lease
+from arp.orchestration.resume import NotResumable, resume_run
 from arp.research.pipeline import CompanyMatchesResult, create_theme_run
 from arp.research.taxonomy_schema import build_taxonomy_schema
 from arp.schemas.common import CompanyRef, JobStatus
@@ -272,7 +273,7 @@ def test_resume_endpoint_requires_analyst(tmp_path, api):
 
 def test_cli_extract_run_resumes(tmp_path, fake, monkeypatch, pg):
     import arp.cli.extraction as cli
-    import arp.orchestration.jobs as jobs
+    import arp.orchestration.resume as resume
 
     settings = _settings(tmp_path)
     store = RunStore(pg, settings.runs_dir)
@@ -280,8 +281,8 @@ def test_cli_extract_run_resumes(tmp_path, fake, monkeypatch, pg):
     monkeypatch.setattr(cli, "get_settings", lambda: settings)
     monkeypatch.setattr(cli, "_run_store", lambda: store)
     monkeypatch.setattr(cli, "_registry", lambda: DocumentSourceRegistry([]))
-    monkeypatch.setattr(jobs, "build_llm_client", lambda s: LLM)
-    monkeypatch.setattr(jobs, "build_verifier_llm_client", lambda s: LLM)
+    monkeypatch.setattr(resume, "build_llm_client", lambda s: LLM)
+    monkeypatch.setattr(resume, "build_verifier_llm_client", lambda s: LLM)
 
     res = CliRunner().invoke(extract_app, ["run", "--run-id", run_id])
     assert res.exit_code == 0, res.output
@@ -451,7 +452,7 @@ def test_finish_run_failure_keeps_the_original_error(tmp_path, pg, monkeypatch):
 
 
 def test_completed_run_that_missed_companies_is_resumable(tmp_path, pg):
-    from arp.orchestration.jobs import check_resumable
+    from arp.orchestration.resume import check_resumable
 
     store, run_id = _run(tmp_path, pg, n=2)
     JobManager(store).record_progress(run_id, completed_delta=1)
@@ -460,7 +461,7 @@ def test_completed_run_that_missed_companies_is_resumable(tmp_path, pg):
 
 
 def test_completed_run_whose_rest_stopped_for_review_is_refused(tmp_path, pg):
-    from arp.orchestration.jobs import check_resumable
+    from arp.orchestration.resume import check_resumable
 
     store, run_id = _run(tmp_path, pg, n=2)
     store.append_result(run_id, {"_key": "c1"})
@@ -495,7 +496,7 @@ def test_resume_endpoint_crash_marks_theme_run_failed(tmp_path, monkeypatch, api
 
 def test_completed_run_with_every_stored_company_done_is_refused_whatever_the_counts(tmp_path, pg):
     """company_count counts refs save_companies may drop (duplicates, identity conflicts); the stored companies decide."""
-    from arp.orchestration.jobs import check_resumable
+    from arp.orchestration.resume import check_resumable
 
     store, run_id = _run(tmp_path, pg, n=2)
     for c in COMPANIES[:2]:

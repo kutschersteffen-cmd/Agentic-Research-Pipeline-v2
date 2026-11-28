@@ -127,7 +127,7 @@ async def test_result_row_and_items_are_written_together(tmp_path, pg, bodies):
 
 
 async def test_resume_after_stop_keeps_three_items(tmp_path, pg, bodies):
-    from arp.orchestration.jobs import restart_run
+    from arp.orchestration.resume import restart_run
     from arp.storage.run_store import RunStore
 
     settings = settings_for(tmp_path)
@@ -178,7 +178,7 @@ def test_cli_prints_no_line_when_nothing_queued(monkeypatch, tmp_path, pg, bodie
 
 async def test_resume_after_crash_between_result_and_progress_keeps_three(tmp_path, pg, bodies):
     from arp.discovery.review import review_items
-    from arp.orchestration.jobs import restart_run
+    from arp.orchestration.resume import restart_run
     from arp.schemas.discovery import DiscoveryCompanyResult
     from arp.storage.run_store import RunStore
 

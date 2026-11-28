@@ -8,7 +8,7 @@ import pytest
 
 from arp.config import Settings
 from arp.ingestion.edgar import AnnualOriginal
-from arp.orchestration.jobs import restart_run
+from arp.orchestration.resume import restart_run
 from arp.schemas.common import CompanyRef
 from arp.storage.run_store import RunStore
 from arp.xbrl_pipeline.fetch import (

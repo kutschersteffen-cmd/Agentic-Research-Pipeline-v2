@@ -176,7 +176,7 @@ _400 = [
     ("arp.research.value_chain.model", "ShockError"), ("arp.research.value_chain.model", "UnknownMaterial"),
     ("arp.research.value_chain.links", "LinkError"), ("arp.research.value_chain.revenue", "RecipeError"),
     ("arp.research.taxonomy_schema", "ThemeRunRefused"), ("arp.research.exposure_layers", "LayerSettingsError"),
-    ("arp.orchestration.jobs", "NotResumable"), ("arp.orchestration.plan_interp", "PlanScriptError"),
+    ("arp.orchestration.resume", "NotResumable"), ("arp.orchestration.plan_interp", "PlanScriptError"),
     ("arp.orchestration.plan_planner", "PlanRejected"),
     ("arp.publish.release", "WithdrawalError"),
     ("arp.publish.facts", "LicenceRefused"), ("arp.transition_alignment.benchmarks", "BenchmarksError"),

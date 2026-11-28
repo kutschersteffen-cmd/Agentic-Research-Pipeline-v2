@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFil
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
-from arp import catalog, smart_search
+from arp import smart_search
 from arp.api.auth import Principal, current_user, require_role
 from arp.api.deps import (
     get_identifier_map,
@@ -123,14 +123,7 @@ def get_issues(
     return {"issues": issues.open_issues(store, idmap, run_store, date.today())}
 
 
-def datahub_lists(settings: Settings, store, idmap, run_store, taxonomy, reports, today: date) -> dict[str, list[dict]]:
-    """The three lists Smart Search filters: open issues, the output catalog and the feeds (also used by Ask ARP)."""
-    return {
-        "issues": issues.open_issues(store, idmap, run_store, today),
-        "outputs": catalog.catalog(runs_dir=settings.runs_dir, run_store=run_store, taxonomy=taxonomy,
-                                   reports=reports),
-        "feeds": feeds.overview(store, idmap, today),
-    }
+from arp.smart_search import datahub_lists  # noqa: E402, F401
 
 
 class SmartSearchRequest(BaseModel):

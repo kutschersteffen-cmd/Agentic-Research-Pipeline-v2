@@ -16,7 +16,7 @@ from arp.extraction.verifier_agent import VerifierOutput
 from arp.ingestion.base import DocumentSource
 from arp.ingestion.registry import DocumentSourceRegistry
 from arp.orchestration.job_manager import JobManager
-from arp.orchestration.jobs import NotResumable, check_resumable
+from arp.orchestration.resume import NotResumable, check_resumable
 from arp.research.revenue_exposure.resolver import RevenueResolverContext, resolve_company_activity_exposure
 from arp.research.taxonomy_schema import EVIDENCE_KEYS, _evidence_field, activity_fields, build_taxonomy_schema
 from arp.schemas.common import Citation, CompanyRef, DocType, SourceDocument

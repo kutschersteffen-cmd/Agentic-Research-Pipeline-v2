@@ -195,7 +195,7 @@ def test_a_failed_start_clears_the_marker(client, fid, monkeypatch, settings):
 
 def test_resume_reads_only_the_kept_documents(run_store, monkeypatch, tmp_path):
     from arp.ingestion.registry import ONLY_DOCUMENTS
-    from arp.orchestration import jobs
+    from arp.orchestration import resume
 
     run_store.save_manifest(RunManifest(run_id="extraction_r", run_type="extraction", company_count=1, status="failed"))
     run_store.save_companies("extraction_r", [CompanyRef(company_id="aapl", name="Apple")])
@@ -206,9 +206,9 @@ def test_resume_reads_only_the_kept_documents(run_store, monkeypatch, tmp_path):
         seen["docs"] = await registry.fetch_all(companies[0])
         return run_id
 
-    monkeypatch.setitem(jobs._RESUME, "extraction", fake)
+    monkeypatch.setitem(resume._RESUME, "extraction", fake)
     inner = _Registry([_doc("a"), _doc("b")])
-    asyncio.run(jobs.resume_run("extraction_r", settings=Settings(), run_store=run_store, registry=inner, llm="x", verifier_llm="y", lease=False))
+    asyncio.run(resume.resume_run("extraction_r", settings=Settings(), run_store=run_store, registry=inner, llm="x", verifier_llm="y", lease=False))
     assert [d.content_key for d in seen["docs"]] == ["a"]
 
 

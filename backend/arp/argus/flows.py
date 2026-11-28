@@ -13,11 +13,8 @@ from pathlib import Path
 from typing import Literal
 from uuid import uuid4
 
-from fastapi import Depends
 from pydantic import BaseModel, Field
 
-from arp.api.deps import settings_dep
-from arp.config import Settings
 from arp.core.auth import Principal
 from arp.schemas.common import CompanyRef, now_iso
 from arp.storage.atomic_io import atomic_write_text, read_text_utf8
@@ -161,7 +158,3 @@ class FlowStore:
                 return False
             self._path(flow_id).unlink(missing_ok=True)
             return True
-
-
-def get_flow_store(settings: Settings = Depends(settings_dep)) -> FlowStore:
-    return FlowStore(settings.runs_dir / "_flows")

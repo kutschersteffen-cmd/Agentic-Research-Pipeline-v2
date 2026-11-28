@@ -69,10 +69,10 @@ def tool_route() -> Iterator[str]:
     import uvicorn
     from fastapi import FastAPI
 
-    from arp.api.routers import sandbox_tools
+    from arp.agent import tool_router
 
     app = FastAPI()
-    app.include_router(sandbox_tools.router)
+    app.include_router(tool_router.router)
     app.get("/health")(lambda: {"ok": True})
     port = _free_port()
     server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning"))

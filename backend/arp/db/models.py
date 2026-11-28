@@ -811,6 +811,5 @@ class AppDocument(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_NOW, server_default=_NOW)
 
 
-import arp.agent.models  # noqa: E402,F401  (registers the explorations table on Base)
-import arp.agent_board.models  # noqa: E402,F401  (registers the agent board tables on Base)
+import arp.db.agent_models  # noqa: E402,F401  (registers the explorations and agent board tables on Base)
 import arp.orchestration.plan_models  # noqa: E402,F401  (registers the research plan tables on Base)

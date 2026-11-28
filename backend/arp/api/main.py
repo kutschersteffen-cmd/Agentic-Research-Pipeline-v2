@@ -68,9 +68,12 @@ from arp.api.routers import (
 )
 from arp.db.session import require_cutover, require_postgres
 from arp.errors import ClientInputError, NotConfigured
+from arp.runtime.container import wire as wire_runtime
 from arp.stewardship.universe import wait_for_fill
 from arp.transition_alignment.benchmarks import check_benchmarks
 from arp.transition_barrier.dataset import check_rule_book
+
+wire_runtime()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

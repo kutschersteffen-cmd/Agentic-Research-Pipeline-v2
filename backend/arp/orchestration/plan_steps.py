@@ -88,8 +88,8 @@ def _load_universe(settings: Settings, taxonomy_id: str, source: str):
 
 
 def _universe_step(settings: Settings, run_store: RunStore) -> Step:
-    from arp.api.deps import get_registry
     from arp.llm.factory import build_llm_client, build_verifier_llm_client
+    from arp.retrieval.registry_factory import get_registry
 
     def universe_start(launch_key: str | None, *, taxonomy_id: str, source: str) -> str:
         from arp.research.pipeline import create_theme_run
@@ -141,8 +141,8 @@ def _discovery_step(settings: Settings, run_store: RunStore) -> Step:
 
 
 def _extraction_step(settings: Settings, run_store: RunStore) -> Step:
-    from arp.api.deps import get_registry
     from arp.llm.factory import build_llm_client, build_verifier_llm_client
+    from arp.retrieval.registry_factory import get_registry
 
     def extraction_create(*, universe_run_id: str, schema_id: str, companies: list[str] | None = None) -> str:
         from arp.db.fields import SchemaRegistry
@@ -205,9 +205,9 @@ def _report_step(settings: Settings) -> Step:
     def report_start(_launch_key: str | None, *, source_ids: list[str], template_id: str | None = None) -> str:
         # shortcut: a report manifest has no params to carry the launch key, so a crash inside create_and_plan leaves
         # an unused report and the resumed step plans another.
-        from arp.api.deps import get_reporting_store
         from arp.reporting.service import ReportingService
         from arp.schemas.reporting import ReportRequest, RunRef
+        from arp.storage.factories import get_reporting_store
 
         request = ReportRequest(title="Research plan report", qualitative_notes="", template_id=template_id,
                                 run_refs=[RunRef(kind="run", ref_id=i) for i in source_ids])
@@ -216,9 +216,9 @@ def _report_step(settings: Settings) -> Step:
         return manifest.report_id
 
     def report_finish(report_id: str, **_params: Any) -> dict[str, Any]:
-        from arp.api.deps import get_reporting_store
         from arp.reporting.service import ReportingService
         from arp.schemas.reporting import ReportStatus
+        from arp.storage.factories import get_reporting_store
 
         manifest = get_reporting_store().load_manifest(report_id)
         # A house deck stops at its storyline for a person to approve (its own gate); others render now.
@@ -247,8 +247,8 @@ def build_reviewed(run_store: RunStore):
     def reviewed(call: dict[str, Any]) -> bool:
         ref = call.get("result_ref") or ""
         if ref.startswith("report:"):
-            from arp.api.deps import get_reporting_store
             from arp.schemas.reporting import ReportStatus
+            from arp.storage.factories import get_reporting_store
 
             manifest = get_reporting_store().load_manifest(ref.removeprefix("report:"))
             return manifest is not None and manifest.status != ReportStatus.STORYLINE_READY

@@ -84,31 +84,35 @@ async def call_capability(capability_id: str, args: BaseModel, principal: Princi
     from starlette.concurrency import run_in_threadpool
 
     from arp import ask
-    from arp.api import deps
+    from arp.llm.factory import build_llm_client
+    from arp.storage import factories
 
     if capability_id == "transition_plan":
-        card, _text = await run_in_threadpool(ask.newest_transition_plan, deps.get_run_store(), principal, args.company)
+        card, _text = await run_in_threadpool(ask.newest_transition_plan, factories.get_run_store(), principal, args.company)
         return card.model_dump(mode="json") if card else None
     if capability_id == "portfolio_exposure":
         from arp.portfolio import qa_agent
         from arp.storage.portfolio_store import portfolio_directories
 
-        store = deps.get_portfolio_store()
+        store = factories.get_portfolio_store()
         securities, companies = await run_in_threadpool(portfolio_directories, store)
-        answer, _usage = await qa_agent.answer_question(args.question, deps.get_llm_client(), store, securities, companies)
+        answer, _usage = await qa_agent.answer_question(
+            args.question, build_llm_client(get_settings()), store, securities, companies
+        )
         return answer.model_dump(mode="json")
     if capability_id == "smart_search":
         from datetime import date
 
         from arp import smart_search
-        from arp.api.routers.security_master import datahub_lists
+        from arp.storage.identifier_map import IdentifierMapStore
 
         settings = get_settings()
         lists = await run_in_threadpool(
-            datahub_lists, settings, deps.get_portfolio_store(), deps.get_identifier_map(settings), deps.get_run_store(),
-            deps.get_taxonomy_store(), deps.get_reporting_store(),
+            smart_search.datahub_lists, settings, factories.get_portfolio_store(),
+            IdentifierMapStore(settings.identifier_map_path),
+            factories.get_run_store(), factories.get_taxonomy_store(), factories.get_reporting_store(),
             date.today())
-        found, _usage = await smart_search.smart_search(args.question, deps.get_llm_client(), **lists)
+        found, _usage = await smart_search.smart_search(args.question, build_llm_client(settings), **lists)
         return found.model_dump(mode="json")
     raise LookupError(capability_id)
 

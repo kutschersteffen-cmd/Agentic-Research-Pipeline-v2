@@ -141,7 +141,7 @@ def _stub_theme_run(monkeypatch, run_store):
     monkeypatch.setattr(research, "execute_theme_run", fake_execute)
     monkeypatch.setattr(research, "load_theme_run_matches", lambda rs, rid: [])
     monkeypatch.setattr("arp.research.indirect_exposure.factory.resolve_indirect_exposure_model", lambda *a, **k: None)
-    monkeypatch.setattr("arp.api.deps.get_registry", lambda: None)
+    monkeypatch.setattr("arp.retrieval.registry_factory.get_registry", lambda: None)
 
 
 def test_universe_build_loads_a_saved_universe(runs_dir, run_store, monkeypatch):  # AC-8

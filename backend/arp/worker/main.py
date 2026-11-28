@@ -33,7 +33,10 @@ from arp.config import Settings, get_settings
 from arp.db.session import require_cutover, require_postgres
 from arp.refine.turns import reap_stale_turns
 from arp.research_desk.turn import reap_stale_desk_turns
+from arp.runtime.container import wire as wire_runtime
 from arp.storage.postgres import _CONNECT_TIMEOUT_SECONDS
+
+wire_runtime()
 
 logger = logging.getLogger(__name__)
 
