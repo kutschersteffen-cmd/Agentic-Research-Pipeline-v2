@@ -1,6 +1,6 @@
 # Thematic Universe quick fixes: plain words, no prefilled theme, sensible order
 
-Status: Draft, for owner approval
+Status: Approved by owner (Wave 0b batch approval, 2026-11-28)
 Slug: `thematic-universe-quick-fixes`
 Risk: `risk:low` (frontend copy and layout; the one logic change is the default sort order). One PR, one slice. R&D Lab plan item 11, fixes part of finding U2.
 
@@ -45,6 +45,10 @@ The Theme Workbench (plan item 13) replaces this screen later; these fixes stay 
 ## Design
 
 All changes are in `frontend/src/pages/ThemeBuilder.tsx` and `frontend/src/components/ThemeLayersTable.tsx`.
+
+**v2 sequencing note (post-`#343`):** v1 PR `#343` (`F3`, EXIOBASE `core_sectors`) also edits
+`frontend/src/pages/ThemeBuilder.tsx` ahead of `F6`; apply these wording, sort, and empty-state changes on top of
+post-`#343` `ThemeBuilder.tsx`.
 
 **1. Empty theme.** `useState("Electrification")` becomes `useState("")`, and the description default becomes `""`. "Decompose into activities" is disabled while the name, trimmed, is empty (it would send an empty theme). Nothing else about the form changes.
 

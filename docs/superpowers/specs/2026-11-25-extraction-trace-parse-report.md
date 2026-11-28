@@ -1,6 +1,6 @@
 # Extraction trace and parse report: keep the ranking, step times and parse facts the pipeline already computes
 
-Status: Draft, for owner approval
+Status: Approved by owner (Wave 0b batch approval, 2026-11-28)
 Slug: `extraction-trace-parse-report`
 Risk: slice A `risk:normal`, slice B `risk:high` (see "Risk and storage")
 Size: `M`, two slices (A retrieval trace, B parse report), independent of each other
@@ -36,7 +36,8 @@ pipeline computes and throws away, and later parser and retrieval changes need a
   computed), `near_misses`, `embed_model`, `rerank_model`. `field_evidence` (`arp/extraction/field_graph.py`) adds
   `small_to_big` and `near_miss_chunks`. It may call `select_relevant_chunks` twice with the same `explain` (a
   high-risk field whose small-to-big call found nothing falls back to plain chunks).
-- `trace.field_entry` (`arp/walkthrough/trace.py`) builds a field's walkthrough entry with exactly the keys
+- `trace.field_entry` (canonical home in v2: `backend/arp/job_runtime/trace.py`; `arp/walkthrough/trace.py` is a
+  compatibility re-export shim) builds a field's walkthrough entry with exactly the keys
   `field_id, grouped, skipped, passages, extractor, verifier, adjudicator, vision, retrieval, near_misses,
   not_found_reason, seconds, gate, gate_dropped`. `tests/test_walkthrough_trace.py::test_field_entry_has_every_key`
   and `tests/test_walkthrough_field_graph.py::test_entry_records_retrieval` assert exact key sets (of the entry and
@@ -90,7 +91,7 @@ its candidates; the existing early `return []` for no candidates still leaves `e
 
 | Key | Type | Meaning |
 |---|---|---|
-| `ranks` | `dict[str, dict[str, int]]` | chunk id → its 1-based rank in each ranking that ran and held it. Rank keys: `bm25` (the BM25 or OpenSearch ranking after the `require_hit` filter and the small-to-big collapse to parents, the order `scores[...]["bm25"]` falls in), `vector` (the vector ranking after the collapse; equal to today's `scores[id]["vector_rank"]`), `fused` (the RRF ranking; hybrid only), `rerank` (the reranker pool sorted by rerank score, highest first, ties in pool order; only when the reranker scored, i.e. `explain["reranked"]` is True). A chunk with no rank key has no entry. |
+| `ranks` | `dict[str, dict[str, int]]` | chunk id → its 1-based rank in each ranking that ran and held it. Rank keys: `bm25` (the BM25 ranking after the `require_hit` filter and the small-to-big collapse to parents, the order `scores[...]["bm25"]` falls in), `vector` (the vector ranking after the collapse; equal to today's `scores[id]["vector_rank"]`), `fused` (the RRF ranking; hybrid only), `rerank` (the reranker pool sorted by rerank score, highest first, ties in pool order; only when the reranker scored, i.e. `explain["reranked"]` is True). A chunk with no rank key has no entry. |
 | `ranked_count` | `int` | How many distinct chunk ids hold at least one rank, before the cap. |
 | `ranks_capped` | `bool` | `len(ranks) < ranked_count`. |
 | `pieces` | `dict[str, dict[str, str]]` | Only when this call had `parents` (small-to-big); absent otherwise, also when an earlier call on the same `explain` had set it. Returned parent id → `{"bm25": piece id, "vector": piece id}`: the piece that gave the parent its place in that ranking (the first of its pieces in that ranking), each key present only when that ranking ran and ranked a piece of that parent. |
@@ -100,7 +101,8 @@ order the cut was made from (the fused ranking for hybrid, the BM25 ranking for 
 `unranked`) that hold a rank, plus every returned chunk not already among them. For method `none` (no query terms)
 and `unranked` without a reranker: `ranks == {}`, `ranked_count == 0`, `ranks_capped` False.
 
-**Trace entry.** `trace.field_entry` gains two keys:
+**Trace entry.** `trace.field_entry` (edited directly in canonical `backend/arp/job_runtime/trace.py`; keep
+`arp.retrieval` decoupled from `arp.extraction`) gains two keys:
 
 - `ranking`: `None`, or `{"ranks", "ranked_count", "ranks_capped"}` copied from `explain`, plus `"pieces"` when
   `explain` has it. It is None when `retrieval` is None (nothing ranked, e.g. a tagged field) and for a grouped field
@@ -144,9 +146,13 @@ None`. `get_or_compute` stores a 4th element of the parse result as the report; 
 callable that returns no report read back with `parse_report` None; they are not re-parsed. `get_full_text`,
 `list_cached` and the `/documents/cache` endpoints are unchanged.
 
-**Use.** `LocalFileDocumentSource._parse_and_identify` passes `parse=parse_file_with_report` when it has a content
-store; without one it parses as today and records no report. Other callers of `parse_file_to_text_with_pages`
-(reground, RFP, golden retrieval, page index, compute server, compute check) are unchanged.
+**Use & v2 boundaries (`arch_guard --strict` & optional `[parsing]` extra).** `LocalFileDocumentSource._parse_and_identify`
+passes `parse=parse_file_with_report` as a callable parameter when it has a content store; without one it parses as
+today and records no report. `backend/arp/storage/parsed_content_cache.py` MUST NOT import `arp.ingestion.local_files`
+(`arp.ingestion -> arp.storage` already exists, so an import in the reverse direction would fail `arch_guard --strict`).
+Guard optional `docling` imports cleanly (installed only with the `[parsing]` extra in `backend/pyproject.toml`).
+Other callers of `parse_file_to_text_with_pages` (reground, RFP, golden retrieval, page index, compute server, compute
+check) are unchanged.
 
 ### Risk and storage
 
@@ -255,7 +261,7 @@ All rows run without an LLM or network: stub models, small in-memory chunks or f
 | AC-42 | This branch | `parser_version()` | Starts with `"logic=3|"` (no cache invalidated) | holdout |
 | AC-44 | Any `*.docx` path; PDF3's fake Docling converter monkeypatched over `local_files._docling_converter`, its document's `export_to_markdown()` (called with no `page_no`) returning `"Intro\n\n" + T1` and `doc.tables` holding PDF3's two tables | `parse_file_with_report(path)` | `report` without `parse_seconds` equals `{"parser": "docling", "parser_version": parser_version(), "page_count": None, "short_pages": [], "ocr": False, "tables_found": 2, "tables_kept": 1}` | holdout |
 | AC-43 | This branch | From `backend/`, `pytest tests/test_select_evidence_explain.py tests/test_walkthrough_field_graph.py tests/test_walkthrough_api.py tests/test_evidence_gate.py tests/test_walkthrough_pipeline.py tests/test_local_files_pdf_pages.py tests/test_local_files_cached.py tests/test_local_files_docx.py tests/test_compute_parse_hook.py tests/test_compute_client.py tests/test_compute_cli.py tests/test_document_content_store.py tests/test_doc_identity.py tests/test_capture.py` | Exits 0 | holdout |
-| AC-45 | The PR | Its diff against `main` | Under `backend/tests/`, no existing file changes except `tests/test_walkthrough_trace.py`, and there only `test_field_entry_has_every_key` (its key set and equality dict gain `ranking` and `sub_seconds`); the PR description lists it | unit |
+| AC-45 | The PR | Its diff against `main` | Under `backend/tests/`, no existing file changes except `tests/test_walkthrough_trace.py`, and there only `test_field_entry_has_every_key` (its key set and equality dict gain `ranking` and `sub_seconds`, preserving or increasing the file's assert count so `test_guard.py` passes); the PR description lists it | unit |
 
 Must not change: picked chunks and their order (AC-12), prompts and extracted results (AC-20), parsed text, page
 breaks and spans (AC-34, AC-35, AC-41), `parser_version()` (AC-42), existing `explain` keys and every existing test
@@ -283,5 +289,5 @@ different files and can merge in either order.
 
 | Slice | Risk | Size | PR contents | Rows |
 |---|---|---|---|---|
-| A | `risk:normal` | S | `arp/retrieval/select_evidence.py` (ranks, cap, pieces), `arp/walkthrough/trace.py` (`ranking`, `sub_seconds`), `arp/extraction/field_graph.py` (gate and vision times, pass `ranking`), `tests/test_walkthrough_trace.py` key set, new tests | AC-1 to AC-21, AC-43, AC-45 |
-| B | `risk:high` | S | `arp/ingestion/local_files.py` (`parse_file_with_report`, Docling facts, use in `_parse_and_identify`), `arp/storage/parsed_content_cache.py` (column, `ensure_columns`, `ParsedContent.parse_report`, store/lookup), new tests | AC-31 to AC-45 |
+| A | `risk:normal` | S | `arp/retrieval/select_evidence.py` (ranks, cap, pieces), `arp/job_runtime/trace.py` (`ranking`, `sub_seconds`; re-exported by `arp/walkthrough/trace.py`), `arp/extraction/field_graph.py` (gate and vision times, pass `ranking`), `tests/test_walkthrough_trace.py` key set (assert count preserved/increased for `test_guard.py`), new tests | AC-1 to AC-21, AC-43, AC-45 |
+| B | `risk:high` | S | `arp/ingestion/local_files.py` (`parse_file_with_report`, Docling facts with guarded optional `docling` imports, use in `_parse_and_identify`), `arp/storage/parsed_content_cache.py` (column, `ensure_columns`, `ParsedContent.parse_report`, store/lookup; accepts `parse_file_with_report` via callable, never imports `arp.ingestion`), new tests | AC-31 to AC-45 |

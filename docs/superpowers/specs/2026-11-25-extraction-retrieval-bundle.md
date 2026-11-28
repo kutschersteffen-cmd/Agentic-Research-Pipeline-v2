@@ -46,11 +46,11 @@ on CPU only.
 ## What exists today (main `7e2e955`)
 
 - `select_relevant_chunks(chunks, query_terms, *, doc_type_filter, max_chunks, require_hit, fallback_to_all,
-  hybrid_retrieval_enabled, content_store, retrieval_backend, opensearch_client, rerank_candidates,
-  on_unranked_fallback, index_texts, explain, parents, embed_model, rerank_model)` in
-  `backend/arp/retrieval/select_evidence.py`. `query_text = " ".join(query_terms)` is used for BM25 (in-memory
-  or OpenSearch), for `_vector_ranking` / `_model_vector_ranking` and for `rerank(query_text, pool, ...)`.
-  Research Desk wave 1 also calls this function.
+  hybrid_retrieval_enabled, content_store, rerank_candidates, on_unranked_fallback, index_texts, explain, parents,
+  embed_model, rerank_model)` in `backend/arp/retrieval/select_evidence.py` (OpenSearch / `retrieval_backend` /
+  `opensearch_client` were removed in v2 PR `#38`). `query_text = " ".join(query_terms)` is used for in-memory BM25,
+  for `_vector_ranking` / `_model_vector_ranking` and for `rerank(query_text, pool, ...)`. Research Desk wave 1 also
+  calls this function.
 - `finish()` takes `pool = ranked[:rerank_candidates]` and calls `rerank(query_text, pool, max_chunks, ...)`,
   which scores `[c.text for c in pool]`. With `parents` given, every ranking is mapped to parents before fusion,
   so the pool holds parents.
@@ -114,7 +114,7 @@ Only `field_evidence` reads them and passes them on as three new keyword-only pa
 
 - `dense_query: str | None = None`. When it is a non-empty string, the embedder's query (MiniLM through
   `_vector_ranking`, or the arp-models embedder through `_model_vector_ranking`, prefix rules unchanged) and the
-  reranker's query are `dense_query`. BM25 (in-memory and OpenSearch) still uses `" ".join(query_terms)`.
+  reranker's query are `dense_query`. In-memory BM25 still uses `" ".join(query_terms)`.
   When `query_terms` is empty the function still returns the first `max_chunks` candidates unranked, as today,
   whatever `dense_query` is.
 - `rerank_pieces: int | None = None`. When set and `parents` is given and a reranker runs, each pool parent is scored
@@ -162,6 +162,10 @@ candidates is unchanged). `field_evidence` passes `drop_overlaps` to both of its
 
 **Fail open.** When the reranker returns no scores (model missing, error, wrong count) the order is the
 retrieval order, exactly as today, and the overlap rule (if on) runs on that order.
+
+**v2 complexity & structure note (`ruff` `C901 <= 15`):** Keep the decomposed helpers in
+`backend/arp/retrieval/select_evidence.py` (`_bm25_score`, `_hybrid_fuse`, `_finalize_ranking`, `_record_explain`)
+at `C901 <= 15` when adding `dense_query`, `rerank_pieces`, and `drop_overlaps`.
 
 ## Defaults taken
 
@@ -216,7 +220,7 @@ All rows are `holdout`: backend tests with fixture documents or chunks, no LLM, 
   first checks that order with the new parameters absent.
 
 "Settings" means a `Settings` passed to `field_evidence`; unless a row says otherwise:
-`retrieval_backend="bm25"`, `hybrid_retrieval_enabled=False`, `rerank_enabled=False`,
+`hybrid_retrieval_enabled=False`, `rerank_enabled=False`,
 `small_to_big_enabled=True`, `small_chunk_chars=800`, `evidence_max_chunks=12`, `rerank_candidates=40`, and the
 three new switches `False`. "Main" is `main` at the commit the test is written on.
 

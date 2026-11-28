@@ -1,6 +1,6 @@
 # Matcher on the shared retrieval path: grounded claims, judge reads the evidence
 
-Status: Draft, for owner approval
+Status: Approved by owner (Wave 0b batch approval, 2026-11-28)
 Slug: `matcher-shared-retrieval`
 Risk: `risk:normal` (backend only: `arp/research/match_graph.py`, `arp/research/matcher_agents.py`,
 `arp/schemas/thematic.py`; optional fields on a model stored as JSON, no migration, no auth, money or UI)
@@ -50,7 +50,8 @@ Addendum 2) found these gaps in the theme matcher, all still on `main` at `7e2e9
   (`finalize_screened_out` | debate) | debate). Debate = `run_advocate` → `run_opposing` → `run_adjudicator`.
 - `_select_evidence`: keywords are `funnel_query.keywords` when a `FunnelQuery` is passed, else
   `activity.seed_keywords`; `chunk_document(doc, keywords=keywords)` for every document; then
-  `select_relevant_chunks(all_chunks, keywords, max_chunks=12, hybrid/opensearch from settings)`. No reranker,
+  `select_relevant_chunks(all_chunks, keywords, max_chunks=12, hybrid from settings)` (OpenSearch /
+  `retrieval_backend` was removed in v2 PR `#38`). No reranker,
   no German terms, no small-to-big, no context headers. Cap: module constant `_MAX_EVIDENCE_CHUNKS_PER_CALL = 12`.
 - `_finalize_no_evidence`: no documents → `verdict` `uncertain`, `confidence` 0.0, rationale
   `No documents were found for this company, so this activity could not be assessed.`, flagged. Documents but no
@@ -60,7 +61,7 @@ Addendum 2) found these gaps in the theme matcher, all still on `main` at `7e2e9
 - `field_evidence(field, documents, settings, on_unranked_fallback=None, explain=None)` is the extraction path.
   It reads `field.seed_keywords` (through `with_german`), `field.document_routing`, `field.source_doc_types` and
   `field.high_risk`, and the settings `small_to_big_enabled`, `small_chunk_chars`, `context_headers_enabled`,
-  `hybrid_retrieval_enabled`, `retrieval_backend`, `evidence_max_chunks` (default 12), `rerank_enabled`,
+  `hybrid_retrieval_enabled`, `evidence_max_chunks` (default 12), `rerank_enabled`,
   `rerank_candidates`, `embed_model`, `rerank_model`. With `explain={}` it fills `explain["scores"]`
   (chunk id → score dict) for the returned chunks.
 - `matcher_agents.py`: `run_advocate` and `run_opposing` put
@@ -71,7 +72,8 @@ Addendum 2) found these gaps in the theme matcher, all still on `main` at `7e2e9
   `AgentOpinion`s; their citations keep `grounded` at its schema default (`False`) or whatever the model wrote.
 - `ground_citations(..., passages=dict)` (`arp/grounding.py`) grounds a quote only inside a shown passage of its
   document and sets `page`, `passage_id`, offsets; extraction already calls it this way.
-- `trace.passage(chunk, scores)` (`arp/walkthrough/trace.py`) is the walkthrough's per-passage record:
+- `trace.passage(chunk, scores)` (canonical home in v2: `backend/arp/job_runtime/trace.py`;
+  `arp/walkthrough/trace.py` re-exports it) is the walkthrough's per-passage record:
   `doc_id`, `char_start`, `char_end`, `section`, and `scores` when scores are given.
 - `CompanyMatch` (`arp/schemas/thematic.py`) is stored as JSON in each theme run's `results.jsonl` and returned by
   `GET /api/runs/{run_id}/results` as `model_dump(mode="json")`. That endpoint is declared `-> dict` with no
@@ -187,7 +189,8 @@ evidence: list[EvidenceRef] = Field(default_factory=list)
 For the `i`-th chunk `c` of `state["evidence"]` (`i` from 1), the entry is
 `EvidenceRef(**trace.passage(c, scores.get(c.chunk_id, {})), chunk_id=c.chunk_id, rank=i,
 page=_page_for_offset(documents_by_id[c.doc_id].page_breaks, c.char_start), ranks=ranks.get(c.chunk_id, {}))`,
-where `scores = explain.get("scores", {})` and `ranks = explain.get("ranks", {})`. `trace.passage` is the
+where `scores = explain.get("scores", {})` and `ranks = explain.get("ranks", {})`. `trace.passage` (canonical home
+`backend/arp/job_runtime/trace.py`; re-exported by `arp/walkthrough/trace.py`) is the
 walkthrough's per-passage record; `ranks` is the per-ranking rank dict (`bm25`, `vector`, `fused`, `rerank`) that
 the `extraction-trace-parse-report` spec (PR #735) adds to `explain`. This spec defines neither key, it copies them.
 `page` uses the grounding module's existing `_page_for_offset`, the same rule as a citation's `page`.
@@ -273,7 +276,7 @@ All rows are `holdout` rows. Rows AC-1 to AC-22 and AC-26 to AC-35 call
 per call (advocate, opposing, adjudicator, in that order). No network, no LLM credits.
 
 Common "Given" unless the row says otherwise:
-- `S` = `Settings()` with defaults, `hybrid_retrieval_enabled=False`, `retrieval_backend="bm25"`,
+- `S` = `Settings()` with defaults, `hybrid_retrieval_enabled=False`,
   `rerank_enabled=False` (so `small_to_big_enabled=True`, `context_headers_enabled=True`, `evidence_max_chunks=12`).
 - Activity `A`: `name="EV manufacturing"`, `in_scope_description="Designs and manufactures battery electric
   vehicles."`, `out_of_scope_description="ICE-only vehicles."`, `seed_keywords=["battery electric"]`.
@@ -325,7 +328,7 @@ Common "Given" unless the row says otherwise:
 | AC-27 | Same as AC-21 | same | `match.evidence_status == "no_matching_chunks"` and `match.evidence == []` | holdout |
 | AC-28 | `D1` | same | `match.evidence_status == "selected"` | holdout |
 | AC-29 | Same as AC-22 | same | `match.evidence_status is None` and `match.evidence == []` | holdout |
-| AC-30 | Same as AC-20, with `A.core_isic_codes=["2790"]`, `company_isic="2790"` and an indirect model `M` giving `max(upstream_exposure, downstream_exposure) >= indirect_exposure_review_threshold` (fixture `M` of `2026-11-03-theme-evidence-record-design.md`) | same | `"structural exposure" in match.adjudicator_rationale` (precondition asserted) and `match.evidence_status == "no_documents"` | holdout |
+| AC-30 | Same as AC-20, with `#343`'s EXIOBASE `A.core_sectors=[...]` (replacing legacy `core_isic_codes`, since `#343` lands in `F3` ahead of `F11`; `arp/core/nace.py` stays a strict leaf in v2), matching company EXIOBASE sector(s) and an indirect model `M` giving `max(upstream_exposure, downstream_exposure) >= indirect_exposure_review_threshold` (adapted from fixture `M` of `2026-11-03-theme-evidence-record-design.md`) | same | `"structural exposure" in match.adjudicator_rationale` (precondition asserted) and `match.evidence_status == "no_documents"` | holdout |
 | AC-31 | `D1` | same | for every `i`, `match.evidence[i].ranks["bm25"] == i + 1` (BM25 only, no reranker: the order shown is the BM25 order) | holdout |
 | AC-32 | `D1`; `X = {}`, `E = field_evidence(F(A), [D1], S, explain=X)` | same | for every `i`, `match.evidence[i].scores == X["scores"].get(E[i].chunk_id, {})`, and `match.evidence[0].scores["bm25"] > 0` | holdout |
 | AC-33 | `D1` | same | the advocate prompt equals `run_advocate`'s prompt on `main` `7e2e955` for `C.name`, `A`, `E` (unchanged) | holdout |

@@ -105,7 +105,9 @@ None needed a question. Every choice is listed under "Defaults taken"; approving
 means the package file (`_DEFAULT_PATH`). Every reader (`_match_company`, `arp theme funnel`, `funnel-compare`,
 `funnel-tune`) reads that path. A theme entry may hold a `tuned` object (written by slice 2) next to its numbers. The
 thresholds a run uses, and so `FunnelRecord.thresholds`, have exactly the keys `k1`, `k2`, `t_rerank`, `t_entail`:
-`tuned` is never passed on.
+`tuned` is never passed on. **v2 `arch_guard --strict` rule:** the runtime threshold loader stays in
+`backend/arp/research/funnel_thresholds.py` and MUST NEVER be imported from `arp/golden_set/` (`arp.golden_set ->
+arp.research` already exists, so an import in the reverse direction creates a package cycle).
 
 **Fallback.** In the funnel node (`_funnel` in `match_graph.py`): when `score_pair` raises, the pair goes on to
 `run_advocate` as if the funnel were off for it, `funnel` stays `null` on the match, and one WARNING is logged:
@@ -113,7 +115,8 @@ thresholds a run uses, and so `FunnelRecord.thresholds`, have exactly the keys `
 memory across pairs).
 
 **Existing test changed.** `backend/tests/test_funnel_thresholds.py::test_setting_defaults_off` asserts
-`Settings().models_universe_funnel_enabled is False`; slice 1 changes it to assert `is None`. It is the only existing
+`Settings().models_universe_funnel_enabled is False`; slice 1 changes it to assert `is None` (preserving the file's
+assert count with 0 net drop so `test_guard.py` passes). It is the only existing
 test this spec changes; the PR lists it.
 
 **Where the models run.** Nothing new: with `compute_models_url` unset the funnel's models run inside the backend

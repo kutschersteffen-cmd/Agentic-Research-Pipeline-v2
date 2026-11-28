@@ -94,7 +94,8 @@ it.
   them to the signal list below.
 - Changing how a revenue share is found or labelled (`theme-revenue-share`) or how matching works
   (`matcher-shared-retrieval`); this spec adds one optional judge field and reads the rest.
-- Storing the rollup, a CLI command, or Decision Studio / Portfolio Builder export.
+- Storing the rollup, a CLI command, or external scoring/portfolio export (Decision Studio and Portfolio Builder were
+  removed in v2 PR `2e`/`2g`).
 - A tier override with a reason (screen 7's "Change tier"); a later item.
 - Changing `CompanyRole`, the layers, or `GET /api/themes/runs/{run_id}/results`.
 
@@ -110,6 +111,8 @@ it.
 
 New module `arp/research/company_exposure.py` (pure functions over the stored dicts) and one route in
 `arp/api/routers/themes.py` with a response model. Any signed-in user (`viewer` and up), as the layers.
+*(v2 auth import rule: non-entrypoint modules import `Principal` from canonical strict leaf `arp.core.auth`
+(`backend/arp/core/auth.py`); routers may import `require_role`/`current_user` from `arp.api.auth`.)*
 
 **Order of checks:** authentication (401), run exists and `run_type` is `theme` (else 404, `detail` =
 `unknown theme run '<run_id>'`), tier settings (503).
@@ -303,7 +306,8 @@ Slice 2 rows call `arp.research.match_graph.match_company_activity` directly for
 with text `We manufacture electrolyser stacks.` (`documents_by_id` = `{"doc_1": <it>}`). Stand-in `AgentOpinion` =
 one entry (`stance` `s`, `rationale` `r`, no citations, `exposure_estimate` `pure_play`); stand-in
 `AdjudicatorOutput` = include, `pure_play`, confidence 0.9, rationale `r`, one citation (`doc_id` `doc_1`,
-`doc_type` `annual_report`, quote `We manufacture electrolyser stacks.`), plus what the row says; every entry
+`doc_type` `DocType.OTHER` / `"other"` — `"annual_report"` is not a valid `DocType` enum value, quote
+`We manufacture electrolyser stacks.`), plus what the row says; every entry
 wrapped as `{"output": …}`. "Then" reads the returned match.
 
 | ID | Given | When | Then (observable, exact) | Checked by |

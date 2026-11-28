@@ -17,7 +17,7 @@ new extraction (slice 8), and a Review a value page with notes, keyboard review 
 
 ## What the user can do afterwards that they cannot do today
 
-- Move between Overview, New extraction, Research Desk, Company ledger, Walkthrough and XBRL Facts from one tab row.
+- Move between Overview, New extraction, Research Desk, Company ledger and Walkthrough from one tab row.
 - Drop reports or type a question on the Argus Overview and land in a Research Desk chat.
 - See one table of approved values per field and company, across every extraction run, and download it as CSV.
 - Ask why a company has two issuers and pick one with a click; see which companies have no documents.
@@ -31,8 +31,11 @@ new extraction (slice 8), and a Review a value page with notes, keyboard review 
   `GET /api/review/items`, three calls on two polls. `lib/argusStart.ts` `STEPS` is
   `["Companies", "Documents", "Schema", "Extract", "Results"]`, used by the step bar (`StepBar.tsx`), the start
   page tiles and `filterLine`.
-- `App.tsx` routes `#/argus/new` to `ArgusNew` and any other `#/argus/<param>` to `ArgusFlow` (`flowId = params[0]`,
-  `step = params[1]`). `#/argusWalkthrough/...` and `#/xbrl` are separate route ids.
+- `App.tsx` uses `HashRouter` (`react-router-dom`) and lazy feature barrel exports from
+  `frontend/src/features/argus/index.ts`; it routes `#/argus/new` to `ArgusNew` and any other `#/argus/<param>` to
+  `ArgusFlow` (`flowId = params[0]`, `step = params[1]`). `#/argusWalkthrough/...` is a separate route id (the
+  standalone `#/xbrl` screen was removed in v2 commit `9a7806b`). Data reads/mutations use `typedApi`/TanStack Query
+  (`frontend/src/api/typedClient.ts`) and reconciled `DESIGN.md` tokens.
 - `arp/api/routers/argus.py`: flows are JSON files (`arp/argus/flows.py`, `ArgusFlow`, field `started_by` = user id).
   `GET /flows/{id}` is open to any signed-in user; writes need `analyst`.
 - Step 1 rows (`arp/argus/rows.py` `FlowRow`) carry `identifiers` and `master_identifiers` (`{"LEI": [...], ...}`),
@@ -51,7 +54,8 @@ new extraction (slice 8), and a Review a value page with notes, keyboard review 
   `monkeypatch.setattr("arp.api.deps.get_llm_client", ...)`. The running app answers model calls from
   `ARP_STANDINS_DIR/model/<OutputModelName>.json` (`arp/standins.py`). `draft_schema` uses output model
   `_SchemaDraft`, `suggest_rules` uses `RuleSuggestions` (`arp/extraction/schema_builder.py`).
-- Review decisions per run: `arp/orchestration/review_queue.py` `item_states()` gives each decided item's state
+- Review decisions per run: `backend/arp/job_runtime/review_queue.py` (re-exported by `arp/orchestration/review_queue.py`)
+  `item_states()` gives each decided item's state
   (`pending`, `first_done`, `disagreed`, `second_done`, `final`; final = `second_done` or `final`) and its
   effective decision row. A run's schema: `arp/extraction/pipeline.py` `load_run_schema()`.
 
@@ -101,7 +105,7 @@ The parser track. Any language-model reranker. An EUR column in the ledger (Stef
   buttons the client runs only on a click.
 - A2 Another user's draft flow or chat is not readable through assist (steps 1 and 3) or the hand-off.
 - A3 No new global key handler: J/K/A/E/R act only while focus is inside the queue.
-- A4 Existing routes keep working: `#/argus/<flow>/<1-5>`, `#/argus/new`, `#/argusWalkthrough/...`, `#/xbrl`.
+- A4 Existing routes keep working: `#/argus/<flow>/<1-5>`, `#/argus/new`, `#/argusWalkthrough/...`.
 - A5 Never the word "product" in UI text; the app is "Agentic Research Platform".
 
 ## Design
@@ -127,13 +131,21 @@ The parser track. Any language-model reranker. An EUR column in the ledger (Stef
  "recent_chats": [{"chat_id": 0, "title": "str", "updated_at": "ISO"}], "profile": "Standard"}
 ```
 
-- `runs`: every run whose `run_type` is `extraction`, `financials`, `tnfd` or `transition_plan`, newest
-  `created_at` first, the same objects `/api/runs` returns.
+- `runs`: every run whose `run_type` is in v2 `ARGUS_RUN_TYPES` (`extraction` or `transition_plan`, per
+  `frontend/src/lib/argusStart.ts` and `frontend/src/lib/processes.ts`; the `financials` and `tnfd` presets were
+  retired in v2 PR `#35` — historical `financials`/`tnfd` DB rows, if present, may optionally be tolerated without
+  failing when `ArgusStart` renders `ARGUS_RUN_TYPES`), newest `created_at` first, the same objects `/api/runs`
+  returns.
 - `flows`: exactly what `GET /api/argus/flows` returns in `flows`.
 - `items`: exactly what `GET /api/review/items` (no `run_id`) returns in `items` for the caller.
 - `recent_chats`: the caller's own Research Desk chats (`desk_chats.owner_id`), newest `updated_at` first, at
   most 5; `chat_id` is the chat's integer `id`; never another user's. Empty for a viewer with no chats.
 - `profile`: the string `"Standard"` until settings profiles exist (plan PR 12).
+
+**v2 architecture boundary (`arch_guard --strict`):** `arp.argus` and `arp.research_desk` MUST stay mutually decoupled
+(neither package imports the other). Cross-feature orchestration — `GET /api/argus/overview` reading `desk_chats`
+and `POST /api/desk/turns/{id}/extraction` creating an `ArgusFlow` via `FlowStore` — lives strictly in `entrypoint`
+routers (`backend/arp/api/routers/argus.py` and `backend/arp/api/routers/desk.py`).
 
 `ArgusStart.tsx` reads this one endpoint instead of `listAllRuns`, `listArgusFlows` and `listReviewItems`, polled
 every 3 s while a listed run is `pending` or `running`, else every 15 s. What the page shows from runs, flows and
@@ -149,12 +161,12 @@ in this order:
 | Research Desk | `#/argus/desk` | `#/argus/desk...` |
 | Company ledger (from slice 6) | `#/argus/ledger` | `#/argus/ledger...` |
 | Walkthrough | `#/argusWalkthrough` | `#/argusWalkthrough...` |
-| XBRL Facts | `#/xbrl` | `#/xbrl...` |
 
 The current link has `aria-current="page"` and an underline; no other link has `aria-current`. A tab for a page
-that does not exist yet is left out: slice 5 shows 5 links, slice 6 adds Company ledger (6 links). Extraction
-settings is not shown (plan PR 13). The tab row renders at the top of every page under `#/argus`,
-`#/argusWalkthrough` and `#/xbrl`.
+that does not exist yet is left out: slice 5 shows 4 links (`Overview`, `New extraction`, `Research Desk`,
+`Walkthrough`), slice 6 adds `Company ledger` (5 links). Standalone `XBRL Facts` (`#/xbrl`) was removed in v2 commit
+`9a7806b` and is not shown; `Extraction settings` is not shown (plan PR 13). The tab row renders at the top of every
+page under `#/argus` and `#/argusWalkthrough`.
 
 **Overview Research Desk card**: a region `aria-label="Research Desk"` on the start page, with heading
 `Research Desk`, the line `Chat with reports or saved company data`, the Orb, wave 1's `DropZone`, a text input
@@ -180,8 +192,11 @@ writer updates their hidden tests in the same change; the builder updates the vi
 old labels (`tests/e2e/test_argus_step1.py`, `test_argus_showcase_pr3.py`, `test_argus_showcase_fixes.py`) and
 lists them in the PR.
 
-**Routing**: `App.tsx` sends `#/argus/ledger` (slice 6) to the ledger and keeps `#/argus/desk...` to wave 1's
-pages before the flow route; a flow id is 32 hex characters, so no flow is named `desk` or `ledger`.
+**Routing & frontend architecture (v2):** `App.tsx` uses `HashRouter` (`react-router-dom`), imports `ArgusLedger`,
+`DeskStart` and `DeskChat` lazily via `frontend/src/features/argus/index.ts`, sends `#/argus/ledger` (slice 6) to the
+ledger and keeps `#/argus/desk...` to wave 1's pages before the flow route; a flow id is 32 hex characters, so no flow
+is named `desk` or `ledger`. New API calls use `typedApi`/TanStack Query (`frontend/src/api/typedClient.ts`) and
+styling follows reconciled `DESIGN.md` tokens.
 
 ### Slice 6: Company ledger
 
@@ -376,7 +391,9 @@ click: `POST /api/desk/chats`, then `PUT /api/desk/chats/<id>/scope` adding each
 `company_id`, in flow order), then the hash becomes `#/argus/desk/<id>`. An error shows
 `Could not open Research Desk: <error>` next to the button.
 
-**`POST /api/desk/turns/{turn_id}/extraction`** (no body; in wave 1's `/api/desk` router). Needs `analyst`.
+**`POST /api/desk/turns/{turn_id}/extraction`** (no body; in wave 1's `backend/arp/api/routers/desk.py` `entrypoint`
+router so `arp.research_desk` and `arp.argus` stay mutually decoupled under `arch_guard --strict` — the router creates
+the `ArgusFlow` via `FlowStore`). Needs `analyst`.
 
 | Case | Status | `detail` |
 |---|---|---|
@@ -516,12 +533,12 @@ item I1 (used where a row needs steps 3 and 5 on one flow).
 
 | ID | Given | When | Then (observable, exact) | Checked by |
 |----|-------|------|--------------------------|------------|
-| AC-1 | runs of types `extraction`, `tnfd`, `theme`; one draft flow; one open review item | `GET /api/argus/overview` as V | `200`; `runs` holds the extraction and tnfd runs only, newest `created_at` first; `flows` equals `GET /api/argus/flows` `flows`; `items` equals `GET /api/review/items` `items`; `profile` is `"Standard"` | holdout |
+| AC-1 | runs of types `extraction`, `transition_plan`, `theme`; one draft flow; one open review item | `GET /api/argus/overview` as V | `200`; `runs` holds the `extraction` and `transition_plan` runs only (`ARGUS_RUN_TYPES`; historical `financials`/`tnfd` rows, if present in DB, may be tolerated without failing), newest `created_at` first; `flows` equals `GET /api/argus/flows` `flows`; `items` equals `GET /api/review/items` `items`; `profile` is `"Standard"` | holdout |
 | AC-2 | A has 7 desk chats with `updated_at` 1 minute apart, B has 1 | `GET /api/argus/overview` as A | `recent_chats` holds 5 entries, A's 5 newest by `updated_at`, newest first, each with exactly the keys `chat_id` (the chat's integer id), `title`, `updated_at`; B's chat is not among them | holdout |
 | AC-3 | the start page | it loads and the first poll answers | the page requested `GET /api/argus/overview` and made no request to `/api/runs`, `/api/argus/flows` or `/api/review/items` | holdout |
 | AC-4 | overview routed with one finished extraction run (schema `Capex` v1, 3 companies, started by A) and 2 open value items of it | `#/argus` opens | the Runs table's row reads `Capex v1`, `3 companies`, step `5 Review`, status `Needs you`; `Waiting for you` reads `2` | holdout |
-| AC-5 | any page | each of `#/argus`, `#/argus/new` (create routed), `#/argus/F/2`, `#/argus/desk`, `#/argusWalkthrough`, `#/xbrl` opens | `nav[aria-label="Argus"]` holds links `Overview`, `New extraction`, `Research Desk`, `Walkthrough`, `XBRL Facts` in this relative order; exactly one link has `aria-current="page"`: `Overview`, `New extraction`, `New extraction`, `Research Desk`, `Walkthrough`, `XBRL Facts` respectively | holdout |
-| AC-6 | the tab row on `#/argus` | the links' `href`s are read | the five links of AC-5 point to `#/argus`, `#/argus/new`, `#/argus/desk`, `#/argusWalkthrough`, `#/xbrl`; no link reads `Extraction settings` | holdout |
+| AC-5 | any page | each of `#/argus`, `#/argus/new` (create routed), `#/argus/F/2`, `#/argus/desk`, `#/argusWalkthrough` opens | `nav[aria-label="Argus"]` holds links `Overview`, `New extraction`, `Research Desk`, `Walkthrough` in this relative order; exactly one link has `aria-current="page"`: `Overview`, `New extraction`, `New extraction`, `Research Desk`, `Walkthrough` respectively | holdout |
+| AC-6 | the tab row on `#/argus` | the links' `href`s are read | the four links of AC-5 point to `#/argus`, `#/argus/new`, `#/argus/desk`, `#/argusWalkthrough`; no link reads `Extraction settings` or `XBRL Facts` | holdout |
 | AC-7 | a flow at step 5 | it opens | the step bar's items read `1 Companies`, `2 Documents`, `3 Fields and settings`, `4 Extract`, `5 Review` | holdout |
 | AC-8 | the start page | the step-3 tile is clicked | the line above the table reads `Showing step 3 Fields and settings only.` | holdout |
 | AC-9 | overview routed with `recent_chats` ids 1 to 4 titled `Alpha chat`, `Bravo chat`, `Charlie chat`, `Delta chat` | `#/argus` opens | the `Research Desk` region shows `Recent:` with exactly 3 links `Alpha chat`, `Bravo chat`, `Charlie chat` to `#/argus/desk/1`, `#/argus/desk/2`, `#/argus/desk/3`, and a link `Open Research Desk` to `#/argus/desk` | holdout |
@@ -555,7 +572,7 @@ runs' decision files. A "final" decision is a row with `step` `first` and `secon
 | AC-30 | a field with no `period_end` in a run with no flow, created 2026-03-01 | `GET /api/argus/ledger` | the cell's `year` is 2025 | holdout |
 | AC-31 | cells in 2025 and 2024 | `GET /api/argus/ledger` (no `year`) | `years` is `[2025, 2024]`, `year` is 2025, and every cell has `year` 2025 | holdout |
 | AC-32 | cells for fields `a`, `b` and companies K1, K2 | `GET /api/argus/ledger?fields=a&companies=K1` | only the (K1, `a`) cell; `fields` holds only `a` and `companies` only K1 | holdout |
-| AC-33 | a failed extraction run and a completed `tnfd` run, both with values | `GET /api/argus/ledger` | neither run gives a cell | holdout |
+| AC-33 | a failed extraction run and a completed `transition_plan` run, both with values | `GET /api/argus/ledger` | neither run gives a cell | holdout |
 | AC-34 | — | `GET /api/argus/ledger?year=abc` | `422` | holdout |
 | AC-35 | a run started from flow F2 and a run with no flow | `GET /api/argus/ledger` | the first run's cells have `flow_id` F2; the second's `null` | holdout |
 | AC-36 | as AC-22, company K named `Kay`, plus a (K, `opex` "Opex", value `3`, unit `EUR m`, route `auto_accept`) cell in R2 | `GET /api/argus/ledger.csv?year=2025` | the body is exactly 3 lines: `company,company_key,field,field_id,year,value,unit,status,run_id,item_key`, then `Kay,K,capex,capex,2025,15,EUR bn,approved,<R2>,<R2 capex item_key>`, then `Kay,K,Opex,opex,2025,3,EUR m,approved,<R2>,<R2 opex item_key>` (field names as stored; quoted only where CSV needs it) | holdout |
@@ -566,7 +583,7 @@ runs' decision files. A "final" decision is a row with `step` `first` and `secon
 | AC-41 | the routed ledger of AC-38; schemas routed with `Capex set` (fields `capex`, `ok`) | `Capex set` is chosen in `What`, then `Download CSV`'s `href` is read | the ledger was requested with `fields=capex,ok`; the `href` is `/api/argus/ledger.csv?fields=capex,ok&year=2025` | holdout |
 | AC-42 | the ledger of AC-38; context of `r1`/`k1` routed with first evidence `quote` `Capex was 10`, `title` `null`, `source_filename` `ar.pdf`, `page` 4 | the `10 EUR m` cell is clicked | `aside[aria-label="Source"]` shows `Kay · Capex`, `Capex was 10`, `ar.pdf, page 4` and a link `Open in Review` to `#/argus/f1/5` | holdout |
 | AC-43 | the ledger of AC-38; context routed to `500` | the `10 EUR m` cell is clicked | the Source panel shows `The source could not be loaded.` | holdout |
-| AC-44 | slice 6 merged | the tab row on `#/argus/ledger` is read | 6 links; `Company ledger` (href `#/argus/ledger`) comes right after `Research Desk` and is the only one with `aria-current="page"` | holdout |
+| AC-44 | slice 6 merged | the tab row on `#/argus/ledger` is read | 5 links; `Company ledger` (href `#/argus/ledger`) comes right after `Research Desk` and is the only one with `aria-current="page"` | holdout |
 | AC-46 | the routed ledger of AC-38 | it opens | no visible text matches `/product/i` | holdout |
 | AC-45 | V signed in | `GET /api/argus/ledger` and `GET /api/argus/ledger.csv` | each `200` | holdout |
 

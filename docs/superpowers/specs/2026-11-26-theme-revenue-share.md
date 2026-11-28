@@ -9,7 +9,9 @@ Status: approved by owner 2026-11-26.
 ## Why
 
 Plan finding P5: without an uploaded revenue catalogue CSV, a theme run's exposure is a label (pure play,
-significant, minor, none) that `research/arbitration.py` turns into 1.0, 0.6, 0.3 or 0. The XBRL store already
+significant, minor, none) that `research/arbitration.py` turns into 1.0, 0.6, 0.3 or 0. The XBRL store
+(canonical home in v2: `backend/arp/storage/xbrl_store.py` and `backend/arp/storage/xbrl_models.py`, rather than the
+`arp/xbrl_pipeline/{store,models}.py` compatibility shims) already
 holds each filer's revenue by segment and product line (`segments.jsonl`, specs `2026-11-01-xbrl-segment-revenue-design.md`,
 `2026-11-01-xbrl-product-geography-design.md`, `2026-11-02-xbrl-segment-sum-check-design.md`) and the segment note
 text (`segment_note.txt`), but no theme run reads them. Nothing estimates a share where the segments do not name
@@ -72,8 +74,9 @@ matches), always as a range, labelled `modelled`. A grounded quote stays `extrac
 - `ExposureDataSource` gains `"reported"` and `"modelled"`.
 - `MetricExposure` gains `low_pct: float | None = None` and `high_pct: float | None = None` (0-1). Both are set
   only when `source == "modelled"`.
-- `RevenueResolverContext` gains `xbrl_store: XbrlStore | None = None` and `extract_enabled: bool = True`.
-  `xbrl_store is None` means the new steps are off.
+- `RevenueResolverContext` gains `xbrl_store: XbrlStore | None = None` (import `XbrlStore` from
+  `arp.storage.xbrl_store` and `SegmentRow` from `arp.storage.xbrl_models`, not `arp.xbrl_pipeline.{store,models}`)
+  and `extract_enabled: bool = True`. `xbrl_store is None` means the new steps are off.
 
 After the change: `cd backend && python scripts/export_openapi.py`, `cd frontend && npm run gen:api`, commit both.
 
@@ -156,8 +159,10 @@ extracted contributions are unchanged.
 
 ### Run wiring
 
-`api/routers/themes.py` (POST `/api/themes/runs`), `research/pipeline.py` (resume) and `cli/theme.py` (`arp theme run`)
-build the resolver context as follows:
+`api/routers/themes.py` (POST `/api/themes/runs`), `research/pipeline.py` / canonical `backend/arp/orchestration/resume.py`
+(`resume_run` / `resume_theme_run`, with job manager in canonical `backend/arp/job_runtime/job_manager.py`, not
+`arp/orchestration/jobs.py` or `arp/orchestration/job_manager.py`) and `cli/theme.py` (`arp theme run`)
+build the resolver context as follows (importing `XbrlStore` from `arp.storage.xbrl_store`):
 
 | Setting | Catalogue given | Context |
 |---|---|---|
@@ -250,7 +255,7 @@ Fixtures and conventions (the test-writer builds these from `tests/test_research
 | AC-34 | Same with `theme_revenue_share_enabled=False` | `POST /api/themes/runs` | 200 and `revenue_exposure_enabled` is `false` | holdout |
 | AC-35 | No env vars set | read `Settings()` | `theme_revenue_share_enabled is False`, `revenue_share_modelled_low_factor == 0.3`, `revenue_share_modelled_high_factor == 0.5`, `arbitration_weight_revenue_reported == 1.0`, `arbitration_weight_revenue_modelled == 0.4` | holdout |
 | AC-36 | A run created by `create_theme_run` with the setting on and no catalogue | read its manifest | `params["theme_revenue_share"] is True` | holdout |
-| AC-37 | A run created with the setting on and no catalogue, interrupted before `c1`; Fixture R in `xbrl_dir`; resumed by `resume_theme_run` with the setting now off | the resumed run finishes | its stored match for `c1` has revenue `source == "reported"` | unit |
+| AC-37 | A run created with the setting on and no catalogue, interrupted before `c1`; Fixture R in `xbrl_dir`; resumed via `arp.orchestration.resume` (`resume_run` / `resume_theme_run`, with `arp.job_runtime.job_manager`) with the setting now off | the resumed run finishes | its stored match for `c1` has revenue `source == "reported"` | unit |
 | AC-38 | Setting on, no catalogue, Fixture R, stubbed LLM | `arp theme run` for a theme containing `A` and a universe of `c1` | the stored match for `c1` has revenue `source == "reported"` | unit |
 | AC-39 | The existing tests in `tests/test_revenue_resolver.py`, `tests/test_revenue_percent_scale.py`, `tests/test_arbitration.py`, `tests/test_research_pipeline.py` and `tests/test_exposure_layers.py` | CI runs them | they pass with no edits | unit |
 | AC-40 | Theme Builder results with a match whose revenue is `reported`, `value_pct` 0.3 | the list renders | badge text `reported (30.0%)` with class `badge-high` | unit |
@@ -258,7 +263,7 @@ Fixtures and conventions (the test-writer builds these from `tests/test_research
 | AC-42 | AC-41, details opened | the detail renders | a line `Revenue: 12.0–20.0% (modelled)` | unit |
 | AC-43 | A match whose revenue is `catalogue`, `value_pct` 0.4 | the list renders | badge text `catalogue (40.0%)` with class `badge-high` (unchanged) | unit |
 | AC-44 | Setting on, a catalogue whose mapping does not resolve `A`, Fixture R, stubbed LLM | `arp theme run` with that catalogue runs to the end | the stored match for `c1` has revenue `source == "reported"` | unit |
-| AC-45 | A run created with the setting off and no catalogue (and a second one whose manifest has no `theme_revenue_share` param), interrupted before `c1`; Fixture R in `xbrl_dir`; resumed by `resume_theme_run` with the setting now on | the resumed run finishes | its stored match for `c1` has `revenue_exposure is None` | unit |
+| AC-45 | A run created with the setting off and no catalogue (and a second one whose manifest has no `theme_revenue_share` param), interrupted before `c1`; Fixture R in `xbrl_dir`; resumed via `arp.orchestration.resume` (`resume_run` / `resume_theme_run`) with the setting now on | the resumed run finishes | its stored match for `c1` has `revenue_exposure is None` | unit |
 
 Must not change: without `xbrl_store` the resolver behaves as today (AC-25, AC-39); setting off gives no context
 without a catalogue (AC-34); catalogue still wins (AC-21); a catalogue badge looks as before (AC-43); `extracted` still
@@ -285,5 +290,5 @@ second merges `origin/main` first.
 ## Follow-ups
 
 - A second `reported` source from the LLM financials segments.
-- B1 open question: may `modelled` values enter Decision Studio (not touched here).
+- *(Retired in v2: Decision Studio was removed in v2 PR `2e`/`2g`, so no Decision Studio integration applies.)*
 - Turning `theme_revenue_share_enabled` on by default once the precision scorecard shows it helps.
