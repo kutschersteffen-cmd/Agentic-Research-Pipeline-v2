@@ -98,7 +98,7 @@ spacing:
 components:
   button-primary:
     backgroundColor: "{colors.accent}"
-    textColor: "{colors.panel}"
+    textColor: "{colors.ground}"
     rounded: "{rounded.md}"
     padding: "9px 16px"
   button-primary-hover:
@@ -130,7 +130,7 @@ components:
     padding: "0 12px"
   badge-needs-you:
     backgroundColor: "{colors.signal-amber}"
-    textColor: "{colors.panel}"
+    textColor: "{colors.ground}"
     rounded: "2px"
     padding: "2px 6px"
 ---
@@ -147,7 +147,7 @@ The system is precise and quiet. Cards are flat panels set off by a hairline; Ge
 
 **Key Characteristics:**
 - Black ground, ink accent for controls, amber reserved for 'waiting on a person'.
-- Status colours (green / amber-brown / red / blue) describe runs and ratings, never the person-must-act state.
+- Status colours (green / yellow / red / blue) describe runs and ratings, never the person-must-act state.
 - Cards are flat: a panel fill and a hairline, no shadow.
 - Geist for titles, figures and reading; Geist Mono for IDs, labels and state; a serif only for quoted source text.
 - Five signature elements carry the identity: the Pixel mark language, the needs-you shape, evidence paper, the Orb and the status rail.
@@ -185,7 +185,7 @@ An ink-on-black palette with one reserved signal and a small set of status colou
 
 ### Neutral
 - **Ground** (`--bg`: #000000): the page.
-- **Panel** (`--panel`: #0b0c0f): cards, tables, inputs. A card is set off from the ground by its hairline; there is no card shadow.
+- **Panel** (`--panel`: #0b0c0f; `--panel-2`: #101217): cards, tables, inputs. A card is set off from the ground by its hairline; there is no card shadow (`--panel-2` is used only as the subtle top stop of start-page and process-panel fills). `--sidebar-bg` (#050506) is kept for dark workbench panel headers; there is no app sidebar.
 - **Hairline** (`--panel-border`: white at 10%): every border and divider; white at 18% (`--panel-border-strong`) is the hover edge.
 - **Field Border** (#6d7889): the edge of form fields only; it clears 3:1 on the field and the page (WCAG 1.4.11), which the hairline does not.
 - **Well** (#101217): recessed areas, disabled controls, hover rows, the Ask panel's header and form.
@@ -199,7 +199,7 @@ An ink-on-black palette with one reserved signal and a small set of status colou
 
 **The Orb Colour Rule.** The Orb is gold and morphs through ice, ember and mint. These four colours live only inside the Orb's canvas and its phase label. They carry no meaning: they are not status and not the signal. Nothing outside the Orb may use them, and the Orb never uses `--hi`.
 
-**Provenance Is Not Status.** Where a number came from (live, synthetic sample, portfolio holdings, not built) is shown with neutral marks: filled, half, ring, dashed ring. Metric numbers are ink. Green, amber-brown and red stay for status.
+**Provenance Is Not Status.** Where a number came from (live, synthetic sample, portfolio holdings, not built) is shown with neutral marks: filled, half, ring, dashed ring. Metric numbers are ink. Green, yellow and red stay for status.
 
 **The Status Is Not The Signal Rule.** Status colours describe runs and ratings. Red marks a failed run and also a Low (L) rating on Transition Barriers; that second use is a deliberate, confirmed exception, because the matrix reads as a traffic light. It never marks something waiting on a person.
 
@@ -279,8 +279,8 @@ Source excerpts are shown as a sheet of paper.
 - Serif 16px / 1.6 on `--paper` (a light sheet on the black page), with a hairline and `--r-sm` corners.
 - The cited span gets the paper's amber highlighter mark (`--paper-mark`).
 
-### Lineage Trail
-Where a value's history matters, a four-step trail shows source → extracted → reviewed → published: accent squares for done steps, amber for waiting on a person, red for a conflict, blue for running, hollow for not reached.
+### Lineage Trail *(Pixel Mark provenance pattern)*
+Where a value's history matters, a four-step trail built from the Pixel Mark Language shows source → extracted → reviewed → published: accent squares for done steps, amber for waiting on a person, red for a conflict, blue for running, hollow for not reached.
 
 ### The Orb
 The visual for ARP's agents: a gold holographic sphere whose parts turn in steps, fold and lock. It appears on the landing page, the start page, a workspace's Ask ARP card and the Agent screen, once per page. Hover previews the next colour, a click transforms it. Without WebGL, under reduced motion or on a slow GPU it is a still picture. Never draw streams into or out of it.

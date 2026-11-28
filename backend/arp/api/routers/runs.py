@@ -114,7 +114,7 @@ async def resume_run_endpoint(
     registry: DocumentSourceRegistry = Depends(get_registry),
 ) -> dict:
     """Continues a killed, failed or cancelled run of any batch run type in
-    the background (see arp.job_runtime.jobs.resume_run)."""
+    the background (see arp.orchestration.jobs.resume_run)."""
     if run_store.load_manifest(run_id) is None:
         raise HTTPException(404, "Run not found")
     try:
