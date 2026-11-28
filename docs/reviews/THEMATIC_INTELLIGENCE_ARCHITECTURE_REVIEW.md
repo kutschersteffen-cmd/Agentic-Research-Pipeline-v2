@@ -4,8 +4,8 @@ Dieses Dokument bewertet die vorgeschlagene Zielarchitektur (sieben Layer,
 Postgres/pgvector, Temporal, L4a/L4b/L5/L6/L7) gegen den tatsächlichen Stand
 dieses Repos. Kernbefund vorweg: **der überwiegende Teil der Zielarchitektur
 ist bereits gebaut** — nicht als Prototyp, sondern als lauffähiges System
-(`backend/arp/`, s. [`README.md`](../README.md),
-[`docs/METHODOLOGY.md`](METHODOLOGY.md)) mit CLI, API und Frontend. Die
+(`backend/arp/`, s. [`README.md`](../../README.md),
+[`docs/METHODOLOGY.md`](../METHODOLOGY.md)) mit CLI, API und Frontend. Die
 Analyse ist deshalb kein Bewertung "gut geplant vs. ungeplant", sondern ein
 Abgleich: welche Entscheidungen des Vorschlags decken sich mit dem
 Ist-Zustand, wo geht die bestehende Implementierung über den Vorschlag
