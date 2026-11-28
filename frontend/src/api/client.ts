@@ -1,5 +1,6 @@
 import { plainDetail } from "../lib/setupErrors";
 import { clearToken, getToken } from "../lib/auth";
+import { typedApi, unwrap } from "./typedClient";
 import type { Plan } from "../lib/plans";
 import type { Board, BoardBlock } from "../lib/board";
 import { filenameFromDisposition, inlineSafe } from "../lib/files";
@@ -297,7 +298,7 @@ export const api = {
   rfpExportUrl: (id: number) => `${API_BASE}/api/rfp/projects/${id}/export`,
   listReviewItems: (runId?: string) =>
     request<{ items: ReviewItem[] }>(`/api/review/items${runId ? `?run_id=${encodeURIComponent(runId)}` : ""}`),
-  getWaiting: () => request<WaitingCounts>("/api/waiting"),
+  getWaiting: () => typedApi.GET("/api/waiting").then((r) => unwrap(r) as unknown as WaitingCounts),
   getItemContext: (runId: string, itemKey: string) =>
     request<ItemContext>(`/api/review/runs/${encodeURIComponent(runId)}/items/${encodeURIComponent(itemKey)}/context`),
   getWalkthrough: (runId: string, companyId: string, q: { item: string; period_end?: string; basis?: string }) =>
@@ -372,7 +373,7 @@ export const api = {
     }),
   esgTemplateUrl: (format: string) => `${API_BASE}/api/portfolio/esg/template${buildQuery({ format })}`,
 
-  getMe: () => request<Me>("/api/me"),
+  getMe: () => typedApi.GET("/api/me").then((r) => unwrap(r) as unknown as Me),
 
   // Search
   searchAll: (q: string, types?: string[], limit?: number) =>

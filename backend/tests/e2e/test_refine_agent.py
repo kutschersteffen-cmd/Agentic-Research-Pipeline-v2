@@ -79,6 +79,7 @@ def test_picker_opens_an_empty_deck_thread(page, api):  # AC-62, AC-62b, AC-62c,
     page.goto(f"{URL}/#/agent")
     page.get_by_role("button", name="Refine a document").click()
     page.wait_for_url("**/#/agent/refine")
+    page.get_by_role("list", name="RFP responses").wait_for()
     assert page.get_by_role("list", name="RFP responses").get_by_role("link").all_inner_texts() == ["RFP: Nordic Pension Fund"]
     assert page.get_by_role("list", name="Decks").get_by_role("link").all_inner_texts() == ["Deck: Climate review"]
     page.get_by_role("link", name="Deck: Climate review").click()
