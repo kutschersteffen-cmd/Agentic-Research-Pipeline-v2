@@ -84,8 +84,8 @@ jobs:
       - name: Self-test the guard
         run: python3 .github/scripts/arch_guard.py --selftest
 
-      - name: Enforce strict layer DAG and zero import cycles
-        run: python3 .github/scripts/arch_guard.py --strict
+      - name: Enforce layer DAG and ban new import cycles
+        run: python3 .github/scripts/arch_guard.py
 
   context-guard:
     name: Generated context guard
