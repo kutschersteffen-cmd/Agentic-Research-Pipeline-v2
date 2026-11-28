@@ -9,7 +9,7 @@ from arp.schemas.transition_barrier import (
     RegistrySource,
 )
 from arp.storage.run_store import RunStore
-from arp.transition_barrier.data_files import (  # noqa: F401
+from arp.transition_data.data_files import (  # noqa: F401
     check_rule_book,
     data_dir,
     load_criteria,

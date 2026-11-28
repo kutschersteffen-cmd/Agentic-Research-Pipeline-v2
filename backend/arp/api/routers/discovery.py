@@ -12,7 +12,7 @@ from arp.db.session import require_dsn
 from arp.discovery.change_detector import ChangeDetector
 from arp.discovery.pipeline import create_discovery_run, execute_discovery_run
 from arp.discovery.scheduler import DiscoveryScheduler
-from arp.orchestration.job_manager import JobManager
+from arp.job_runtime.job_manager import JobManager
 from arp.schemas.common import CompanyRef, DocType
 from arp.schemas.discovery import DiscoveryScheduleConfig
 from arp.storage.run_store import RunStore

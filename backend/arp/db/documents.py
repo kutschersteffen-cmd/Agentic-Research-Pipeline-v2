@@ -15,11 +15,11 @@ from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
+from arp.core.safe_path import safe_id
 from arp.db.companies import ensure_universe_company, lookup
 from arp.db.models import Document, IdScheme
 from arp.db.session import transaction
 from arp.schemas.common import new_id
-from arp.storage.safe_path import safe_id
 
 logger = logging.getLogger(__name__)
 

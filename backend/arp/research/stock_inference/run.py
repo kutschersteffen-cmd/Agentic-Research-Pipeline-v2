@@ -11,7 +11,7 @@ from arp.config import Settings
 from arp.extraction.pipeline import _extract_company
 from arp.ingestion.local_files import parse_file_to_text
 from arp.ingestion.registry import DocumentSourceRegistry
-from arp.orchestration.job_manager import JobManager
+from arp.job_runtime.job_manager import JobManager
 from arp.research.stock_inference.clusters import build_clusters, cluster_points
 from arp.research.stock_inference.index_rules import stated_index_rules
 from arp.research.stock_inference.profile import description_chunks, discover_missing, profile_all

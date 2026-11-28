@@ -46,7 +46,7 @@ FactAction = Literal["insert", "supersede", "noop", "keep", "conflict"]
 
 
 def _same(a, b) -> bool:
-    from arp.review.state import same_value
+    from arp.core.review_state import same_value
 
     if isinstance(a, dict | list) or isinstance(b, dict | list):
         return a == b
@@ -462,7 +462,7 @@ def apply_review(
     needs one), the facts behind it take it (`apply_decision` decides which).
     Until then they stay as they are. `*_upto` (row ids) replay the item as it stood then, `at`
     dates the fact change (default: now)."""
-    from arp.review.state import FINAL_STATES, cosign_rule, item_state
+    from arp.core.review_state import FINAL_STATES, cosign_rule, item_state
 
     item = session.scalar(select(ReviewItem).where(ReviewItem.run_id == run_id, ReviewItem.item_key == item_key))
     if item is None:

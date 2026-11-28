@@ -12,10 +12,10 @@ import pytest
 from arp.extraction.field_graph import field_evidence, merge_evidence
 from arp.golden_set.runner import load_cases
 from arp.ingestion.local_files import parser_version
+from arp.job_runtime import trace
 from arp.review.quality import _record, seed_known_answers
 from arp.schemas.common import CompanyRef, SourceDocument
 from arp.schemas.datapoints import DataPointSchema
-from arp.walkthrough import trace
 from tests.test_review_quality import qenv  # noqa: F401, F811 - fixture
 
 pytestmark = pytest.mark.usefixtures("pg")

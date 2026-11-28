@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import re
 
-from arp.ingestion.doc_identity import reporting_year
+from arp.db.doc_identity import reporting_year
 from arp.normalise.period import resolve_period
 from arp.schemas.common import PeriodPlan, SourceDocument
 

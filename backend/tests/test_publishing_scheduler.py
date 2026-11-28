@@ -8,9 +8,9 @@ from datetime import date
 import pytest
 
 from arp.config import Settings
-from arp.publish import scheduler as S
+from arp.orchestration import publishing_scheduler as S
+from arp.orchestration.publishing_scheduler import PublishingScheduleConfig, PublishingScheduler, due_jobs
 from arp.publish.facts import Fact
-from arp.publish.scheduler import PublishingScheduleConfig, PublishingScheduler, due_jobs
 from arp.schemas.common import Citation
 from arp.storage.document_blob_store import LocalBlobStore
 from arp.storage.document_store import DocumentContentStore

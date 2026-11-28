@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from arp.api.deps import get_llm_client, get_run_store, get_taxonomy_store, get_web_search_client, settings_dep
 from arp.config import Settings
-from arp.orchestration.jobs import get_job_launcher
+from arp.job_runtime.jobs import get_job_launcher
 from arp.research.authority_taxonomy import run
 from arp.research.indirect_exposure.factory import resolve_indirect_exposure_model
 from arp.schemas.thematic import ThemeDefinition

@@ -14,14 +14,14 @@ from arp.discovery.doc_check import check_document
 from arp.net_safety import UnsafeURLError, ssrf_guard_request_hook
 from arp.schemas.common import CompanyRef, now_iso
 from arp.schemas.discovery import CaptureRecord, DiscoveredDocument
+from arp.storage.capture_log import CAPTURE_LOG, latest_capture  # noqa: F401
 from arp.storage.document_blob_store import CaptureStoreError, upload_or_fail
-from arp.storage.jsonl_io import append_jsonl, read_jsonl
+from arp.storage.jsonl_io import append_jsonl
 from arp.storage.locks import KeyedLock
 from arp.storage.safe_path import UnsafeIdentifierError, safe_id
 
 logger = logging.getLogger(__name__)
 
-CAPTURE_LOG = "_captures.jsonl"
 _capture_locks = KeyedLock(lock_path=lambda log: Path(log + ".lock"))
 
 
@@ -29,15 +29,6 @@ def append_capture(documents_dir: Path, record: CaptureRecord) -> None:
     log = documents_dir / CAPTURE_LOG
     with _capture_locks.acquire(str(log)):
         append_jsonl(log, record.model_dump())
-
-
-def latest_capture(documents_dir: Path, content_key: str) -> CaptureRecord | None:
-    # ponytail: linear scan of the capture log, index by content_key if it grows past ~100k rows
-    log = documents_dir / CAPTURE_LOG
-    if not log.exists():
-        return None
-    rows = [r for r in read_jsonl(log) if r.get("content_key") == content_key]
-    return CaptureRecord(**rows[-1]) if rows else None
 
 _EXT_BY_CONTENT_TYPE = {
     "application/pdf": ".pdf",

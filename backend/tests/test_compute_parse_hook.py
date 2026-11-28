@@ -1,6 +1,6 @@
 import pytest
 
-from arp.compute import client as compute_client
+from arp import compute_client
 from arp.ingestion import local_files
 from arp.ingestion.local_files import parse_file_to_text_with_pages, parser_version
 from arp.storage.document_store import DocumentContentStore

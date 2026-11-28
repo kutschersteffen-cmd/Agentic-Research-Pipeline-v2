@@ -60,10 +60,10 @@ def test_require_cutover_schema_gate(monkeypatch):
     from arp.db.session import require_cutover
 
     settings = SimpleNamespace(postgres_dsn=DSN, skip_cutover_check=False)
-    monkeypatch.setattr("arp.storage.postgres_schema.schema_gaps", lambda _dsn: ([], [], []))
+    monkeypatch.setattr("arp.db.postgres_schema.schema_gaps", lambda _dsn: ([], [], []))
     require_cutover(settings)  # current schema passes
 
-    monkeypatch.setattr("arp.storage.postgres_schema.schema_gaps", lambda _dsn: (["runs"], [], ["step1"]))
+    monkeypatch.setattr("arp.db.postgres_schema.schema_gaps", lambda _dsn: (["runs"], [], ["step1"]))
     with pytest.raises(RuntimeError, match="arp db upgrade.*arp db init-postgres"):
         require_cutover(settings)
 

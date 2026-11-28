@@ -1,6 +1,7 @@
 """Registers the layer 2-5 checks on runner.LAYERS (layer 1 lives in runner.py)."""
 
 from arp.checks import runner
+from arp.checks.action_check import check_action_id
 from arp.checks.consistency import check_entity, check_period
 from arp.checks.cross_source import check_cross_source
 from arp.checks.numeric import check_caption_scale, check_number_in_span, check_row_label
@@ -16,7 +17,6 @@ from arp.checks.plausibility import (
 )
 from arp.checks.prior_period import check_comparative_jump, check_last_decided, check_last_rejected
 from arp.checks.round_trip import check_round_trip
-from arp.transition_alignment.action_check import check_action_id
 
 runner.LAYERS[1] = [runner.check_format, check_action_id]
 runner.LAYERS[2] = [check_number_in_span, check_caption_scale, check_row_label]

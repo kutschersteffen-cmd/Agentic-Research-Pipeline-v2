@@ -10,10 +10,10 @@ import json
 import shutil
 from datetime import date
 
+from arp.db.source_loads import LoadRecord, record_load
 from arp.errors import ClientInputError
 from arp.holdings.file_source import Mapping, read_rows
 from arp.holdings.validate import RowError, isin_is_valid, iso_date
-from arp.portfolio.loads import LoadRecord, record_load
 from arp.schemas.common import CompanyRef, now_iso
 from arp.schemas.issuer import IdentifierMap, lei_is_valid, normalise_lei
 from arp.storage.atomic_io import atomic_write_text

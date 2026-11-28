@@ -11,7 +11,7 @@ from arp.emerging_themes.pipeline import run_emerging_themes
 from arp.ingestion.edgar import EdgarDocumentSource
 from arp.ingestion.xbrl import XbrlFactSource
 from arp.llm.base import LLMClient
-from arp.orchestration.interval_scheduler import IntervalScheduler
+from arp.platform.interval_scheduler import IntervalScheduler
 from arp.retrieval.content_store_factory import content_store_for
 from arp.schemas.emerging_themes import EmergingThemesScheduleConfig
 from arp.storage.run_store import RunStore

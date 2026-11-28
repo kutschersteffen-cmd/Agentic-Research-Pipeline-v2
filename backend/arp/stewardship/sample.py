@@ -22,7 +22,7 @@ def vote_items(runs_dir: Path | None = None, house_issuers: list[dict] | None = 
 def portfolio_alerts() -> list:
     """Every Risk Monitoring alert, current status folded in."""
     from arp.config import get_settings
-    from arp.portfolio.monitoring.evaluator import list_alerts
+    from arp.storage.alert_queries import list_alerts
     from arp.storage.portfolio_store_factory import build_portfolio_store
 
     return list_alerts(build_portfolio_store(get_settings()))

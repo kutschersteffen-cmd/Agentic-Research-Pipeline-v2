@@ -1,0 +1,167 @@
+from __future__ import annotations
+
+import hashlib
+import json
+from collections.abc import Iterable, Iterator
+from pathlib import Path
+
+from arp.schemas.common import now_iso
+from arp.storage.atomic_io import atomic_write_bytes, atomic_write_text
+from arp.storage.jsonl_io import read_jsonl
+from arp.storage.safe_path import safe_id
+from arp.storage.xbrl_models import CatalogEntry, FactRow, Market, ReportMeta, RequiredRow, SegmentRow
+
+_FILES = {"facts": "facts.jsonl", "required": "required.jsonl", "catalog": "catalog.jsonl",
+          "segments": "segments.jsonl"}
+_NOTE = "segment_note.txt"
+
+
+class XbrlStore:
+    """Files under root: <cik10>/{companyfacts-<sha16>.json, meta.json, facts.jsonl, ...}."""
+
+    def __init__(self, root: Path) -> None:
+        self.root = Path(root)
+
+    @property
+    def selections_dir(self) -> Path:
+        return self.root / "selections"
+
+    @property
+    def taxonomy_dir(self) -> Path:
+        return self.root / "taxonomy"
+
+    def company_dir(self, cik10: str) -> Path:
+        return self.root / safe_id(cik10, label="cik")
+
+    def ciks(self) -> list[str]:
+        if not self.root.exists():
+            return []
+        return sorted(p.name for p in self.root.iterdir() if p.is_dir() and (p / "meta.json").exists())
+
+    def save_original(self, cik10: str, raw: bytes, *, prefix: str = "companyfacts") -> str:
+        sha = hashlib.sha256(raw).hexdigest()
+        path = self.company_dir(cik10) / f"{prefix}-{sha[:16]}.json"
+        if not path.exists():
+            atomic_write_bytes(path, raw)
+        return sha
+
+    def meta(self, cik10: str) -> dict | None:
+        path = self.company_dir(cik10) / "meta.json"
+        return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
+
+    def company_ids(self, cik10: str) -> list[str]:
+        """Every company_id that fetched this CIK, first fetch first."""
+        meta = self.meta(cik10) or {}
+        return meta.get("company_ids") or ([meta["company_id"]] if meta.get("company_id") else [])
+
+    def set_meta(self, cik10: str, *, source_sha: str, tags: list[str] | None, company_id: str,
+                 company_name: str | None, fact_count: int, market: Market = "sec",
+                 original_file: str | None = None, skipped_dimensional: int = 0,
+                 filing: dict | None = None) -> None:
+        ids = list(dict.fromkeys([*self.company_ids(cik10), company_id]))
+        meta = {"source_sha": source_sha, "tags": tags, "company_id": company_id, "company_ids": ids,
+                "company_name": company_name, "fact_count": fact_count, "fetched_at": now_iso(), "market": market,
+                "original_file": original_file or f"companyfacts-{source_sha[:16]}.json",
+                "skipped_dimensional": skipped_dimensional}
+        if filing is not None:
+            meta["filing"] = filing
+        atomic_write_text(self.company_dir(cik10) / "meta.json", json.dumps(meta, indent=2))
+
+    def update_meta(self, cik10: str, **fields) -> None:
+        """Add fields to the existing meta.json (set_meta rewrites it whole)."""
+        meta = {**(self.meta(cik10) or {}), **fields}
+        atomic_write_text(self.company_dir(cik10) / "meta.json", json.dumps(meta, indent=2))
+
+    def add_company_id(self, cik10: str, company_id: str) -> None:
+        """Meta-only write: another company_id maps to an already stored CIK."""
+        meta = self.meta(cik10) or {}
+        ids = self.company_ids(cik10)
+        if company_id not in ids:
+            meta["company_ids"] = [*ids, company_id]
+            atomic_write_text(self.company_dir(cik10) / "meta.json", json.dumps(meta, indent=2))
+
+    def _original_path(self, cik10: str) -> Path | None:
+        meta = self.meta(cik10)
+        if not meta:
+            return None
+        name = meta.get("original_file") or f"companyfacts-{meta['source_sha'][:16]}.json"
+        path = self.company_dir(cik10) / name
+        return path if path.exists() else None
+
+    def original(self, cik10: str) -> dict | None:
+        path = self._original_path(cik10)
+        return json.loads(path.read_text(encoding="utf-8")) if path else None
+
+    def save_report(self, cik10: str, content: bytes, meta: ReportMeta) -> Path:
+        if Path(meta.filename).name != meta.filename:
+            raise ValueError(f"report filename must be a bare file name: {meta.filename!r}")
+        d = self.company_dir(cik10)
+        path = d / meta.filename
+        atomic_write_bytes(path, content)
+        atomic_write_text(d / "report.json", meta.model_dump_json(indent=2))
+        return path
+
+    def save_labels(self, cik10: str, accession: str, content: bytes) -> Path:
+        path = self.company_dir(cik10) / f"labels-{safe_id(accession, label='accession')}.xml"
+        atomic_write_bytes(path, content)
+        return path
+
+    def report_meta(self, cik10: str) -> ReportMeta | None:
+        path = self.company_dir(cik10) / "report.json"
+        return ReportMeta.model_validate_json(path.read_text(encoding="utf-8")) if path.exists() else None
+
+    def _write(self, cik10: str, name: str, rows: Iterable) -> int:
+        lines = [r.model_dump_json() for r in rows]
+        atomic_write_text(self.company_dir(cik10) / name, "".join(line + "\n" for line in lines))
+        return len(lines)
+
+    def write_facts(self, cik10: str, rows: Iterable[FactRow]) -> int:
+        return self._write(cik10, _FILES["facts"], rows)
+
+    def read_facts(self, cik10: str) -> Iterator[FactRow]:
+        for r in read_jsonl(self.company_dir(cik10) / _FILES["facts"]):
+            yield FactRow.model_validate(r)
+
+    def write_catalog(self, cik10: str, entries: Iterable[CatalogEntry]) -> None:
+        self._write(cik10, _FILES["catalog"], entries)
+
+    def read_catalog(self, cik10: str) -> list[CatalogEntry]:
+        return [CatalogEntry.model_validate(r) for r in read_jsonl(self.company_dir(cik10) / _FILES["catalog"])]
+
+    def write_required(self, cik10: str, rows: Iterable[RequiredRow]) -> None:
+        self._write(cik10, _FILES["required"], rows)
+
+    def read_required(self, cik10: str) -> list[RequiredRow]:
+        return [RequiredRow.model_validate(r) for r in read_jsonl(self.company_dir(cik10) / _FILES["required"])]
+
+    def write_segments(self, cik10: str, rows: Iterable[SegmentRow]) -> int:
+        return self._write(cik10, _FILES["segments"], rows)
+
+    def read_segments(self, cik10: str) -> list[SegmentRow]:
+        return [SegmentRow.model_validate(r) for r in read_jsonl(self.company_dir(cik10) / _FILES["segments"])]
+
+    def write_segment_note(self, cik10: str, text: str | None) -> None:
+        path = self.company_dir(cik10) / _NOTE
+        if text is None:
+            path.unlink(missing_ok=True)
+        else:
+            atomic_write_text(path, text)
+
+    def read_segment_note(self, cik10: str) -> str | None:
+        path = self.company_dir(cik10) / _NOTE
+        return path.read_text(encoding="utf-8") if path.exists() else None
+
+    def file_path(self, cik10: str, kind: str) -> Path | None:
+        if kind == "original":
+            return self._original_path(cik10)
+        if kind == "report":
+            meta = self.report_meta(cik10)
+            path = self.company_dir(cik10) / meta.filename if meta else None
+        elif kind == "labels":
+            meta = self.report_meta(cik10)
+            path = self.company_dir(cik10) / f"labels-{meta.accession}.xml" if meta else None
+        elif kind in _FILES:
+            path = self.company_dir(cik10) / _FILES[kind]
+        else:
+            raise KeyError(kind)
+        return path if path and path.exists() else None

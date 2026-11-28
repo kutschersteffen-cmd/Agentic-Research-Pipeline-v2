@@ -3,7 +3,7 @@
 The shape is read from the compiled per-item LangGraph itself, so the
 diagram cannot drift from what runs. Around it sit the two company-level
 steps every profile shares: the company record the items are assembled
-into, and the rules step (arp.orchestration.batch_runner).
+into, and the rules step (arp.job_runtime.batch_runner).
 
 `StepSettings` are the per-run knobs a node exposes; a run started with
 some applies them over the app's settings (see `apply`).

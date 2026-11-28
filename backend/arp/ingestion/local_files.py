@@ -10,7 +10,7 @@ from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _pkg_version
 from pathlib import Path
 
-from arp.compute import client as compute_client
+import arp.compute_client as compute_client
 from arp.config import get_settings
 from arp.ingestion import esef
 from arp.ingestion.base import DocumentSource
@@ -365,7 +365,7 @@ class LocalFileDocumentSource(DocumentSource):
         """Blocking, serial identity assignment after the concurrent parse, in a
         deterministic order so version numbers never depend on parse timing:
         known published_at ascending, originals before corrections, then path."""
-        from arp.discovery.downloader import latest_capture
+        from arp.storage.capture_log import latest_capture
 
         keyed = []
         for file_path, doc_type, doc in items:

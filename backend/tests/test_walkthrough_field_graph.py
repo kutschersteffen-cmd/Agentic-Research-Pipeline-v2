@@ -298,7 +298,7 @@ async def test_timing_changes_no_value(fake_llm):  # AC-6
 
 
 async def test_tally_counts_unchanged_by_the_sink(fake_llm, monkeypatch):  # AC-2
-    from arp.orchestration import step_tally
+    from arp.job_runtime import step_tally
 
     def counted(sink):
         tally = step_tally._Tally()
@@ -315,7 +315,7 @@ async def test_tally_counts_unchanged_by_the_sink(fake_llm, monkeypatch):  # AC-
 async def test_a_node_run_twice_adds_up(monkeypatch):  # AC-19
     import pytest
 
-    from arp.orchestration import step_tally
+    from arp.job_runtime import step_tally
     from arp.walkthrough.trace import field_entry
 
     class Graph:

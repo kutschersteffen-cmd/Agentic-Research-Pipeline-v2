@@ -13,7 +13,7 @@ from collections.abc import Awaitable, Callable
 import httpx
 from pydantic import BaseModel
 
-from arp.compute.client import _auth, last_error, models_configured, parse_configured
+from arp.compute_client import _auth, last_error, models_configured, parse_configured
 from arp.config import Settings
 from arp.db.session import require_cutover, require_postgres
 from arp.llm.factory import build_llm_client

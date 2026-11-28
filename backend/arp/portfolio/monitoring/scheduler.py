@@ -4,7 +4,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 
 from arp.config import Settings
-from arp.orchestration.interval_scheduler import IntervalScheduler
+from arp.platform.interval_scheduler import IntervalScheduler
 from arp.portfolio.climate.esg_api_source import pull_esg
 from arp.portfolio.loads import latest_load
 from arp.portfolio.monitoring.evaluator import evaluate_news_triggers, evaluate_threshold_rules

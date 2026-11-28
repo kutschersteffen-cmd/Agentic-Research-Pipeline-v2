@@ -5,9 +5,13 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from arp.discovery.site_check import SiteCheck
 from arp.schemas.common import DocType, new_id, now_iso
 from arp.schemas.review import ReasonCode
+
+
+class SiteCheck(BaseModel):
+    verdict: Literal["owned", "unclear", "rejected"]
+    evidence: list[str]
 
 
 class DocumentEventType(StrEnum):
@@ -165,7 +169,7 @@ class IdentityAdjudication(BaseModel):
 class IdentityResolutionResult(BaseModel):
     """Persisted result of resolving one company: written to the identity
     run's results.jsonl, and -- when flagged_for_review -- also queued via
-    arp.orchestration.review_queue.queue_for_review."""
+    arp.job_runtime.review_queue.queue_for_review."""
 
     company_id: str
     input_name: str

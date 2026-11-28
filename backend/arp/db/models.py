@@ -34,7 +34,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
-from arp.storage.postgres_models import Base
+from arp.db.postgres_models import Base
 
 
 class IdScheme(StrEnum):
@@ -812,4 +812,4 @@ class AppDocument(Base):
 
 
 import arp.db.agent_models  # noqa: E402,F401  (registers the explorations and agent board tables on Base)
-import arp.orchestration.plan_models  # noqa: E402,F401  (registers the research plan tables on Base)
+import arp.db.plan_models  # noqa: E402,F401  (registers the research plan tables on Base)

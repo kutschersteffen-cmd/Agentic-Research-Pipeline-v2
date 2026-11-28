@@ -4,8 +4,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from arp import compute_client as client
 from arp import models
-from arp.compute import client
 from arp.models import local
 from arp.retrieval import embeddings, rerank
 from tests.models import make_main_fixture

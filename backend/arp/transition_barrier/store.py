@@ -11,7 +11,7 @@ from sqlalchemy.dialects.postgresql import insert
 from arp.config import get_settings
 from arp.db.models import BarrierChoice, BarrierDocument, BarrierExtraction, BarrierFact, BarrierSourceDocument
 from arp.db.session import transaction
-from arp.ingestion.indexing_config import IndexingConfig
+from arp.platform.storage.indexing_config import IndexingConfig
 from arp.schemas.transition_barrier import PrimarySource
 from arp.storage.document_blob_store import blob_store_for, upload_or_fail
 from arp.transition_barrier import clock

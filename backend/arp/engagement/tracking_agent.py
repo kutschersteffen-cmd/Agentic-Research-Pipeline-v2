@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import Any
 
 from arp.schemas.engagement import (
     Commitment,
-    CommitmentStatus,
     CorrespondenceEntry,
     EngagementRecord,
-    IssueStatus,
     MilestoneStage,
 )
 
@@ -64,37 +61,9 @@ def log_meeting_summary_validated(
     return store.set_milestone_stage(company_id, issue_id, stage, reason=reason, forward_only=True)
 
 
-EVIDENCE_MSG = "Evidence is required to verify a commitment."
-
-
-class MissingEvidence(ValueError):
-    pass
-
-
-def check_evidence(record: EngagementRecord | None, issue_id: str, commitment_id: str, evidence: str | None) -> None:
-    """Raises MissingEvidence for a blank `evidence`, or for none on a commitment whose target date is
-    after today (UTC). A missing one on a due or undated commitment passes (spec showcase-stewardship-fixes B2)."""
-    if evidence is not None:
-        if not evidence.strip():
-            raise MissingEvidence(EVIDENCE_MSG)
-        return
-    issue = next((i for i in record.issues if i.issue_id == issue_id), None) if record else None
-    commitment = next((c for c in issue.commitments if c.commitment_id == commitment_id), None) if issue else None
-    if commitment and commitment.target_date and commitment.target_date[:10] > datetime.now(UTC).date().isoformat():
-        raise MissingEvidence(EVIDENCE_MSG)
-
-
-def log_commitment_verified(
-    store: EngagementStore, company_id: str, issue_id: str, commitment_id: str, verified_by: str, evidence: str | None = None
-) -> EngagementRecord:
-    check_evidence(store.get(company_id), issue_id, commitment_id, evidence)
-    record = store.update_commitment_status(
-        company_id, issue_id, commitment_id, CommitmentStatus.VERIFIED, verified_by, evidence
-    )
-    issue = next(i for i in record.issues if i.issue_id == issue_id)
-    if issue.commitments and all(c.status == CommitmentStatus.VERIFIED for c in issue.commitments):
-        record = store.set_milestone_stage(
-            company_id, issue_id, MilestoneStage.COMMITMENT_VERIFIED, reason="All commitments verified."
-        )
-        record = store.set_issue_status(company_id, issue_id, IssueStatus.RESOLVED)
-    return record
+from arp.schemas.engagement import (  # noqa: E402, F401
+    EVIDENCE_MSG,
+    MissingEvidence,
+    check_evidence,
+    log_commitment_verified,
+)

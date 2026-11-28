@@ -277,7 +277,7 @@ def parse_ixbrl_dimensional(xhtml: bytes) -> tuple[list[EsefFact], list[DimFact]
 
 def parse_package(data: bytes) -> tuple[str, list[EsefFact]]:
     """An ESEF report package (zip): parse_ixbrl of its largest reports/*.xhtml."""
-    from arp.holdings.file_source import _check_zip
+    from arp.core.zip_guard import _check_zip
 
     _check_zip(data)  # the holdings intake's decompressed-size cap: a zip bomb raises ValueError
     with zipfile.ZipFile(io.BytesIO(data)) as z:

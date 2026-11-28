@@ -5,10 +5,10 @@ from collections.abc import Callable
 
 from arp.config import Settings
 from arp.discovery.site_finder import WebSearchClient
+from arp.job_runtime.batch_runner import run_batch, run_sinks
+from arp.job_runtime.job_manager import JobManager
 from arp.llm.base import LLMClient
-from arp.orchestration.batch_runner import run_batch, run_sinks
-from arp.orchestration.interval_scheduler import IntervalScheduler
-from arp.orchestration.job_manager import JobManager
+from arp.platform.interval_scheduler import IntervalScheduler
 from arp.research.taxonomy_sources.authority import build_theme_from_authority_sources
 from arp.research.taxonomy_sources.compare import merge_taxonomies
 from arp.research.taxonomy_sources.discovery import discover_authority_sources, rank_authority_sources

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from arp.checks.numeric import NUMERIC_TYPES, parse_number
 from arp.golden_set.schema import ExpectedValue, RecordGoldenCase
-from arp.orchestration.review_queue import FINAL_STATES, item_state
+from arp.job_runtime.review_queue import FINAL_STATES, item_state
 from arp.schemas.common import CompanyRef
 from arp.schemas.datapoints import DataPointSchema, FieldDataType, ValueState
 from arp.schemas.review import DecisionKind, DecisionReason, ReviewDecision, field_item_key, period_key

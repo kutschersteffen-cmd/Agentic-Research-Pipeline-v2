@@ -69,7 +69,7 @@ def check_intake(path: Path, content_key: str, *, seen: dict[str, str]) -> Intak
         try:
             ok = zipfile.is_zipfile(path)
             if ok and suffix == ".zip":
-                from arp.holdings.file_source import _check_zip
+                from arp.core.zip_guard import _check_zip
 
                 _check_zip(path.read_bytes())  # before testzip() inflates every member
             if ok:

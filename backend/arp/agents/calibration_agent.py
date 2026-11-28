@@ -6,8 +6,8 @@ from datetime import UTC, datetime
 
 from arp.config import Settings
 from arp.ingestion.registry import DocumentSourceRegistry
-from arp.orchestration.interval_scheduler import IntervalScheduler
-from arp.orchestration.job_manager import JobManager
+from arp.job_runtime.job_manager import JobManager
+from arp.platform.interval_scheduler import IntervalScheduler
 from arp.research.pipeline import load_theme_run_matches
 from arp.schemas.calibration import CalibrationScheduleConfig, DriftFlag
 from arp.schemas.common import CompanyRef, JobStatus, SourceDocument

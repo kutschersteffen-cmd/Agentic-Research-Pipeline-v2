@@ -7,7 +7,7 @@ from collections.abc import Callable
 
 import numpy as np
 
-from arp.compute import client as compute_client
+import arp.compute_client as compute_client
 from arp.models.registry import entry, model_header
 from arp.retrieval.index_cache import INDEX_CACHE
 from arp.retrieval.rerank import RERANK_KEYS, rerank

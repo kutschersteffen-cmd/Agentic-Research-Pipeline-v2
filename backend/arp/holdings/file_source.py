@@ -5,7 +5,6 @@ import hashlib
 import io
 import json
 import re
-import zipfile
 from pathlib import Path
 from typing import Literal
 
@@ -53,20 +52,10 @@ def _cell(v):
     return v.strip() if isinstance(v, str) else v
 
 
+from arp.core.zip_guard import MAX_RATIO, MAX_UNZIPPED, RATIO_MIN_SIZE, _check_zip  # noqa: E402, F401
+
 MAX_ROWS = 200_000
-MAX_UNZIPPED = 200_000_000
-MAX_RATIO, RATIO_MIN_SIZE = 100, 10_000_000
 MAX_CELL = 10_000
-
-
-def _check_zip(data: bytes) -> None:
-    """openpyxl inflates whatever the archive holds: a 300 KB file can expand to gigabytes."""
-    with zipfile.ZipFile(io.BytesIO(data)) as z:
-        infos = z.infolist()
-    if sum(i.file_size for i in infos) > MAX_UNZIPPED or any(
-        i.file_size > RATIO_MIN_SIZE and i.file_size > MAX_RATIO * max(i.compress_size, 1) for i in infos
-    ):
-        raise ValueError("unreadable file: decompressed size too large")
 
 
 def _records(data: bytes, suffix: str, mapping: Mapping, max_rows: int):

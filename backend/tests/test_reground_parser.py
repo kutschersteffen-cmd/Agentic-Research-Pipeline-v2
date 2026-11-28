@@ -236,8 +236,8 @@ def test_gate_reground_still_works(world):
 def test_daily_job_records_parser_version(world, tmp_path, monkeypatch):
     import asyncio
 
-    import arp.publish.scheduler as S
-    from arp.publish.scheduler import PublishingScheduleConfig, PublishingScheduler
+    import arp.orchestration.publishing_scheduler as S
+    from arp.orchestration.publishing_scheduler import PublishingScheduleConfig, PublishingScheduler
     from arp.storage.portfolio_store import PortfolioStore
 
     run_store, _, new_parser, settings, _, _ = world

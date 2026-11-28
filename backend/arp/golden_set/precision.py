@@ -69,7 +69,7 @@ async def run_precision(
     identifier_map = IdentifierMapStore(settings.identifier_map_path)
     xbrl_source = None
     if settings.xbrl_facts_enabled:
-        from arp.orchestration.jobs import _xbrl_source  # the same construction the CLI and API use
+        from arp.retrieval.registry_factory import _xbrl_source  # the same construction the CLI and API use
 
         xbrl_source = _xbrl_source(settings)
     total = auto = correct = 0

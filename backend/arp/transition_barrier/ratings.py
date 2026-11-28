@@ -6,7 +6,7 @@ from collections import defaultdict
 from datetime import UTC, datetime
 from functools import cached_property
 
-from arp.orchestration.review_queue import FINAL_STATES, item_states
+from arp.job_runtime.review_queue import FINAL_STATES, item_states
 from arp.schemas.common import JobStatus
 from arp.schemas.transition_barrier import BarrierScore
 from arp.storage.run_store import RunStore

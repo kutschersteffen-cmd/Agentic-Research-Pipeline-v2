@@ -13,7 +13,7 @@ from uuid import uuid4
 from pydantic import BaseModel
 
 from arp.emerging_themes.pipeline import load_candidates_with_status
-from arp.orchestration.review_queue import get_review_queue
+from arp.job_runtime.review_queue import get_review_queue
 from arp.schemas.common import CompanyRef, JobStatus, RunManifest, now_iso
 from arp.schemas.emerging_themes import CandidateStatus, ContextBrief
 from arp.schemas.taxonomy import TaxonomyStatus

@@ -11,8 +11,8 @@ from arp.api.dossier_deps import get_dossier_store, get_research_store
 from arp.api.run_scheduling import schedule_llm_run
 from arp.config import Settings
 from arp.discovery.site_finder import SearchUnreachable, build_web_search_client
+from arp.job_runtime.job_manager import JobManager
 from arp.llm.base import LLMClient
-from arp.orchestration.job_manager import JobManager
 from arp.schemas.common import now_iso
 from arp.schemas.taxonomy import Taxonomy, TaxonomyStatus
 from arp.storage.run_store import RunStore

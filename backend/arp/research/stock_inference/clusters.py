@@ -4,10 +4,10 @@ from collections.abc import Callable
 
 import numpy as np
 
-from arp.emerging_themes.clustering import _run_once, _top_terms
 from arp.research.stock_inference.schemas import Cluster
 from arp.retrieval.embeddings import embed_texts
 from arp.schemas.common import DocumentChunk
+from arp.text_clustering import _run_once, _top_terms
 
 _MIN_CLUSTER_SIZE = 3
 

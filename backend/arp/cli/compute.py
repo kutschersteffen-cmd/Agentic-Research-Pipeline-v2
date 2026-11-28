@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import typer
 
-from arp.compute import client
+from arp import compute_client as client
 from arp.config import get_settings
 from arp.ingestion import local_files
 from arp.retrieval import embeddings, rerank

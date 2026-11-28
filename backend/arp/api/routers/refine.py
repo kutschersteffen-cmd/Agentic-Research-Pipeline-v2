@@ -14,7 +14,7 @@ from arp.api.deps import get_reporting_store, get_run_store
 from arp.api.run_scheduling import schedule_llm_run
 from arp.db import models as m
 from arp.db.session import transaction
-from arp.orchestration.job_manager import JobManager
+from arp.job_runtime.job_manager import JobManager
 from arp.refine.agent import run_turn
 from arp.refine.deck_ops import NO_DECK
 from arp.refine.turns import TurnBusy, finish_turn, list_turns, reap_stale_turns, start_turn, turn_out

@@ -14,10 +14,10 @@ from arp.config import Settings
 from arp.db.company_view import known_companies
 from arp.db.session import transaction
 from arp.ingestion.registry import DocumentSourceRegistry
-from arp.orchestration.job_manager import JobManager
-from arp.orchestration.jobs import RunBusy, get_job_launcher, run_lease
+from arp.job_runtime.job_manager import JobManager
+from arp.job_runtime.jobs import RunBusy, get_job_launcher, run_lease
+from arp.job_runtime.review_queue import effective_decisions
 from arp.orchestration.resume import NotResumable, check_resumable, resume_run
-from arp.orchestration.review_queue import effective_decisions
 from arp.research.pipeline import load_theme_run_matches, rank_theme_matches
 from arp.research.results_diff import diff_theme_results
 from arp.schemas.common import JobStatus

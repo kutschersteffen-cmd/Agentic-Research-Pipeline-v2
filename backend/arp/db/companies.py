@@ -11,8 +11,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from arp.db.models import Company, CompanyIdentifier, IdScheme
+from arp.db.postgres_models import Base
 from arp.schemas.common import CompanyRef
-from arp.storage.postgres_models import Base
 
 
 @dataclass
@@ -129,3 +129,21 @@ def merge(session: Session, keep: UUID, drop: UUID) -> None:
         )
     )
     session.flush()
+
+
+def resolve_universe(companies: list[CompanyRef], session) -> tuple[list[CompanyRef], list[dict]]:
+    """Sets `entity_id` on each company via the registry. Identity conflicts are returned (not resolved)."""
+    resolved: list[CompanyRef] = []
+    conflicts: list[dict] = []
+    for c in companies:
+        r = resolve_company(session, c)
+        if r.conflict:
+            conflicts.append({"kind": "identity_conflict", "company_id": c.company_id, "conflict": [str(u) for u in r.conflict]})
+        else:
+            resolved.append(c.model_copy(update={"entity_id": r.company_id}))
+    return resolved, conflicts
+
+
+from arp.schemas.issuer import register_session_resolver  # noqa: E402
+
+register_session_resolver(lambda session, company: resolve_company(session, company).company_id)
